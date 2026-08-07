@@ -20,7 +20,9 @@ export const ApiEndpoints = {
     API_REGISTRY_SAVE: { apiPath: 'system/api-registry/save', actionType: ActionTypes.CREATE },
     API_REGISTRY_SYNC: { apiPath: 'system/api-registry/sync', actionType: ActionTypes.UPDATE },
 
-    // Privilege — used read-only by Access Control's Feature Permissions picker
-    // ahead of the full Privilege module (a later phase).
+    // Privileges
     PRIVILEGE_LIST: { apiPath: 'system/privilege/list', actionType: ActionTypes.SEARCH },
+    PRIVILEGE_SAVE: { apiPath: 'system/privilege/save', actionType: ActionTypes.CREATE },
+    SUB_MENU_LIST: { apiPath: 'system/privilege/sub-menu/list', actionType: ActionTypes.SEARCH },
+    SUB_MENU_SAVE: { apiPath: 'system/privilege/sub-menu/save', actionType: ActionTypes.CREATE },
 } satisfies Record<string, ApiEndpoint>;

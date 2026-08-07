@@ -54,9 +54,14 @@ export const routes: Routes = [
                     import('./pages/access-control/api-registry/api-registry-list.component').then(m => m.ApiRegistryListComponent),
                 data: { public: true },
             },
-            // Privilege, Layout, and License feature routes are added
-            // module-by-module in later phases (see
-            // /home/zahmmed/.claude/plans/dreamy-swimming-bubble.md).
+            {
+                path: 'access-control/privileges',
+                loadComponent: () =>
+                    import('./pages/access-control/privileges/privileges-list.component').then(m => m.PrivilegesListComponent),
+                data: { public: true },
+            },
+            // Layout and License feature routes are added module-by-module
+            // in later phases.
             { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
         ],
     },
