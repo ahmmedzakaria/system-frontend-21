@@ -1,0 +1,19 @@
+:host {
+  display: block;
+}
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--layout-space-2);
+  margin-bottom: var(--layout-space-3);
+
+  h2 {
+    margin: 0;
+    font-size: var(--layout-font-size-xl);
+    font-weight: var(--layout-font-weight-bold);
+    color: var(--text);
+  }
+}

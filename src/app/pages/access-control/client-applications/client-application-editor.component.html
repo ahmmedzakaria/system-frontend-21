@@ -1,0 +1,9 @@
+<div class="page-header">
+    <h2>{{ isEdit ? 'Edit Client Application' : 'New Client Application' }}</h2>
+</div>
+
+@if (!loading()) {
+    <app-dynamic-wizard [steps]="steps()" finishLabel="Save" (submitted)="onSubmit($event)" />
+} @else {
+    <p class="loading-text">Loading…</p>
+}

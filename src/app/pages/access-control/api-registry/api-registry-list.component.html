@@ -1,0 +1,58 @@
+<div class="page-header">
+    <h2>API Registry</h2>
+    <div class="header-actions">
+        <app-button label="New Entry" icon="plus" variant="ghost" (clicked)="openEditor(null)" />
+        <app-button label="Sync from Code" icon="save" [loading]="syncing()" (clicked)="sync()" />
+    </div>
+</div>
+
+@if (syncReport(); as report) {
+    <div class="sync-report">
+        <strong>Sync complete:</strong>
+        {{ report.added }} added, {{ report.changed }} changed, {{ report.unchanged }} unchanged,
+        {{ report.deactivated }} deactivated, {{ report.conflicted }} conflicted.
+        @if (report.conflicts.length) {
+            <ul>
+                @for (conflict of report.conflicts; track conflict) {
+                    <li>{{ conflict }}</li>
+                }
+            </ul>
+        }
+    </div>
+}
+
+<div class="tabs">
+    <button type="button" class="tab" [class.active]="activeTab() === 'registered'" (click)="setTab('registered')">Registered</button>
+    <button type="button" class="tab" [class.active]="activeTab() === 'inventory'" (click)="setTab('inventory')">Inventory</button>
+</div>
+
+<div [hidden]="activeTab() !== 'registered'">
+    <app-dynamic-list
+            #registeredList
+            [columns]="registeredColumns"
+            [loadItems]="loadRegistered"
+            [pageSize]="10"
+            searchPlaceholder="Search by API code or path…"
+            emptyTitle="No registered APIs yet"
+            emptyMessage="Sync from code, or add an entry manually."
+    />
+</div>
+
+<div [hidden]="activeTab() !== 'inventory'">
+    <app-dynamic-list
+            [columns]="inventoryColumns"
+            [loadItems]="loadInventory"
+            [pageSize]="10"
+            searchPlaceholder="Search by API code or path…"
+            emptyTitle="No endpoints found"
+            emptyMessage="The live scan found nothing under com.nexacore."
+    />
+</div>
+
+<app-modal [open]="editorOpen()" title="API Registry Entry" [width]="640" (closed)="closeEditor()">
+    <app-dynamic-form #form="dynamicForm" [fields]="editorFields" [initialValue]="editorInitialValue()" [columns]="2" (submitted)="saveEditor($event)" />
+    <div class="modal-actions">
+        <app-button label="Cancel" variant="ghost" (clicked)="closeEditor()" />
+        <app-button label="Save" icon="save" (clicked)="form.submit()" />
+    </div>
+</app-modal>

@@ -1,0 +1,14 @@
+<div class="page-header">
+    <h2>Client Applications</h2>
+    <app-button label="New Client Application" icon="plus" variant="primary" (clicked)="create()" />
+</div>
+
+<app-dynamic-list
+        [columns]="columns"
+        [loadItems]="loadItems"
+        [pageSize]="10"
+        searchPlaceholder="Search by client code or name…"
+        emptyTitle="No client applications yet"
+        emptyMessage="Register the first client application to get started."
+        (rowClick)="router.navigate(['/access-control/client-applications', $event.id])"
+/>
