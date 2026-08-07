@@ -1,0 +1,40 @@
+:host {
+  display: block;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11.25rem, 1fr));
+  gap: var(--layout-space-3);
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--layout-space-15);
+  background: var(--card);
+  border: var(--layout-border-width) solid var(--border);
+  border-radius: var(--layout-radius-lg);
+  box-shadow: var(--shadow);
+  padding: var(--layout-space-4);
+}
+
+.stat-icon {
+  color: var(--accent);
+}
+
+.stat-title {
+  font-size: var(--layout-font-size-base);
+  font-weight: var(--layout-font-weight-medium);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.stat-value {
+  font-size: var(--layout-font-size-xl);
+  font-weight: var(--layout-font-weight-bold);
+  color: var(--text);
+  margin: 0;
+}

@@ -1,0 +1,20 @@
+{
+  "brand": { "name": "নেক্সাকোর সিস্টেম অ্যাডমিন", "tagline": "প্ল্যাটফর্ম প্রশাসন" },
+  "search": { "placeholder": "খুঁজুন...", "button": "খুঁজুন" },
+  "header": {
+    "apps": "অ্যাপস",
+    "alerts": "বিজ্ঞপ্তি",
+    "tasks": "কাজ",
+    "language": "ভাষা",
+    "theme": "থিম",
+    "tenant": "টেন্যান্ট",
+    "logout": "লগআউট"
+  },
+  "nav": {
+    "dashboard": "ড্যাশবোর্ড",
+    "accessControl": "অ্যাক্সেস কন্ট্রোল",
+    "privilege": "প্রিভিলেজ",
+    "layout": "লেআউট",
+    "license": "লাইসেন্স"
+  }
+}

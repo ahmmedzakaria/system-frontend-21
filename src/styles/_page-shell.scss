@@ -1,0 +1,96 @@
+// Shared page-chrome styling for kyc-frontend-21's app pages — mirrors
+// @nexacore/shared's _field-shell.scss pattern. Each page component
+// @includes these into its own scoped rules rather than sharing one
+// global class, so there's no cross-component CSS leakage.
+
+@mixin card {
+  background: var(--card);
+  border: var(--layout-border-width) solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+// Anchor-tag button look-alikes — for routerLink navigation where <app-button>
+// (a <button>) isn't the right element. Shares the same visual language.
+@mixin btn-base {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--layout-space-2);
+  height: var(--layout-control-6xl);
+  padding: 0 var(--layout-space-4);
+  border-radius: var(--radius);
+  font-size: var(--layout-font-size-base);
+  font-weight: var(--layout-font-weight-semibold);
+  font-family: inherit;
+  cursor: pointer;
+  border: var(--layout-border-width) solid transparent;
+  text-decoration: none;
+  transition:
+    background var(--layout-transition-fast),
+    border-color var(--layout-transition-fast),
+    color var(--layout-transition-fast),
+    opacity var(--layout-transition-fast);
+
+  &:disabled {
+    opacity: var(--layout-disabled-opacity);
+    cursor: default;
+  }
+}
+
+@mixin btn-primary {
+  @include btn-base;
+  background: var(--accent);
+  color: var(--layout-on-strong-color);
+
+  &:hover:not(:disabled) {
+    filter: brightness(1.08);
+  }
+}
+
+@mixin btn-outline {
+  @include btn-base;
+  background: var(--layout-transparent-color);
+  border-color: var(--border);
+  color: var(--text);
+
+  &:hover:not(:disabled) {
+    background: var(--surface-2);
+  }
+}
+
+@mixin btn-danger {
+  @include btn-base;
+  background: var(--red);
+  color: var(--layout-on-strong-color);
+
+  &:hover:not(:disabled) {
+    filter: brightness(1.08);
+  }
+}
+
+@mixin btn-sm {
+  height: var(--layout-control-4xl);
+  padding: 0 var(--layout-space-25);
+  font-size: var(--layout-font-size-sm);
+}
+
+@mixin alert-base {
+  padding: var(--layout-space-25) var(--layout-space-3);
+  border-radius: var(--layout-radius-sm);
+  font-size: var(--layout-font-size-sm);
+  border: var(--layout-border-width) solid transparent;
+}
+
+@mixin alert-danger {
+  @include alert-base;
+  background: var(--layout-error-soft);
+  border-color: var(--layout-error-border);
+  color: var(--layout-error-color);
+}
+
+@mixin alert-warning {
+  @include alert-base;
+  background: var(--amber-soft);
+  border-color: color-mix(in srgb, var(--amber) 45%, var(--layout-theme-surface));
+  color: var(--amber);
+}

@@ -1,0 +1,13 @@
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './e2e',
+  webServer: {
+    command: 'npm run start',
+    url: 'http://localhost:5301',
+    reuseExistingServer: true
+  },
+  use: {
+    baseURL: 'http://localhost:5301'
+  }
+});

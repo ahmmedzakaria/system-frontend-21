@@ -1,0 +1,12 @@
+@use "../../frontend-libs-21/projects/platform/src/lib/layout/styles/tokens";
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: var(--paper);
+  color: var(--text);
+}

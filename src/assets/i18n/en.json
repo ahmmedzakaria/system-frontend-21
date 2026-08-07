@@ -1,0 +1,20 @@
+{
+  "brand": { "name": "NexaCore System Admin", "tagline": "Platform Administration" },
+  "search": { "placeholder": "Search...", "button": "Search" },
+  "header": {
+    "apps": "Apps",
+    "alerts": "Alerts",
+    "tasks": "Tasks",
+    "language": "Language",
+    "theme": "Theme",
+    "tenant": "Tenant",
+    "logout": "Logout"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "accessControl": "Access Control",
+    "privilege": "Privilege",
+    "layout": "Layout",
+    "license": "License"
+  }
+}

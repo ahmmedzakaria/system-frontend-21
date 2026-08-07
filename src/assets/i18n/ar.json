@@ -1,0 +1,20 @@
+{
+  "brand": { "name": "نيكساكور - إدارة النظام", "tagline": "إدارة المنصة" },
+  "search": { "placeholder": "بحث...", "button": "بحث" },
+  "header": {
+    "apps": "التطبيقات",
+    "alerts": "التنبيهات",
+    "tasks": "المهام",
+    "language": "اللغة",
+    "theme": "المظهر",
+    "tenant": "المستأجر",
+    "logout": "تسجيل الخروج"
+  },
+  "nav": {
+    "dashboard": "لوحة التحكم",
+    "accessControl": "التحكم في الوصول",
+    "privilege": "الصلاحيات",
+    "layout": "التخطيط",
+    "license": "الترخيص"
+  }
+}
