@@ -1,0 +1,95 @@
+<div class="page-header">
+    <h2>Layout Profiles</h2>
+    <div class="header-actions">
+        @if (activeTab() === 'profiles') {
+            <app-button label="New Profile" icon="plus" variant="ghost" (clicked)="openProfileEditor(null)" />
+        } @else if (activeTab() === 'uiPolicies') {
+            <app-button label="New UI Policy" icon="plus" variant="ghost" (clicked)="openUiPolicyEditor(null)" />
+        } @else {
+            <app-button label="New Assignment" icon="plus" variant="ghost" [disabled]="!assignmentFilterClientCode()" (clicked)="openClientAssignmentEditor(null)" />
+        }
+    </div>
+</div>
+
+<div class="tabs">
+    <button type="button" class="tab" [class.active]="activeTab() === 'profiles'" (click)="setTab('profiles')">Profiles</button>
+    <button type="button" class="tab" [class.active]="activeTab() === 'uiPolicies'" (click)="setTab('uiPolicies')">UI Policies</button>
+    <button type="button" class="tab" [class.active]="activeTab() === 'clientAssignment'" (click)="setTab('clientAssignment')">Client Assignment</button>
+</div>
+
+<div [hidden]="activeTab() !== 'profiles'">
+    <app-dynamic-list
+            #profileList
+            [columns]="profileColumns"
+            [loadItems]="loadProfiles"
+            [pageSize]="10"
+            searchPlaceholder="Search by code or name…"
+            emptyTitle="No layout profiles yet"
+            emptyMessage="Add the first layout profile to get started."
+    />
+</div>
+
+<div [hidden]="activeTab() !== 'uiPolicies'">
+    <div class="filter-row">
+        <label for="ui-policy-client-filter">Client Code (blank = global)</label>
+        <input id="ui-policy-client-filter" type="text" [value]="uiPolicyFilterClientCode()" (input)="uiPolicyFilterClientCode.set($any($event.target).value)" placeholder="e.g. WEB" />
+    </div>
+    <app-dynamic-list
+            #uiPolicyList
+            [columns]="uiPolicyColumns"
+            [loadItems]="loadUiPolicies"
+            [pageSize]="10"
+            searchPlaceholder="Search by action code…"
+            emptyTitle="No UI policies yet"
+            emptyMessage="Add the first UI policy to get started."
+    />
+</div>
+
+<div [hidden]="activeTab() !== 'clientAssignment'">
+    <div class="filter-row">
+        <label for="assignment-client-select">Client Application</label>
+        <select id="assignment-client-select" (change)="onAssignmentClientChange($event)">
+            <option value="">Select a client…</option>
+            @for (option of clientOptions(); track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+            }
+        </select>
+    </div>
+    @if (assignmentFilterClientCode()) {
+        <app-dynamic-list
+                #clientAssignmentList
+                [columns]="clientAssignmentColumns"
+                [loadItems]="loadClientAssignments"
+                [pageSize]="10"
+                searchPlaceholder="Search…"
+                emptyTitle="No layout assignments yet"
+                emptyMessage="Assign a layout profile to this client to get started."
+        />
+    } @else {
+        <p class="hint">Select a client application above to view its layout assignments.</p>
+    }
+</div>
+
+<app-modal [open]="profileEditorOpen()" title="Layout Profile" [width]="640" (closed)="closeProfileEditor()">
+    <app-dynamic-form #profileForm="dynamicForm" [fields]="profileFields" [initialValue]="profileEditorInitialValue()" [columns]="2" (submitted)="saveProfileEditor($event)" />
+    <div class="modal-actions">
+        <app-button label="Cancel" variant="ghost" (clicked)="closeProfileEditor()" />
+        <app-button label="Save" icon="save" (clicked)="profileForm.submit()" />
+    </div>
+</app-modal>
+
+<app-modal [open]="uiPolicyEditorOpen()" title="UI Policy" [width]="640" (closed)="closeUiPolicyEditor()">
+    <app-dynamic-form #uiPolicyForm="dynamicForm" [fields]="uiPolicyFields" [initialValue]="uiPolicyEditorInitialValue()" [columns]="2" (submitted)="saveUiPolicyEditor($event)" />
+    <div class="modal-actions">
+        <app-button label="Cancel" variant="ghost" (clicked)="closeUiPolicyEditor()" />
+        <app-button label="Save" icon="save" (clicked)="uiPolicyForm.submit()" />
+    </div>
+</app-modal>
+
+<app-modal [open]="clientAssignmentEditorOpen()" title="Client Layout Assignment" [width]="640" (closed)="closeClientAssignmentEditor()">
+    <app-dynamic-form #assignmentForm="dynamicForm" [fields]="clientAssignmentFields" [initialValue]="clientAssignmentEditorInitialValue()" [columns]="2" (submitted)="saveClientAssignmentEditor($event)" />
+    <div class="modal-actions">
+        <app-button label="Cancel" variant="ghost" (clicked)="closeClientAssignmentEditor()" />
+        <app-button label="Save" icon="save" (clicked)="assignmentForm.submit()" />
+    </div>
+</app-modal>

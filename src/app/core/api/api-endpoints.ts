@@ -25,4 +25,19 @@ export const ApiEndpoints = {
     PRIVILEGE_SAVE: { apiPath: 'system/privilege/save', actionType: ActionTypes.CREATE },
     SUB_MENU_LIST: { apiPath: 'system/privilege/sub-menu/list', actionType: ActionTypes.SEARCH },
     SUB_MENU_SAVE: { apiPath: 'system/privilege/sub-menu/save', actionType: ActionTypes.CREATE },
+
+    // Layout
+    LAYOUT_PROFILE_LIST: { apiPath: 'system/layout/profile/list', actionType: ActionTypes.SEARCH },
+    LAYOUT_PROFILE_SAVE: { apiPath: 'system/layout/profile/save', actionType: ActionTypes.CREATE },
+    LAYOUT_UI_POLICY_LIST: { apiPath: 'system/layout/ui-policy/list', actionType: ActionTypes.SEARCH },
+    LAYOUT_UI_POLICY_SAVE: { apiPath: 'system/layout/ui-policy/save', actionType: ActionTypes.CREATE },
+    LAYOUT_CLIENT_ASSIGN_LIST: { apiPath: 'system/layout/client/list', actionType: ActionTypes.SEARCH },
+    LAYOUT_CLIENT_ASSIGN_SAVE: { apiPath: 'system/layout/client/assign', actionType: ActionTypes.CREATE },
+    LAYOUT_NAVIGATION_TREE: { apiPath: 'system/layout/navigation/tree', actionType: ActionTypes.SEARCH },
+    LAYOUT_NAVIGATION_TREE_ADMIN: { apiPath: 'system/layout/navigation/tree/admin', actionType: ActionTypes.SEARCH },
+    LAYOUT_NAVIGATION_GROUP_SAVE: { apiPath: 'system/layout/navigation/group/save', actionType: ActionTypes.CREATE },
+    LAYOUT_NAVIGATION_MODULE_SAVE: { apiPath: 'system/layout/navigation/module/save', actionType: ActionTypes.CREATE },
+    LAYOUT_NAVIGATION_CATEGORY_SAVE: { apiPath: 'system/layout/navigation/category/save', actionType: ActionTypes.CREATE },
+    LAYOUT_NAVIGATION_FEATURE_GROUP_SAVE: { apiPath: 'system/layout/navigation/feature-group/save', actionType: ActionTypes.CREATE },
+    LAYOUT_NAVIGATION_FEATURE_SAVE: { apiPath: 'system/layout/navigation/feature/save', actionType: ActionTypes.CREATE },
 } satisfies Record<string, ApiEndpoint>;

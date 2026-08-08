@@ -60,8 +60,19 @@ export const routes: Routes = [
                     import('./pages/access-control/privileges/privileges-list.component').then(m => m.PrivilegesListComponent),
                 data: { public: true },
             },
-            // Layout and License feature routes are added module-by-module
-            // in later phases.
+            {
+                path: 'layout/profiles',
+                loadComponent: () =>
+                    import('./pages/layout/profiles-policies/profiles-policies-list.component').then(m => m.ProfilesPoliciesListComponent),
+                data: { public: true },
+            },
+            {
+                path: 'layout/navigation-tree',
+                loadComponent: () =>
+                    import('./pages/layout/navigation-tree/navigation-tree.component').then(m => m.NavigationTreeComponent),
+                data: { public: true },
+            },
+            // License feature routes are added module-by-module in later phases.
             { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
         ],
     },

@@ -1,0 +1,48 @@
+<div class="page-header">
+    <h2>Navigation Tree</h2>
+    <div class="header-actions">
+        @if (activeLevel() === 'groups') {
+            <app-button label="New Module Group" icon="plus" variant="ghost" (clicked)="openEditor('groups', null)" />
+        } @else if (activeLevel() === 'modules') {
+            <app-button label="New Module" icon="plus" variant="ghost" (clicked)="openEditor('modules', null)" />
+        } @else if (activeLevel() === 'categories') {
+            <app-button label="New Category" icon="plus" variant="ghost" (clicked)="openEditor('categories', null)" />
+        } @else if (activeLevel() === 'featureGroups') {
+            <app-button label="New Feature Group" icon="plus" variant="ghost" (clicked)="openEditor('featureGroups', null)" />
+        } @else {
+            <app-button label="New Feature" icon="plus" variant="ghost" (clicked)="openEditor('features', null)" />
+        }
+    </div>
+</div>
+
+<div class="tabs">
+    <button type="button" class="tab" [class.active]="activeLevel() === 'groups'" (click)="setLevel('groups')">Module Groups</button>
+    <button type="button" class="tab" [class.active]="activeLevel() === 'modules'" (click)="setLevel('modules')">Modules</button>
+    <button type="button" class="tab" [class.active]="activeLevel() === 'categories'" (click)="setLevel('categories')">Categories</button>
+    <button type="button" class="tab" [class.active]="activeLevel() === 'featureGroups'" (click)="setLevel('featureGroups')">Feature Groups</button>
+    <button type="button" class="tab" [class.active]="activeLevel() === 'features'" (click)="setLevel('features')">Features</button>
+</div>
+
+<div [hidden]="activeLevel() !== 'groups'">
+    <app-dynamic-list #groupList [columns]="groupColumns" [loadItems]="loadGroups" [pageSize]="10" searchPlaceholder="Search by code or name…" emptyTitle="No module groups yet" emptyMessage="Add the first module group to get started." />
+</div>
+<div [hidden]="activeLevel() !== 'modules'">
+    <app-dynamic-list #moduleList [columns]="moduleColumns" [loadItems]="loadModules" [pageSize]="10" searchPlaceholder="Search by code or name…" emptyTitle="No modules yet" emptyMessage="Add a module group first, then add modules under it." />
+</div>
+<div [hidden]="activeLevel() !== 'categories'">
+    <app-dynamic-list #categoryList [columns]="categoryColumns" [loadItems]="loadCategories" [pageSize]="10" searchPlaceholder="Search by code or name…" emptyTitle="No categories yet" emptyMessage="Add a module first, then add categories under it." />
+</div>
+<div [hidden]="activeLevel() !== 'featureGroups'">
+    <app-dynamic-list #featureGroupList [columns]="featureGroupColumns" [loadItems]="loadFeatureGroups" [pageSize]="10" searchPlaceholder="Search by code or name…" emptyTitle="No feature groups yet" emptyMessage="Add a category first, then add feature groups under it." />
+</div>
+<div [hidden]="activeLevel() !== 'features'">
+    <app-dynamic-list #featureList [columns]="featureColumns" [loadItems]="loadFeatures" [pageSize]="10" searchPlaceholder="Search by code, name, or route…" emptyTitle="No features yet" emptyMessage="Add a feature group first, then add features under it." />
+</div>
+
+<app-modal [open]="editorOpen()" [title]="titleForActiveLevel()" [width]="640" (closed)="closeEditor()">
+    <app-dynamic-form #navForm="dynamicForm" [fields]="fieldsForActiveLevel()" [initialValue]="editorInitialValue()" [columns]="2" (submitted)="saveEditor($event)" />
+    <div class="modal-actions">
+        <app-button label="Cancel" variant="ghost" (clicked)="closeEditor()" />
+        <app-button label="Save" icon="save" (clicked)="navForm.submit()" />
+    </div>
+</app-modal>
