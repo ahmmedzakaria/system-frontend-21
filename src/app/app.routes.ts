@@ -72,7 +72,12 @@ export const routes: Routes = [
                     import('./pages/layout/navigation-tree/navigation-tree.component').then(m => m.NavigationTreeComponent),
                 data: { public: true },
             },
-            // License feature routes are added module-by-module in later phases.
+            {
+                path: 'license',
+                loadComponent: () =>
+                    import('./pages/license/license-list.component').then(m => m.LicenseListComponent),
+                data: { public: true },
+            },
             { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
         ],
     },

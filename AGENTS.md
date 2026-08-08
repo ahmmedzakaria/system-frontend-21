@@ -8,6 +8,11 @@ This guide applies to the Angular 21 system-administration frontend application 
 (`workflow` is out of scope for now — see `/home/zahmmed/.claude/plans/dreamy-swimming-bubble.md`
 for the full implementation plan and phasing).
 
+This file covers conventions; see `MODULES.md` in this same directory for a persistent,
+per-module reference — every route, the backend endpoints each page talks to, DTO
+shapes, and the specific bugs/footguns already found and fixed in each. Read it before
+touching an existing module or copying its pattern into a new one.
+
 ## Project Shape
 
 - Angular 21 standalone application

@@ -1,0 +1,129 @@
+<div class="page-header">
+    <h2>License Administration</h2>
+    <div class="header-actions">
+        @if (activeTab() === 'plans') {
+            <app-button label="New Plan" icon="plus" variant="ghost" (clicked)="openPlanEditor(null)" />
+        } @else if (activeTab() === 'subscriptions') {
+            <app-button label="New Subscription" icon="plus" variant="ghost" (clicked)="openSubscriptionEditor(null)" />
+        } @else if (activeTab() === 'entitlements') {
+            <app-button label="New Entitlement" icon="plus" variant="ghost" [disabled]="!entitlementOwnerCode()" (clicked)="openEntitlementEditor()" />
+        } @else {
+            <app-button label="New Key" icon="plus" variant="ghost" [disabled]="!keyFilterSubscriptionCode()" (clicked)="openKeyEditor()" />
+        }
+    </div>
+</div>
+
+<div class="tabs">
+    <button type="button" class="tab" [class.active]="activeTab() === 'plans'" (click)="setTab('plans')">Plans</button>
+    <button type="button" class="tab" [class.active]="activeTab() === 'subscriptions'" (click)="setTab('subscriptions')">Subscriptions</button>
+    <button type="button" class="tab" [class.active]="activeTab() === 'entitlements'" (click)="setTab('entitlements')">Entitlements</button>
+    <button type="button" class="tab" [class.active]="activeTab() === 'keys'" (click)="setTab('keys')">Keys</button>
+</div>
+
+<div [hidden]="activeTab() !== 'plans'">
+    <app-dynamic-list #planList [columns]="planColumns" [loadItems]="loadPlans" [pageSize]="10" searchPlaceholder="Search by code or name…" emptyTitle="No license plans yet" emptyMessage="Add the first license plan to get started." />
+</div>
+
+<div [hidden]="activeTab() !== 'subscriptions'">
+    <app-dynamic-list #subscriptionList [columns]="subscriptionColumns" [loadItems]="loadSubscriptions" [pageSize]="10" searchPlaceholder="Search by code or plan…" emptyTitle="No subscriptions yet" emptyMessage="Assign a plan to a tenant, business, or client application to get started." />
+</div>
+
+<div [hidden]="activeTab() !== 'entitlements'">
+    <div class="filter-row">
+        <label for="entitlement-owner-type">Owner</label>
+        <select id="entitlement-owner-type" [value]="entitlementOwnerType()" (change)="setEntitlementOwnerType($any($event.target).value)">
+            <option value="PLAN">Plan</option>
+            <option value="SUBSCRIPTION">Subscription</option>
+        </select>
+        <select (change)="onEntitlementOwnerCodeChange($event)">
+            <option value="">Select {{ entitlementOwnerType() === 'PLAN' ? 'a plan' : 'a subscription' }}…</option>
+            @for (option of entitlementOwnerOptions(); track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+            }
+        </select>
+    </div>
+    @if (entitlementOwnerCode()) {
+        <app-dynamic-list #entitlementList [columns]="entitlementColumns" [loadItems]="loadEntitlements" [pageSize]="10" searchPlaceholder="Search…" emptyTitle="No entitlements yet" emptyMessage="Grant this plan or subscription its first entitlement." />
+    } @else {
+        <p class="hint">Select a plan or subscription above to view its entitlements.</p>
+    }
+</div>
+
+<div [hidden]="activeTab() !== 'keys'">
+    <div class="filter-row">
+        <label for="key-subscription-filter">Subscription</label>
+        <select id="key-subscription-filter" (change)="onKeyFilterChange($event)">
+            <option value="">Select a subscription…</option>
+            @for (option of subscriptionOptions(); track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+            }
+        </select>
+    </div>
+    @if (keyFilterSubscriptionCode()) {
+        <app-dynamic-list #keyList [columns]="keyColumns" [loadItems]="loadKeys" [pageSize]="10" searchPlaceholder="Search…" emptyTitle="No license keys yet" emptyMessage="Generate the first key for this subscription." />
+    } @else {
+        <p class="hint">Select a subscription above to view its license keys.</p>
+    }
+</div>
+
+<app-modal [open]="planEditorOpen()" title="License Plan" [width]="640" (closed)="closePlanEditor()">
+    <app-dynamic-form #planForm="dynamicForm" [fields]="planFields" [initialValue]="planEditorInitialValue()" [columns]="2" (submitted)="savePlanEditor($event)" />
+    <div class="modal-actions">
+        <app-button label="Cancel" variant="ghost" (clicked)="closePlanEditor()" />
+        <app-button label="Save" icon="save" (clicked)="planForm.submit()" />
+    </div>
+</app-modal>
+
+<app-modal [open]="subscriptionEditorOpen()" title="License Subscription" [width]="640" (closed)="closeSubscriptionEditor()">
+    <app-dynamic-form #subscriptionForm="dynamicForm" [fields]="subscriptionFieldsComputed()" [initialValue]="subscriptionEditorInitialValue()" [columns]="2" (submitted)="saveSubscriptionEditor($event)" />
+    <div class="modal-actions">
+        <app-button label="Cancel" variant="ghost" (clicked)="closeSubscriptionEditor()" />
+        <app-button label="Save" icon="save" (clicked)="subscriptionForm.submit()" />
+    </div>
+</app-modal>
+
+<app-modal [open]="entitlementEditorOpen()" title="License Entitlement" [width]="640" (closed)="closeEntitlementEditor()">
+    <app-dynamic-form #entitlementForm="dynamicForm" [fields]="entitlementFields" [initialValue]="entitlementEditorInitialValue()" [columns]="2" (submitted)="saveEntitlementEditor($event)" />
+    <div class="modal-actions">
+        <app-button label="Cancel" variant="ghost" (clicked)="closeEntitlementEditor()" />
+        <app-button label="Save" icon="save" (clicked)="entitlementForm.submit()" />
+    </div>
+</app-modal>
+
+<app-modal [open]="keyEditorOpen()" title="Generate License Key" [width]="480" (closed)="closeKeyEditor()">
+    <app-dynamic-form #keyForm="dynamicForm" [fields]="keyFields" [initialValue]="keyEditorInitialValue()" [columns]="1" (submitted)="saveKeyEditor($event)" />
+    <div class="modal-actions">
+        <app-button label="Cancel" variant="ghost" (clicked)="closeKeyEditor()" />
+        <app-button label="Generate" icon="save" (clicked)="keyForm.submit()" />
+    </div>
+</app-modal>
+
+<app-modal [open]="!!generatedKey()" title="License Key Generated" (closed)="closeGeneratedKey()">
+    @if (generatedKey(); as key) {
+        <p class="hint warning">This key is shown once and cannot be retrieved again — copy it now.</p>
+        <div class="credential-row">
+            <span class="credential-label">Subscription</span>
+            <code>{{ key.subscriptionCode }}</code>
+        </div>
+        <div class="credential-row">
+            <span class="credential-label">License Key</span>
+            <code>{{ key.rawLicenseKey }}</code>
+        </div>
+    }
+</app-modal>
+
+<app-confirm-dialog
+        [open]="!!pendingSubscriptionAction()"
+        [title]="subscriptionActionTitle()"
+        [message]="subscriptionActionMessage()"
+        confirmLabel="Confirm"
+        [danger]="pendingSubscriptionAction() === 'cancel'"
+        [loading]="subscriptionActionLoading()"
+        (confirmed)="confirmSubscriptionAction()"
+        (cancelled)="cancelSubscriptionAction()"
+>
+    @if (pendingSubscriptionAction() === 'suspend') {
+        <label for="suspend-reason">Reason</label>
+        <textarea id="suspend-reason" rows="3" [value]="suspendReason()" (input)="suspendReason.set($any($event.target).value)"></textarea>
+    }
+</app-confirm-dialog>

@@ -40,4 +40,19 @@ export const ApiEndpoints = {
     LAYOUT_NAVIGATION_CATEGORY_SAVE: { apiPath: 'system/layout/navigation/category/save', actionType: ActionTypes.CREATE },
     LAYOUT_NAVIGATION_FEATURE_GROUP_SAVE: { apiPath: 'system/layout/navigation/feature-group/save', actionType: ActionTypes.CREATE },
     LAYOUT_NAVIGATION_FEATURE_SAVE: { apiPath: 'system/layout/navigation/feature/save', actionType: ActionTypes.CREATE },
+
+    // License
+    LICENSE_PLAN_LIST: { apiPath: 'system/license/plan/list', actionType: ActionTypes.SEARCH },
+    LICENSE_PLAN_SAVE: { apiPath: 'system/license/plan/save', actionType: ActionTypes.CREATE },
+    LICENSE_PLAN_ENTITLEMENT_LIST: { apiPath: 'system/license/plan/entitlement/list', actionType: ActionTypes.SEARCH },
+    LICENSE_PLAN_ENTITLEMENT_SAVE: { apiPath: 'system/license/plan/entitlement/save', actionType: ActionTypes.CREATE },
+    LICENSE_SUBSCRIPTION_LIST: { apiPath: 'system/license/subscription/list', actionType: ActionTypes.SEARCH },
+    LICENSE_SUBSCRIPTION_ASSIGN: { apiPath: 'system/license/subscription/assign', actionType: ActionTypes.CREATE },
+    LICENSE_SUBSCRIPTION_SUSPEND: { apiPath: 'system/license/subscription/suspend', actionType: ActionTypes.UPDATE },
+    LICENSE_SUBSCRIPTION_REACTIVATE: { apiPath: 'system/license/subscription/reactivate', actionType: ActionTypes.UPDATE },
+    LICENSE_SUBSCRIPTION_CANCEL: { apiPath: 'system/license/subscription/cancel', actionType: ActionTypes.UPDATE },
+    LICENSE_SUBSCRIPTION_ENTITLEMENT_LIST: { apiPath: 'system/license/subscription/entitlement/list', actionType: ActionTypes.SEARCH },
+    LICENSE_SUBSCRIPTION_ENTITLEMENT_SAVE: { apiPath: 'system/license/subscription/entitlement/save', actionType: ActionTypes.CREATE },
+    LICENSE_KEY_LIST: { apiPath: 'system/license/key/list', actionType: ActionTypes.SEARCH },
+    LICENSE_KEY_GENERATE: { apiPath: 'system/license/key/generate', actionType: ActionTypes.CREATE },
 } satisfies Record<string, ApiEndpoint>;
