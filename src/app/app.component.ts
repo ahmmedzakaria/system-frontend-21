@@ -4,11 +4,12 @@ import {LayoutService} from '@nexacore/platform';
 import {AuthService} from '@nexacore/platform';
 import {BreadcrumbService} from '@nexacore/platform';
 import {NotificationService} from '@nexacore/platform';
+import {ToastContainerComponent} from '@nexacore/platform';
 
 @Component({
     selector: 'app-root',
     standalone: true,
-    imports: [RouterOutlet],
+    imports: [RouterOutlet, ToastContainerComponent],
     templateUrl: './app.component.html',
     styleUrls: ['./app.component.scss']
 })

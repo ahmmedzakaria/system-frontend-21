@@ -62,7 +62,7 @@ export function formatDateTime(value: string | null): string {
 
 export const USER_FIELDS: FieldConfig[] = [
     { type: 'text', key: 'username', label: 'Username', required: true },
-    { type: 'password', key: 'password', label: 'Password (leave blank to keep unchanged when editing)' },
+    { type: 'password', key: 'password', label: 'Password (leave blank to keep unchanged when editing)', required: false },
     { type: 'email', key: 'email', label: 'Email (create only)' },
     { type: 'tel', key: 'mobile', label: 'Mobile (create only)' },
     { type: 'text', key: 'firstName', label: 'First Name (create only)' },
