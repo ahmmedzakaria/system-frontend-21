@@ -92,6 +92,16 @@ endpoint's `@PrivilegeApi` code, not by the frontend guard.
   that resolved the `X-Client-Code`/`SYSTEM_ADMIN_WEB` permission gap found while
   verifying the License module live (see the `sys_priv_client_api_permissions` /
   `sys_priv_client_feature_permissions` join tables in `ClientAccessDecisionServiceImpl`).
+- **Reference implementation for two `@nexacore/shared` "Dynamic*" components**:
+  the Registered/Inventory tabs use `app-dynamic-tab` (`DynamicTabConfig`'s `loadItems`/
+  `columns` variant — no hand-rolled tab-bar markup/state), and the "New/Edit Entry"
+  dialog uses `app-dynamic-modal` (`fields`/`initialValue`/`columns` in, `(closed)`/
+  `(submitted)` out — no hand-rolled `app-modal` + `app-dynamic-form` + Cancel/Save
+  button row). Both replaced markup that used to be copy-pasted per page; License
+  Administration (below) is migrated onto both too — see its note for the 4th
+  `DynamicTabConfig` variant (`filters`/`ready`) that migration required. Privileges,
+  Profiles & Policies, and Navigation Tree still use the older hand-rolled
+  `app-modal`/tab-bar patterns those two components were extracted from.
 
 ---
 
@@ -188,6 +198,17 @@ endpoint's `@PrivilegeApi` code, not by the frontend guard.
   `license/subscription/entitlement/list`+`save`, `license/key/list`+`generate`.
   (`license/key/activate`, `license/key/validate`, `license/decision/check` exist on the
   backend but have no admin-console UI — see "Explicitly out of scope" below.)
+- **Second reference implementation for `app-dynamic-tab`/`app-dynamic-modal`** (see
+  API Registry above for the first). All 4 tabs and 4 of the page's 5 modals are
+  migrated: Plans/Subscriptions use the plain `loadItems`/`columns` tab variant;
+  Entitlements/Keys needed a shape those variants couldn't express — a filter
+  dropdown (or two) gating a conditionally-rendered list — so `DynamicTabConfig`
+  gained a 4th variant, `DynamicTabFilteredListConfig` (`filters: TabFilterFieldConfig[]`,
+  `ready: boolean`, `emptyFilterHint: string`, plus the usual list props), rendered via
+  `app-dropdown` + standalone `[ngModel]` inside `DynamicTabComponent` itself. The
+  "License Key Generated" modal (no form/buttons, a one-time credential display) and
+  the Suspend/Reactivate/Cancel `app-confirm-dialog` flow are intentionally **not**
+  migrated — neither fits `DynamicModalComponent`'s form-in/form-out contract.
 
 ### Plans
 

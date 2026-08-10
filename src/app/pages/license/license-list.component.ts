@@ -5,9 +5,10 @@ import {
     ButtonComponent,
     ConfirmDialogComponent,
     DropdownOption,
-    DynamicFormComponent,
-    DynamicListComponent,
     DynamicListLoader,
+    DynamicModalComponent,
+    DynamicTabComponent,
+    DynamicTabConfig,
     ListColumnConfig,
     ModalComponent
 } from '@nexacore/shared';
@@ -38,13 +39,12 @@ import {
     toIsoOrNull
 } from './license.model';
 
-type Tab = 'plans' | 'subscriptions' | 'entitlements' | 'keys';
 type SubscriptionAction = 'suspend' | 'reactivate' | 'cancel';
 
 @Component({
     selector: 'app-license-list',
     standalone: true,
-    imports: [ButtonComponent, ConfirmDialogComponent, DynamicFormComponent, DynamicListComponent, ModalComponent],
+    imports: [ButtonComponent, ConfirmDialogComponent, DynamicModalComponent, DynamicTabComponent, ModalComponent],
     templateUrl: './license-list.component.html',
     styleUrl: './license-list.component.scss'
 })
@@ -52,12 +52,9 @@ export class LicenseListComponent {
     private readonly service = inject(LicenseService);
     private readonly clientAppService = inject(ClientApplicationService);
 
-    protected readonly activeTab = signal<Tab>('plans');
-
-    private readonly planListRef = viewChild<DynamicListComponent<LicensePlanDto>>('planList');
-    private readonly subscriptionListRef = viewChild<DynamicListComponent<LicenseSubscriptionDto>>('subscriptionList');
-    private readonly entitlementListRef = viewChild<DynamicListComponent<LicenseEntitlementDto>>('entitlementList');
-    private readonly keyListRef = viewChild<DynamicListComponent<LicenseKeySummaryDto>>('keyList');
+    private readonly tabsRef = viewChild<DynamicTabComponent>('tabsRef');
+    protected readonly activeTabIndex = signal(0);
+    protected readonly activeTabKey = computed(() => this.tabs()[this.activeTabIndex()]?.key);
 
     // Cached across tabs — Subscriptions/Entitlements need Plans' codes for dropdowns,
     // Entitlements/Keys need Subscriptions' codes for owner pickers.
@@ -81,19 +78,15 @@ export class LicenseListComponent {
     private reloadPlans(): void {
         this.service.planList().subscribe((rows) => {
             this.plans.set(rows);
-            this.planListRef()?.reload();
+            this.tabsRef()?.reloadTab('plans');
         });
     }
 
     private reloadSubscriptions(): void {
         this.service.subscriptionList().subscribe((rows) => {
             this.subscriptions.set(rows);
-            this.subscriptionListRef()?.reload();
+            this.tabsRef()?.reloadTab('subscriptions');
         });
-    }
-
-    protected setTab(tab: Tab): void {
-        this.activeTab.set(tab);
     }
 
     // ---- Plans ----
@@ -273,11 +266,11 @@ export class LicenseListComponent {
     protected setEntitlementOwnerType(type: EntitlementOwnerType): void {
         this.entitlementOwnerType.set(type);
         this.entitlementOwnerCode.set('');
-        this.entitlementListRef()?.reload();
+        this.tabsRef()?.reloadTab('entitlements');
     }
-    protected onEntitlementOwnerCodeChange(event: Event): void {
-        this.entitlementOwnerCode.set((event.target as HTMLSelectElement).value);
-        this.entitlementListRef()?.reload();
+    protected setEntitlementOwnerCode(code: string): void {
+        this.entitlementOwnerCode.set(code);
+        this.tabsRef()?.reloadTab('entitlements');
     }
 
     protected readonly loadEntitlements: DynamicListLoader<LicenseEntitlementDto> = (params) => {
@@ -333,7 +326,7 @@ export class LicenseListComponent {
             : this.service.subscriptionEntitlementSave(request);
         save$.subscribe(() => {
             this.entitlementEditorOpen.set(false);
-            this.entitlementListRef()?.reload();
+            this.tabsRef()?.reloadTab('entitlements');
         });
     }
 
@@ -345,9 +338,9 @@ export class LicenseListComponent {
     protected readonly generatedKey = signal<GeneratedLicenseKeyDto | null>(null);
     protected readonly keyFields = KEY_FIELDS;
 
-    protected onKeyFilterChange(event: Event): void {
-        this.keyFilterSubscriptionCode.set((event.target as HTMLSelectElement).value);
-        this.keyListRef()?.reload();
+    protected setKeyFilterSubscriptionCode(code: string): void {
+        this.keyFilterSubscriptionCode.set(code);
+        this.tabsRef()?.reloadTab('keys');
     }
 
     protected readonly loadKeys: DynamicListLoader<LicenseKeySummaryDto> = (params) => {
@@ -392,6 +385,71 @@ export class LicenseListComponent {
     }
     protected closeGeneratedKey(): void {
         this.generatedKey.set(null);
-        this.keyListRef()?.reload();
+        this.tabsRef()?.reloadTab('keys');
     }
+
+    // ---- Tabs ----
+
+    protected readonly tabs = computed<DynamicTabConfig[]>(() => [
+        {
+            key: 'plans', label: 'Plans',
+            columns: this.planColumns as ListColumnConfig<unknown>[],
+            loadItems: this.loadPlans as DynamicListLoader<unknown>,
+            searchPlaceholder: 'Search by code or name…',
+            emptyTitle: 'No license plans yet',
+            emptyMessage: 'Add the first license plan to get started.'
+        },
+        {
+            key: 'subscriptions', label: 'Subscriptions',
+            columns: this.subscriptionColumns as ListColumnConfig<unknown>[],
+            loadItems: this.loadSubscriptions as DynamicListLoader<unknown>,
+            searchPlaceholder: 'Search by code or plan…',
+            emptyTitle: 'No subscriptions yet',
+            emptyMessage: 'Assign a plan to a tenant, business, or client application to get started.'
+        },
+        {
+            key: 'entitlements', label: 'Entitlements',
+            filters: [
+                {
+                    key: 'ownerType', label: 'Owner',
+                    options: [{ label: 'Plan', value: 'PLAN' }, { label: 'Subscription', value: 'SUBSCRIPTION' }],
+                    value: this.entitlementOwnerType(),
+                    onChange: (value) => this.setEntitlementOwnerType(value as EntitlementOwnerType)
+                },
+                {
+                    key: 'ownerCode', label: '',
+                    options: this.entitlementOwnerOptions(),
+                    placeholder: `Select ${this.entitlementOwnerType() === 'PLAN' ? 'a plan' : 'a subscription'}…`,
+                    value: this.entitlementOwnerCode() || null,
+                    onChange: (value) => this.setEntitlementOwnerCode(value as string)
+                }
+            ],
+            ready: !!this.entitlementOwnerCode(),
+            emptyFilterHint: 'Select a plan or subscription above to view its entitlements.',
+            columns: this.entitlementColumns as ListColumnConfig<unknown>[],
+            loadItems: this.loadEntitlements as DynamicListLoader<unknown>,
+            searchPlaceholder: 'Search…',
+            emptyTitle: 'No entitlements yet',
+            emptyMessage: 'Grant this plan or subscription its first entitlement.'
+        },
+        {
+            key: 'keys', label: 'Keys',
+            filters: [
+                {
+                    key: 'subscription', label: 'Subscription',
+                    options: this.subscriptionOptions(),
+                    placeholder: 'Select a subscription…',
+                    value: this.keyFilterSubscriptionCode() || null,
+                    onChange: (value) => this.setKeyFilterSubscriptionCode(value as string)
+                }
+            ],
+            ready: !!this.keyFilterSubscriptionCode(),
+            emptyFilterHint: 'Select a subscription above to view its license keys.',
+            columns: this.keyColumns as ListColumnConfig<unknown>[],
+            loadItems: this.loadKeys as DynamicListLoader<unknown>,
+            searchPlaceholder: 'Search…',
+            emptyTitle: 'No license keys yet',
+            emptyMessage: 'Generate the first key for this subscription.'
+        }
+    ]);
 }
