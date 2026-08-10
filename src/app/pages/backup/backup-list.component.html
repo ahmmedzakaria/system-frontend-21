@@ -1,0 +1,25 @@
+<div class="page-header">
+    <div>
+        <h2>Database Backup Administration</h2>
+        <p>Encrypted platform backups for all configured application databases.</p>
+    </div>
+    <app-button label="Run backup now" icon="archive" [loading]="running()" (clicked)="runBackup()" />
+</div>
+
+@if (message()) {
+    <div class="message">{{ message() }}</div>
+}
+
+<div class="security-note">
+    Downloads are AES-GCM encrypted. The decryption key is managed outside this application and is never included in the download or email.
+</div>
+
+<app-dynamic-list
+        #backupList
+        [columns]="columns"
+        [loadItems]="loadBackups"
+        [pageSize]="20"
+        searchPlaceholder="Backup history is server-paginated"
+        emptyTitle="No backups yet"
+        emptyMessage="Run the first backup after the backend storage path and encryption key are configured."
+/>

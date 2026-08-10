@@ -1,0 +1,29 @@
+@use '../../../styles/page-shell' as shell;
+
+:host { display: block; }
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--layout-space-3);
+  margin-bottom: var(--layout-space-3);
+
+  h2 { margin: 0; color: var(--text); }
+  p { margin: var(--layout-space-1) 0 0; color: var(--text-muted); }
+}
+
+.security-note {
+  @include shell.alert-warning;
+  margin-bottom: var(--layout-space-3);
+}
+
+.message {
+  padding: var(--layout-space-2);
+  margin-bottom: var(--layout-space-3);
+  border: var(--layout-border-width) solid var(--border);
+  border-radius: var(--layout-radius-sm);
+  background: var(--card);
+  color: var(--text);
+}
