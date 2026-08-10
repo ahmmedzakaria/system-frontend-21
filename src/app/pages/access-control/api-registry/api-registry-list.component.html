@@ -21,38 +21,15 @@
     </div>
 }
 
-<div class="tabs">
-    <button type="button" class="tab" [class.active]="activeTab() === 'registered'" (click)="setTab('registered')">Registered</button>
-    <button type="button" class="tab" [class.active]="activeTab() === 'inventory'" (click)="setTab('inventory')">Inventory</button>
-</div>
+<app-dynamic-tab #tabsRef [tabs]="tabs" />
 
-<div [hidden]="activeTab() !== 'registered'">
-    <app-dynamic-list
-            #registeredList
-            [columns]="registeredColumns"
-            [loadItems]="loadRegistered"
-            [pageSize]="10"
-            searchPlaceholder="Search by API code or path…"
-            emptyTitle="No registered APIs yet"
-            emptyMessage="Sync from code, or add an entry manually."
-    />
-</div>
-
-<div [hidden]="activeTab() !== 'inventory'">
-    <app-dynamic-list
-            [columns]="inventoryColumns"
-            [loadItems]="loadInventory"
-            [pageSize]="10"
-            searchPlaceholder="Search by API code or path…"
-            emptyTitle="No endpoints found"
-            emptyMessage="The live scan found nothing under com.nexacore."
-    />
-</div>
-
-<app-modal [open]="editorOpen()" title="API Registry Entry" [width]="640" (closed)="closeEditor()">
-    <app-dynamic-form #form="dynamicForm" [fields]="editorFields" [initialValue]="editorInitialValue()" [columns]="2" (submitted)="saveEditor($event)" />
-    <div class="modal-actions">
-        <app-button label="Cancel" variant="ghost" (clicked)="closeEditor()" />
-        <app-button label="Save" icon="save" (clicked)="form.submit()" />
-    </div>
-</app-modal>
+<app-dynamic-modal
+        [open]="editorOpen()"
+        title="API Registry Entry"
+        [width]="640"
+        [fields]="editorFields"
+        [initialValue]="editorInitialValue()"
+        [columns]="2"
+        (closed)="closeEditor()"
+        (submitted)="saveEditor($event)"
+/>

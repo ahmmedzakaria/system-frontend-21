@@ -34,34 +34,3 @@
     padding-left: var(--layout-space-4);
   }
 }
-
-.tabs {
-  display: flex;
-  gap: var(--layout-space-1);
-  margin-bottom: var(--layout-space-3);
-  border-bottom: var(--layout-border-width) solid var(--border);
-}
-
-.tab {
-  padding: var(--layout-space-2) var(--layout-space-3);
-  border: none;
-  background: none;
-  color: var(--text-muted);
-  font: inherit;
-  font-weight: var(--layout-font-weight-medium);
-  cursor: pointer;
-  border-bottom: calc(var(--layout-border-width) * 2) solid transparent;
-  margin-bottom: calc(var(--layout-border-width) * -1);
-
-  &.active {
-    color: var(--accent);
-    border-bottom-color: var(--accent);
-  }
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--layout-space-2);
-  margin-top: var(--layout-space-3);
-}

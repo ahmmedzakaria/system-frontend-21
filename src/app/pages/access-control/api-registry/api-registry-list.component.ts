@@ -2,29 +2,26 @@ import { Component, inject, signal, viewChild } from '@angular/core';
 import { map } from 'rxjs/operators';
 import {
     ButtonComponent,
-    DynamicFormComponent,
-    DynamicListComponent,
     DynamicListLoader,
-    ListColumnConfig,
-    ModalComponent
+    DynamicModalComponent,
+    DynamicTabComponent,
+    DynamicTabConfig,
+    ListColumnConfig
 } from '@nexacore/shared';
 import { ApiRegistryService } from '../../../core/services/api-registry.service';
 import { ApiInventoryItemDto, ApiRegistryDto, ApiRegistryRequestDto, ApiRegistrySyncReportDto } from '../access-control.model';
 import { API_REGISTRY_FIELDS, apiRegistryInitialValue } from './api-registry.model';
 
-type Tab = 'registered' | 'inventory';
-
 @Component({
     selector: 'app-api-registry-list',
     standalone: true,
-    imports: [ButtonComponent, DynamicFormComponent, DynamicListComponent, ModalComponent],
+    imports: [ButtonComponent, DynamicModalComponent, DynamicTabComponent],
     templateUrl: './api-registry-list.component.html',
     styleUrl: './api-registry-list.component.scss'
 })
 export class ApiRegistryListComponent {
     private readonly service = inject(ApiRegistryService);
 
-    protected readonly activeTab = signal<Tab>('registered');
     protected readonly syncing = signal(false);
     protected readonly syncReport = signal<ApiRegistrySyncReportDto | null>(null);
 
@@ -33,7 +30,7 @@ export class ApiRegistryListComponent {
     protected readonly editorInitialValue = signal<Record<string, unknown>>({});
     private editingId: number | null = null;
 
-    private readonly registeredList = viewChild<DynamicListComponent<ApiRegistryDto>>('registeredList');
+    private readonly tabsRef = viewChild<DynamicTabComponent>('tabsRef');
 
     protected readonly loadRegistered: DynamicListLoader<ApiRegistryDto> = (params) =>
         this.service.list().pipe(
@@ -89,9 +86,24 @@ export class ApiRegistryListComponent {
         }
     ];
 
-    protected setTab(tab: Tab): void {
-        this.activeTab.set(tab);
-    }
+    protected readonly tabs: DynamicTabConfig[] = [
+        {
+            key: 'registered', label: 'Registered',
+            columns: this.registeredColumns as ListColumnConfig<unknown>[],
+            loadItems: this.loadRegistered as DynamicListLoader<unknown>,
+            searchPlaceholder: 'Search by API code or path…',
+            emptyTitle: 'No registered APIs yet',
+            emptyMessage: 'Sync from code, or add an entry manually.'
+        },
+        {
+            key: 'inventory', label: 'Inventory',
+            columns: this.inventoryColumns as ListColumnConfig<unknown>[],
+            loadItems: this.loadInventory as DynamicListLoader<unknown>,
+            searchPlaceholder: 'Search by API code or path…',
+            emptyTitle: 'No endpoints found',
+            emptyMessage: 'The live scan found nothing under com.nexacore.'
+        }
+    ];
 
     protected sync(): void {
         this.syncing.set(true);
@@ -99,7 +111,7 @@ export class ApiRegistryListComponent {
             next: (report) => {
                 this.syncing.set(false);
                 this.syncReport.set(report);
-                this.registeredList()?.reload();
+                this.tabsRef()?.reloadTab('registered');
             },
             error: () => this.syncing.set(false)
         });
@@ -136,7 +148,7 @@ export class ApiRegistryListComponent {
         };
         this.service.save(request).subscribe(() => {
             this.editorOpen.set(false);
-            this.registeredList()?.reload();
+            this.tabsRef()?.reloadTab('registered');
         });
     }
 }
