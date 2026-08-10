@@ -13,6 +13,7 @@ export class DashboardComponent {
         { title: 'Client Applications', value: '—', icon: 'building' },
         { title: 'Privileges', value: '—', icon: 'lock' },
         { title: 'Layout Profiles', value: '—', icon: 'grid' },
-        { title: 'Active Licenses', value: '—', icon: 'check' }
+        { title: 'Active Licenses', value: '—', icon: 'check' },
+        { title: 'Database Backups', value: '—', icon: 'archive' }
     ];
 }

@@ -78,6 +78,12 @@ export const routes: Routes = [
                     import('./pages/license/license-list.component').then(m => m.LicenseListComponent),
                 data: { public: true },
             },
+            {
+                path: 'backup',
+                loadComponent: () =>
+                    import('./pages/backup/backup-list.component').then(m => m.BackupListComponent),
+                data: { public: true },
+            },
             { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
         ],
     },

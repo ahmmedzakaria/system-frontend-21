@@ -55,4 +55,10 @@ export const ApiEndpoints = {
     LICENSE_SUBSCRIPTION_ENTITLEMENT_SAVE: { apiPath: 'system/license/subscription/entitlement/save', actionType: ActionTypes.CREATE },
     LICENSE_KEY_LIST: { apiPath: 'system/license/key/list', actionType: ActionTypes.SEARCH },
     LICENSE_KEY_GENERATE: { apiPath: 'system/license/key/generate', actionType: ActionTypes.CREATE },
+
+    // Database Backup Administration
+    BACKUP_RUN: { apiPath: 'system/backup/run', actionType: ActionTypes.CREATE },
+    BACKUP_LIST: { apiPath: 'system/backup/list', actionType: ActionTypes.SEARCH },
+    BACKUP_DETAIL: { apiPath: 'system/backup/detail', actionType: ActionTypes.SEARCH },
+    BACKUP_DOWNLOAD: { apiPath: 'system/backup/download', actionType: ActionTypes.UPDATE },
 } satisfies Record<string, ApiEndpoint>;

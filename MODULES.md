@@ -14,8 +14,8 @@ live in `src/app/core/api/api-endpoints.ts`.
 
 ## Dashboard
 
-Route: `dashboard` (`pages/dashboard/`). Four static cards — Client Applications,
-Privileges, Layout Profiles, Active Licenses — one per module below. The cards are
+Route: `dashboard` (`pages/dashboard/`). Five static cards — Client Applications,
+Privileges, Layout Profiles, Active Licenses, Database Backups — one per module below. The cards are
 purely presentational (`dashboard.component.ts`'s `stats` array): no live counts, no
 `routerLink`, no click handlers. Navigation to each module happens exclusively through
 the sidebar nav tree, which is backend-seeded (see "Nav tree seeding" below) — not
@@ -34,6 +34,7 @@ Every module's sidebar entry is seeded by an idempotent Flyway migration under
 | `V27` | Privileges | `ACCESS_CONTROL` | privilege catalog's own VIEW code |
 | `V28` | Layout Profiles, Navigation Tree | `ACCESS_CONTROL` | `LAYOUT_ADMINISTRATION_VIEW` (`11040100101`) |
 | `V29` | License Administration | `ACCESS_CONTROL` | `LICENSE_ADMINISTRATION_VIEW` (`11030199901`) |
+| `V32` | Database Backup | `ACCESS_CONTROL` | `DATABASE_BACKUP_VIEW` (`11060100101`) |
 
 A route added to `app.routes.ts` with no matching migration still works by direct URL
 — it just won't appear in the sidebar until the backend catches up. Every route in this
@@ -288,6 +289,35 @@ endpoint's `@PrivilegeApi` code, not by the frontend guard.
   method exists for it at all (would need its own backend addition). No UI for
   `UsageSnapshot`/`AuditEvent` — read-only telemetry tables with no admin save-side use
   case and no backend list methods.
+
+---
+
+## Phase 5 — Database Backup Administration
+
+- Route: `backup`; component/model: `pages/backup/backup-list.component.*` and
+  `backup.model.ts`; service: `core/services/backup.service.ts`.
+- Backend endpoints: `backup/run`, `backup/list`, `backup/detail`, and
+  `backup/download`.
+- `run` is asynchronous and returns a queued `BackupJobDto`; the list is
+  server-paginated and displays manual/scheduled trigger, job state, actor, timestamps,
+  encrypted artifact size, and download action.
+- Backend privileges are independently split into view (`11060100101`), execute
+  (`11060100113`), encrypted download/export (`11060100104`), delivery retry
+  (`11060100180`), and manage (`11060100187`). Version 1 exposes view, execute, and
+  download APIs; recipient and attachment-delivery settings remain environment managed.
+- Successful jobs contain independently consistent custom-format PostgreSQL dumps for
+  `auth_db`, `system_db`, `kyc_db`, `gisdb`, and `log_db`, packaged into an AES-256-GCM
+  encrypted ZIP stream. The key is server configuration and is never returned to the
+  frontend or included in notification email.
+- The backend utility is disabled by default. It requires `pg_dump`, a dedicated local
+  storage path, and a Base64-encoded 32-byte encryption key before `run` succeeds.
+- Full database backup is platform administration, not tenant export. Tenant users are
+  never granted these privileges.
+- Notification email can optionally attach the encrypted artifact when explicitly
+  enabled and below the configured size cap; larger artifacts fall back to
+  notification-only delivery. Explicitly deferred from version 1: short-lived
+  single-use download tokens, automated isolated restore verification, MinIO backup,
+  and off-host replication. The implementation plan records these recovery phases.
 
 ---
 
