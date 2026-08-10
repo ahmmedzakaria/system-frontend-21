@@ -1,0 +1,217 @@
+import { Component, computed, inject, signal, viewChild } from '@angular/core';
+import { of } from 'rxjs';
+import {
+    ButtonComponent,
+    CheckboxComponent,
+    DynamicListLoader,
+    DynamicModalComponent,
+    DynamicTabComponent,
+    DynamicTabConfig,
+    ListColumnConfig,
+    ModalComponent
+} from '@nexacore/shared';
+import { FormsModule } from '@angular/forms';
+import { RoleService } from '../../../core/services/role.service';
+import { UserService } from '../../../core/services/user.service';
+import {
+    ROLE_FIELDS,
+    RoleDto,
+    RoleRequestDto,
+    USER_FIELDS,
+    UserDto,
+    UserRequestDto,
+    formatDateTime,
+    roleInitialValue,
+    rolesLabel,
+    userInitialValue
+} from './user.model';
+
+@Component({
+    selector: 'app-user-list',
+    standalone: true,
+    imports: [ButtonComponent, CheckboxComponent, DynamicModalComponent, DynamicTabComponent, FormsModule, ModalComponent],
+    templateUrl: './user-list.component.html',
+    styleUrl: './user-list.component.scss'
+})
+export class UserListComponent {
+    private readonly userService = inject(UserService);
+    private readonly roleService = inject(RoleService);
+
+    private readonly tabsRef = viewChild<DynamicTabComponent>('tabsRef');
+    protected readonly activeTabIndex = signal(0);
+    protected readonly activeTabKey = computed(() => this.tabs()[this.activeTabIndex()]?.key);
+
+    protected readonly users = signal<UserDto[]>([]);
+    protected readonly roles = signal<RoleDto[]>([]);
+
+    constructor() {
+        this.reloadUsers();
+        this.reloadRoles();
+    }
+
+    private reloadUsers(): void {
+        this.userService.list().subscribe((rows) => {
+            this.users.set(rows);
+            this.tabsRef()?.reloadTab('users');
+        });
+    }
+
+    private reloadRoles(): void {
+        this.roleService.list().subscribe((rows) => {
+            this.roles.set(rows);
+            this.tabsRef()?.reloadTab('roles');
+        });
+    }
+
+    private makeLoader<T>(source: () => T[], textOf: (row: T) => string): DynamicListLoader<T> {
+        return (params) => {
+            const rows = source();
+            const query = params.query.trim().toLowerCase();
+            const filtered = query ? rows.filter((row) => textOf(row).toLowerCase().includes(query)) : rows;
+            const start = (params.page - 1) * params.pageSize;
+            return of({ items: filtered.slice(start, start + params.pageSize), total: filtered.length });
+        };
+    }
+
+    // ---- Users ----
+
+    protected readonly loadUsers = this.makeLoader(this.users, (row) => `${row.username} ${row.personName ?? ''}`);
+
+    protected readonly userColumns: ListColumnConfig<UserDto>[] = [
+        { key: 'username', header: 'Username' },
+        { key: 'personName', header: 'Person', format: (row) => row.personName ?? '—' },
+        { key: 'roles', header: 'Roles', format: (row) => rolesLabel(row.roles) },
+        { key: 'enabled', header: 'Status', type: 'badge', status: (row) => (row.enabled ? 'verified' : 'draft') },
+        { key: 'lastLoginAt', header: 'Last Login', format: (row) => formatDateTime(row.lastLoginAt) },
+        {
+            key: 'actions', header: '', align: 'end', type: 'actions',
+            actions: [
+                { icon: 'edit', label: 'Edit', onClick: (row) => this.openUserEditor(row) },
+                { icon: 'user-shield', label: 'Assign Roles', onClick: (row) => this.openAssignRoles(row) }
+            ]
+        }
+    ];
+
+    protected readonly userFields = USER_FIELDS;
+    protected readonly userEditorOpen = signal(false);
+    protected readonly userEditorInitialValue = signal<Record<string, unknown>>({});
+    private editingUserId: number | null = null;
+
+    protected openUserEditor(row: UserDto | null): void {
+        this.editingUserId = row?.id ?? null;
+        this.userEditorInitialValue.set(userInitialValue(row));
+        this.userEditorOpen.set(true);
+    }
+    protected closeUserEditor(): void {
+        this.userEditorOpen.set(false);
+    }
+    protected saveUserEditor(value: Record<string, unknown>): void {
+        const request: UserRequestDto = {
+            id: this.editingUserId,
+            username: value['username'] as string,
+            password: (value['password'] as string) || null,
+            email: (value['email'] as string) || null,
+            mobile: (value['mobile'] as string) || null,
+            firstName: (value['firstName'] as string) || null,
+            lastName: (value['lastName'] as string) || null,
+            enabled: !!value['enabled']
+        };
+        this.userService.save(request).subscribe(() => {
+            this.userEditorOpen.set(false);
+            this.reloadUsers();
+        });
+    }
+
+    // ---- Roles ----
+
+    protected readonly loadRoles = this.makeLoader(this.roles, (row) => row.name);
+
+    protected readonly roleColumns: ListColumnConfig<RoleDto>[] = [
+        { key: 'name', header: 'Name' },
+        {
+            key: 'actions', header: '', align: 'end', type: 'actions',
+            actions: [{ icon: 'edit', label: 'Edit', onClick: (row) => this.openRoleEditor(row) }]
+        }
+    ];
+
+    protected readonly roleFields = ROLE_FIELDS;
+    protected readonly roleEditorOpen = signal(false);
+    protected readonly roleEditorInitialValue = signal<Record<string, unknown>>({});
+    private editingRoleId: number | null = null;
+
+    protected openRoleEditor(row: RoleDto | null): void {
+        this.editingRoleId = row?.id ?? null;
+        this.roleEditorInitialValue.set(roleInitialValue(row));
+        this.roleEditorOpen.set(true);
+    }
+    protected closeRoleEditor(): void {
+        this.roleEditorOpen.set(false);
+    }
+    protected saveRoleEditor(value: Record<string, unknown>): void {
+        const request: RoleRequestDto = { id: this.editingRoleId, name: value['name'] as string };
+        this.roleService.save(request).subscribe(() => {
+            this.roleEditorOpen.set(false);
+            this.reloadRoles();
+        });
+    }
+
+    // ---- Assign Roles ----
+
+    protected readonly assignRolesOpen = signal(false);
+    protected readonly assigningUser = signal<UserDto | null>(null);
+    protected readonly selectedRoleIds = signal<Set<number>>(new Set());
+    protected readonly savingRoleAssignment = signal(false);
+
+    protected openAssignRoles(user: UserDto): void {
+        this.assigningUser.set(user);
+        this.selectedRoleIds.set(new Set(user.roles.map((role) => role.id)));
+        this.assignRolesOpen.set(true);
+    }
+    protected closeAssignRoles(): void {
+        this.assignRolesOpen.set(false);
+    }
+    protected toggleRole(id: number, checked: boolean): void {
+        const next = new Set(this.selectedRoleIds());
+        checked ? next.add(id) : next.delete(id);
+        this.selectedRoleIds.set(next);
+    }
+    protected isRoleSelected(id: number): boolean {
+        return this.selectedRoleIds().has(id);
+    }
+    protected saveRoleAssignment(): void {
+        const user = this.assigningUser();
+        if (!user) {
+            return;
+        }
+        this.savingRoleAssignment.set(true);
+        this.userService.assignRoles(user.id, [...this.selectedRoleIds()]).subscribe({
+            next: () => {
+                this.savingRoleAssignment.set(false);
+                this.assignRolesOpen.set(false);
+                this.reloadUsers();
+            },
+            error: () => this.savingRoleAssignment.set(false)
+        });
+    }
+
+    // ---- Tabs ----
+
+    protected readonly tabs = computed<DynamicTabConfig[]>(() => [
+        {
+            key: 'users', label: 'Users',
+            columns: this.userColumns as ListColumnConfig<unknown>[],
+            loadItems: this.loadUsers as DynamicListLoader<unknown>,
+            searchPlaceholder: 'Search by username or person…',
+            emptyTitle: 'No users yet',
+            emptyMessage: 'Create the first admin-console user to get started.'
+        },
+        {
+            key: 'roles', label: 'Roles',
+            columns: this.roleColumns as ListColumnConfig<unknown>[],
+            loadItems: this.loadRoles as DynamicListLoader<unknown>,
+            searchPlaceholder: 'Search by name…',
+            emptyTitle: 'No roles yet',
+            emptyMessage: 'Create a role to start bundling privileges for assignment.'
+        }
+    ]);
+}

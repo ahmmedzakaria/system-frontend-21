@@ -20,6 +20,13 @@ export const ApiEndpoints = {
     API_REGISTRY_SAVE: { apiPath: 'system/api-registry/save', actionType: ActionTypes.CREATE },
     API_REGISTRY_SYNC: { apiPath: 'system/api-registry/sync', actionType: ActionTypes.UPDATE },
 
+    // Access Control — Users & Roles
+    USER_LIST: { apiPath: 'system/user/list', actionType: ActionTypes.SEARCH },
+    USER_SAVE: { apiPath: 'system/user/save', actionType: ActionTypes.CREATE },
+    USER_ASSIGN_ROLES: { apiPath: 'system/user/assign-roles', actionType: ActionTypes.CREATE },
+    ROLE_LIST: { apiPath: 'system/role/list', actionType: ActionTypes.SEARCH },
+    ROLE_SAVE: { apiPath: 'system/role/save', actionType: ActionTypes.CREATE },
+
     // Privileges
     PRIVILEGE_LIST: { apiPath: 'system/privilege/list', actionType: ActionTypes.SEARCH },
     PRIVILEGE_SAVE: { apiPath: 'system/privilege/save', actionType: ActionTypes.CREATE },

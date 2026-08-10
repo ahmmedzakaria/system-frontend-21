@@ -1,0 +1,52 @@
+<div class="page-header">
+    <h2>User Administration</h2>
+    <div class="header-actions">
+        @if (activeTabKey() === 'users') {
+            <app-button label="New User" icon="plus" variant="ghost" (clicked)="openUserEditor(null)" />
+        } @else {
+            <app-button label="New Role" icon="plus" variant="ghost" (clicked)="openRoleEditor(null)" />
+        }
+    </div>
+</div>
+
+<app-dynamic-tab #tabsRef [tabs]="tabs()" (tabChange)="activeTabIndex.set($event)" />
+
+<app-dynamic-modal
+        [open]="userEditorOpen()"
+        title="User"
+        [width]="640"
+        [fields]="userFields"
+        [initialValue]="userEditorInitialValue()"
+        [columns]="2"
+        (closed)="closeUserEditor()"
+        (submitted)="saveUserEditor($event)"
+/>
+
+<app-dynamic-modal
+        [open]="roleEditorOpen()"
+        title="Role"
+        [width]="480"
+        [fields]="roleFields"
+        [initialValue]="roleEditorInitialValue()"
+        [columns]="1"
+        (closed)="closeRoleEditor()"
+        (submitted)="saveRoleEditor($event)"
+/>
+
+<app-modal [open]="assignRolesOpen()" title="Assign Roles" (closed)="closeAssignRoles()">
+    @if (assigningUser(); as user) {
+        <p class="panel-hint">Saving replaces {{ user.username }}'s entire role set with exactly what's checked below.</p>
+        <div class="checklist">
+            @for (role of roles(); track role.id) {
+                <label class="checklist-item">
+                    <app-checkbox [ngModel]="isRoleSelected(role.id)" (ngModelChange)="toggleRole(role.id, $event)" />
+                    <span>{{ role.name }}</span>
+                </label>
+            }
+        </div>
+    }
+    <div class="modal-actions">
+        <app-button label="Cancel" variant="ghost" (clicked)="closeAssignRoles()" />
+        <app-button label="Save" icon="save" [loading]="savingRoleAssignment()" (clicked)="saveRoleAssignment()" />
+    </div>
+</app-modal>

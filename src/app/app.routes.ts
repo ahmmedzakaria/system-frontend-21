@@ -61,6 +61,12 @@ export const routes: Routes = [
                 data: { public: true },
             },
             {
+                path: 'access-control/users',
+                loadComponent: () =>
+                    import('./pages/access-control/users/user-list.component').then(m => m.UserListComponent),
+                data: { public: true },
+            },
+            {
                 path: 'layout/profiles',
                 loadComponent: () =>
                     import('./pages/layout/profiles-policies/profiles-policies-list.component').then(m => m.ProfilesPoliciesListComponent),

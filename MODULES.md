@@ -104,6 +104,57 @@ endpoint's `@PrivilegeApi` code, not by the frontend guard.
   Profiles & Policies, and Navigation Tree still use the older hand-rolled
   `app-modal`/tab-bar patterns those two components were extracted from.
 
+### Users & Roles
+
+- Route: `access-control/users` (2 tabs: Users, Roles).
+- Component: `users/user-list.component.ts`. Model: `users/user.model.ts`.
+- Backend endpoints: `user/list`, `user/save`, `user/assign-roles`, `role/list`,
+  `role/save`. These are new — `AuthUser`/`AuthRole` (`auth_users`/`auth_roles`,
+  linked via `auth_user_roles`) previously had no REST API at all, only
+  `DataSeeder`'s hardcoded `CommandLineRunner`. The new `UserController`/
+  `RoleController` live in `authmodule.core.controller` (not `systemmodule`) since
+  they operate on `authmodule` entities directly, the same way
+  `AuthModuleGatewayImpl`/`MyUserDetailsService` already do — `@PrivilegeApi`/
+  `@PreAuthorize("@privilegeAuthorizer...")` work identically regardless of which
+  package a controller lives in, so no module-gateway plumbing was needed.
+- `UserDto`: `id`, `username`, `personId`, `personName`, `email`, `mobile`,
+  `enabled`, `roles: RoleDto[]`, `lastLoginAt`. `RoleDto`: `id`, `name`.
+- **Creating a user auto-provisions a lightweight Person** via the existing
+  `PersonModuleGateway.ensurePersonForUser(username, email, mobile, firstName,
+  lastName)` — the same helper `DataSeeder` already calls — rather than requiring
+  an existing KYC person to be picked first. `email`/`mobile`/`firstName`/
+  `lastName` in `UserRequestDto` only take effect on create; the backend
+  intentionally ignores them on update (editing an existing Person is the KYC
+  Person module's job, not this form's) — the create/edit modal shares one field
+  list regardless, since the create-only fields simply have no effect when editing.
+- **Password footgun, guarded against**: the same modal serves create and edit,
+  so a blank `password` on update must mean "leave it unchanged", not "clear the
+  password" — `UserAdminServiceImpl.saveUser()` only calls
+  `passwordEncoder.encode(...)` when the request's password is non-blank.
+  Password is required (validated) on create.
+- **No multi-select field type exists anywhere in `@nexacore/shared`** (`FieldConfig`
+  only has single-value checkbox/radio/dropdown/smart-dropdown/card-selector) — so
+  "assign roles to a user" reuses `client-application-detail.component`'s
+  hand-rolled pattern instead: a plain `app-modal` (not `app-dynamic-modal`, since
+  there's no `FieldConfig` for a role checklist) containing a `.checklist` of
+  `app-checkbox` bound via `[ngModel]`/`(ngModelChange)` to a `Set<number>` signal,
+  with a full-replace "Save" button calling `user/assign-roles` — same semantics as
+  `client-app/assign-feature-permissions`.
+- Role CRUD has no delete — deleting a role still referenced by users/privileges
+  is a real footgun, and the Privilege catalog itself has no delete either.
+- New privilege codes: `USER_ADMINISTRATION_VIEW`/`_MANAGE`/`_ASSIGN`
+  (`11020100701`/`787`/`781`) and `ROLE_ADMINISTRATION_VIEW`/`_MANAGE`
+  (`11020100801`/`887`), registered in `BootstrapAdministrationPrivilegeProvider`
+  (feature codes `007`/`008` under `SYSTEM_ACCESS_CONTROL`) and seeded into the
+  sidebar nav tree by `V33__seed_user_role_administration_navigation.sql`
+  (same pattern as `V29__seed_license_navigation.sql`). Nav-seeding migrations
+  depend on the privilege catalog row already existing — since that row is
+  populated by `DataSeeder` at every app boot (not by a migration), the
+  privilege-provider code must ship and the backend restart *once* before a nav
+  migration referencing its code can run, or the migration's `INSERT ... SELECT`
+  silently inserts nothing and (since Flyway migrations only ever run once) never
+  retries.
+
 ---
 
 ## Phase 2 — Privileges
