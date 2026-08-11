@@ -61,6 +61,12 @@ export const routes: Routes = [
                 data: { public: true },
             },
             {
+                path: 'access-control/tenants',
+                loadComponent: () =>
+                    import('./pages/tenant/tenant-administration.component').then(m => m.TenantAdministrationComponent),
+                data: { public: true },
+            },
+            {
                 path: 'access-control/users',
                 loadComponent: () =>
                     import('./pages/access-control/users/user-list.component').then(m => m.UserListComponent),

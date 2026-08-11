@@ -28,6 +28,15 @@ export const ApiEndpoints = {
     ROLE_SAVE: { apiPath: 'system/role/save', actionType: ActionTypes.CREATE },
     GLOBAL_ROLE_SAVE: { apiPath: 'system/role/global/save', actionType: ActionTypes.CREATE },
 
+    // Tenant control plane
+    TENANT_REGISTER: { apiPath: 'system/tenants/register', actionType: ActionTypes.CREATE },
+    TENANT_LIST: { apiPath: 'system/tenants/list', actionType: ActionTypes.SEARCH },
+    TENANT_DOMAIN_VERIFY: { apiPath: 'system/tenants/domain/verify', actionType: ActionTypes.UPDATE },
+    TENANT_ACTIVATE: { apiPath: 'system/tenants/activate', actionType: ActionTypes.UPDATE },
+    TENANT_SUSPEND: { apiPath: 'system/tenants/suspend', actionType: ActionTypes.UPDATE },
+    TENANT_REACTIVATE: { apiPath: 'system/tenants/reactivate', actionType: ActionTypes.UPDATE },
+    TENANT_CANCEL: { apiPath: 'system/tenants/cancel', actionType: ActionTypes.UPDATE },
+
     // Privileges
     PRIVILEGE_LIST: { apiPath: 'system/privilege/list', actionType: ActionTypes.SEARCH },
     PRIVILEGE_SAVE: { apiPath: 'system/privilege/save', actionType: ActionTypes.CREATE },

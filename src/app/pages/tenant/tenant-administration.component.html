@@ -1,0 +1,34 @@
+<div class="page-header">
+    <div>
+        <h2>Tenant Administration</h2>
+        <p>Platform control-plane registration, domain verification, and lifecycle management.</p>
+    </div>
+    @if (canRegister) {
+        <app-button label="Register Tenant" icon="plus" variant="primary" (clicked)="registrationOpen.set(true)" />
+    }
+</div>
+
+<div class="security-note">
+    Tenant-facing applications remain domain-selected. IDs chosen here are sent only as explicit administration targets and are revalidated by the backend.
+</div>
+
+@if (message()) { <div class="message">{{ message() }}</div> }
+
+<app-dynamic-list #tenantList [columns]="columns" [loadItems]="loadTenants" [pageSize]="20"
+                  searchPlaceholder="Search tenant code, name, or domain…"
+                  emptyTitle="No tenants found" emptyMessage="Register the first tenant to begin onboarding." />
+
+<app-dynamic-modal [open]="registrationOpen()" title="Register Tenant" [width]="720"
+                   [fields]="registrationFields" [initialValue]="registrationInitial" [columns]="2"
+                   (closed)="registrationOpen.set(false)" (submitted)="saveRegistration($event)" />
+
+<app-confirm-dialog [open]="!!pendingAction()" [title]="actionTitle()" [message]="actionMessage()"
+                    confirmLabel="Confirm" [danger]="pendingAction() === 'cancel'"
+                    [loading]="actionLoading()" (confirmed)="confirmAction()" (cancelled)="closeAction()">
+    @if (requiresReason()) {
+        <label for="tenant-lifecycle-reason">Reason</label>
+        <textarea id="tenant-lifecycle-reason" rows="3" [value]="reason()"
+                  (input)="reason.set($any($event.target).value)"></textarea>
+        @if (!reason().trim()) { <small>A reason is required.</small> }
+    }
+</app-confirm-dialog>
