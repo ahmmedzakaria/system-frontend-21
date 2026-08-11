@@ -15,4 +15,8 @@ export class RoleService {
     save(request: RoleRequestDto): Observable<RoleDto> {
         return this.api.post<RoleDto>(ApiEndpoints.ROLE_SAVE, request);
     }
+
+    saveGlobal(request: RoleRequestDto): Observable<RoleDto> {
+        return this.api.post<RoleDto>(ApiEndpoints.GLOBAL_ROLE_SAVE, request);
+    }
 }

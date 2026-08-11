@@ -11,6 +11,7 @@ import {
     ModalComponent
 } from '@nexacore/shared';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '@nexacore/platform';
 import { RoleService } from '../../../core/services/role.service';
 import { UserService } from '../../../core/services/user.service';
 import {
@@ -36,6 +37,7 @@ import {
 export class UserListComponent {
     private readonly userService = inject(UserService);
     private readonly roleService = inject(RoleService);
+    private readonly authService = inject(AuthService);
 
     private readonly tabsRef = viewChild<DynamicTabComponent>('tabsRef');
     protected readonly activeTabIndex = signal(0);
@@ -43,6 +45,9 @@ export class UserListComponent {
 
     protected readonly users = signal<UserDto[]>([]);
     protected readonly roles = signal<RoleDto[]>([]);
+    protected readonly globalRoles = computed(() => this.roles().filter((role) => role.globalTemplate));
+    protected readonly tenantRoles = computed(() => this.roles().filter((role) => !role.globalTemplate));
+    protected readonly isPlatformAdmin = this.authService.hasRole('ROLE_SYSTEM_ADMIN');
 
     constructor() {
         this.reloadUsers();
@@ -59,7 +64,8 @@ export class UserListComponent {
     private reloadRoles(): void {
         this.roleService.list().subscribe((rows) => {
             this.roles.set(rows);
-            this.tabsRef()?.reloadTab('roles');
+            this.tabsRef()?.reloadTab('global-roles');
+            this.tabsRef()?.reloadTab('tenant-roles');
         });
     }
 
@@ -79,6 +85,7 @@ export class UserListComponent {
 
     protected readonly userColumns: ListColumnConfig<UserDto>[] = [
         { key: 'username', header: 'Username' },
+        { key: 'tenantId', header: 'Tenant' },
         { key: 'personName', header: 'Person', format: (row) => row.personName ?? '—' },
         { key: 'roles', header: 'Roles', format: (row) => rolesLabel(row.roles) },
         { key: 'enabled', header: 'Status', type: 'badge', status: (row) => (row.enabled ? 'verified' : 'draft') },
@@ -124,10 +131,33 @@ export class UserListComponent {
 
     // ---- Roles ----
 
-    protected readonly loadRoles = this.makeLoader(this.roles, (row) => row.name);
+    protected readonly loadGlobalRoles = this.makeLoader(this.globalRoles, (row) => `${row.name} ${row.roleCode}`);
+    protected readonly loadTenantRoles = this.makeLoader(this.tenantRoles, (row) => `${row.name} ${row.roleCode}`);
 
-    protected readonly roleColumns: ListColumnConfig<RoleDto>[] = [
+    protected readonly globalRoleColumns: ListColumnConfig<RoleDto>[] = [
         { key: 'name', header: 'Name' },
+        { key: 'roleCode', header: 'Code' },
+        { key: 'description', header: 'Description', format: (row) => row.description || '—' },
+        { key: 'active', header: 'Status', type: 'badge', status: (row) => row.active ? 'verified' : 'draft' },
+        { key: 'updatedBy', header: 'Last Changed By', format: (row) => `User #${row.updatedBy}` },
+        { key: 'updatedAt', header: 'Last Changed', format: (row) => formatDateTime(row.updatedAt) }
+    ];
+
+    protected readonly platformGlobalRoleColumns: ListColumnConfig<RoleDto>[] = [
+        ...this.globalRoleColumns,
+        {
+            key: 'actions', header: '', align: 'end', type: 'actions',
+            actions: [{ icon: 'edit', label: 'Edit', onClick: (row) => this.openRoleEditor(row) }]
+        }
+    ];
+
+    protected readonly tenantRoleColumns: ListColumnConfig<RoleDto>[] = [
+        { key: 'name', header: 'Name' },
+        { key: 'roleCode', header: 'Code' },
+        { key: 'description', header: 'Description', format: (row) => row.description || '—' },
+        { key: 'active', header: 'Status', type: 'badge', status: (row) => row.active ? 'verified' : 'draft' },
+        { key: 'updatedBy', header: 'Last Changed By', format: (row) => `User #${row.updatedBy}` },
+        { key: 'updatedAt', header: 'Last Changed', format: (row) => formatDateTime(row.updatedAt) },
         {
             key: 'actions', header: '', align: 'end', type: 'actions',
             actions: [{ icon: 'edit', label: 'Edit', onClick: (row) => this.openRoleEditor(row) }]
@@ -138,9 +168,14 @@ export class UserListComponent {
     protected readonly roleEditorOpen = signal(false);
     protected readonly roleEditorInitialValue = signal<Record<string, unknown>>({});
     private editingRoleId: number | null = null;
+    private editingGlobalRole = false;
 
     protected openRoleEditor(row: RoleDto | null): void {
         this.editingRoleId = row?.id ?? null;
+        this.editingGlobalRole = row?.globalTemplate ?? this.activeTabKey() === 'global-roles';
+        if (this.editingGlobalRole && !this.isPlatformAdmin) {
+            return;
+        }
         this.roleEditorInitialValue.set(roleInitialValue(row));
         this.roleEditorOpen.set(true);
     }
@@ -148,8 +183,15 @@ export class UserListComponent {
         this.roleEditorOpen.set(false);
     }
     protected saveRoleEditor(value: Record<string, unknown>): void {
-        const request: RoleRequestDto = { id: this.editingRoleId, name: value['name'] as string };
-        this.roleService.save(request).subscribe(() => {
+        const request: RoleRequestDto = {
+            id: this.editingRoleId,
+            name: value['name'] as string,
+            roleCode: value['roleCode'] as string,
+            description: (value['description'] as string) || null,
+            active: !!value['active']
+        };
+        const save = this.editingGlobalRole ? this.roleService.saveGlobal(request) : this.roleService.save(request);
+        save.subscribe(() => {
             this.roleEditorOpen.set(false);
             this.reloadRoles();
         });
@@ -183,6 +225,13 @@ export class UserListComponent {
         if (!user) {
             return;
         }
+        const selectedNames = this.roles()
+            .filter((role) => this.selectedRoleIds().has(role.id))
+            .map((role) => role.name)
+            .join(', ') || 'no roles';
+        if (!confirm(`Replace all roles for ${user.username} in tenant ${user.tenantId} with: ${selectedNames}?`)) {
+            return;
+        }
         this.savingRoleAssignment.set(true);
         this.userService.assignRoles(user.id, [...this.selectedRoleIds()]).subscribe({
             next: () => {
@@ -206,12 +255,20 @@ export class UserListComponent {
             emptyMessage: 'Create the first admin-console user to get started.'
         },
         {
-            key: 'roles', label: 'Roles',
-            columns: this.roleColumns as ListColumnConfig<unknown>[],
-            loadItems: this.loadRoles as DynamicListLoader<unknown>,
-            searchPlaceholder: 'Search by name…',
-            emptyTitle: 'No roles yet',
-            emptyMessage: 'Create a role to start bundling privileges for assignment.'
+            key: 'global-roles', label: 'Global Templates',
+            columns: (this.isPlatformAdmin ? this.platformGlobalRoleColumns : this.globalRoleColumns) as ListColumnConfig<unknown>[],
+            loadItems: this.loadGlobalRoles as DynamicListLoader<unknown>,
+            searchPlaceholder: 'Search templates by name or code…',
+            emptyTitle: 'No global templates',
+            emptyMessage: 'Global templates are managed by platform administrators.'
+        },
+        {
+            key: 'tenant-roles', label: 'Tenant Roles',
+            columns: this.tenantRoleColumns as ListColumnConfig<unknown>[],
+            loadItems: this.loadTenantRoles as DynamicListLoader<unknown>,
+            searchPlaceholder: 'Search tenant roles by name or code…',
+            emptyTitle: 'No tenant roles yet',
+            emptyMessage: 'Create a tenant-specific role for this tenant.'
         }
     ]);
 }

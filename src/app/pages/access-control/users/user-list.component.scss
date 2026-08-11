@@ -29,6 +29,23 @@
   color: var(--text-muted);
 }
 
+.scope-note {
+  margin: calc(var(--layout-space-2) * -1) 0 var(--layout-space-3);
+  font-size: var(--layout-font-size-xs);
+  color: var(--text-muted);
+}
+
+.role-group-title {
+  margin: var(--layout-space-2) 0;
+  font-size: var(--layout-font-size-sm);
+  color: var(--text);
+}
+
+.checklist-item small {
+  margin-left: var(--layout-space-1);
+  color: var(--text-muted);
+}
+
 .checklist {
   display: flex;
   flex-direction: column;

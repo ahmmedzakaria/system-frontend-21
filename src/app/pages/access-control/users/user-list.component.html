@@ -3,8 +3,10 @@
     <div class="header-actions">
         @if (activeTabKey() === 'users') {
             <app-button label="New User" icon="plus" variant="ghost" (clicked)="openUserEditor(null)" />
-        } @else {
-            <app-button label="New Role" icon="plus" variant="ghost" (clicked)="openRoleEditor(null)" />
+        } @else if (activeTabKey() === 'tenant-roles') {
+            <app-button label="New Tenant Role" icon="plus" variant="ghost" (clicked)="openRoleEditor(null)" />
+        } @else if (isPlatformAdmin) {
+            <app-button label="New Global Template" icon="plus" variant="ghost" (clicked)="openRoleEditor(null)" />
         }
     </div>
 </div>
@@ -21,6 +23,9 @@
         (closed)="closeUserEditor()"
         (submitted)="saveUserEditor($event)"
 />
+@if (userEditorOpen()) {
+    <p class="scope-note">Usernames are unique inside the selected tenant only. The same username may exist in another tenant.</p>
+}
 
 <app-dynamic-modal
         [open]="roleEditorOpen()"
@@ -35,12 +40,22 @@
 
 <app-modal [open]="assignRolesOpen()" title="Assign Roles" (closed)="closeAssignRoles()">
     @if (assigningUser(); as user) {
-        <p class="panel-hint">Saving replaces {{ user.username }}'s entire role set with exactly what's checked below.</p>
+        <p class="panel-hint">Tenant {{ user.tenantId }} account. Saving replaces {{ user.username }}'s entire role set after confirmation.</p>
+        <h4 class="role-group-title">Global templates</h4>
         <div class="checklist">
-            @for (role of roles(); track role.id) {
+            @for (role of globalRoles(); track role.id) {
                 <label class="checklist-item">
                     <app-checkbox [ngModel]="isRoleSelected(role.id)" (ngModelChange)="toggleRole(role.id, $event)" />
-                    <span>{{ role.name }}</span>
+                    <span>{{ role.name }} <small>{{ role.roleCode }}</small></span>
+                </label>
+            }
+        </div>
+        <h4 class="role-group-title">Tenant custom roles</h4>
+        <div class="checklist">
+            @for (role of tenantRoles(); track role.id) {
+                <label class="checklist-item">
+                    <app-checkbox [ngModel]="isRoleSelected(role.id)" (ngModelChange)="toggleRole(role.id, $event)" />
+                    <span>{{ role.name }} <small>{{ role.roleCode }}</small></span>
                 </label>
             }
         </div>

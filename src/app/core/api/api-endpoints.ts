@@ -26,6 +26,7 @@ export const ApiEndpoints = {
     USER_ASSIGN_ROLES: { apiPath: 'system/user/assign-roles', actionType: ActionTypes.CREATE },
     ROLE_LIST: { apiPath: 'system/role/list', actionType: ActionTypes.SEARCH },
     ROLE_SAVE: { apiPath: 'system/role/save', actionType: ActionTypes.CREATE },
+    GLOBAL_ROLE_SAVE: { apiPath: 'system/role/global/save', actionType: ActionTypes.CREATE },
 
     // Privileges
     PRIVILEGE_LIST: { apiPath: 'system/privilege/list', actionType: ActionTypes.SEARCH },

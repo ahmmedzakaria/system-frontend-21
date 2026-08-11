@@ -5,15 +5,28 @@ import { FieldConfig } from '@nexacore/shared';
 export interface RoleDto {
     id: number;
     name: string;
+    tenantId: number | null;
+    roleCode: string;
+    description: string | null;
+    active: boolean;
+    globalTemplate: boolean;
+    createdBy: number;
+    updatedBy: number;
+    createdAt: string | null;
+    updatedAt: string | null;
 }
 
 export interface RoleRequestDto {
     id: number | null;
     name: string;
+    roleCode: string;
+    description: string | null;
+    active: boolean;
 }
 
 export interface UserDto {
     id: number;
+    tenantId: number;
     username: string;
     personId: number | null;
     personName: string | null;
@@ -85,8 +98,18 @@ export function userInitialValue(row: UserDto | null): Record<string, unknown> {
     };
 }
 
-export const ROLE_FIELDS: FieldConfig[] = [{ type: 'text', key: 'name', label: 'Name', required: true }];
+export const ROLE_FIELDS: FieldConfig[] = [
+    { type: 'text', key: 'name', label: 'Name', required: true },
+    { type: 'text', key: 'roleCode', label: 'Role Code', required: true },
+    { type: 'text', key: 'description', label: 'Description' },
+    { type: 'checkbox', key: 'active', label: 'Active' }
+];
 
 export function roleInitialValue(row: RoleDto | null): Record<string, unknown> {
-    return { name: row?.name ?? '' };
+    return {
+        name: row?.name ?? '',
+        roleCode: row?.roleCode ?? '',
+        description: row?.description ?? '',
+        active: row?.active ?? true
+    };
 }
