@@ -23,4 +23,13 @@ export class PrivilegeService {
     subMenuSave(request: SubMenuRequestDto): Observable<SubMenuDto> {
         return this.api.post<SubMenuDto>(ApiEndpoints.SUB_MENU_SAVE, request);
     }
+
+    /** Full-replace: the given privilege codes become the role's entire privilege set. */
+    assignToRole(roleId: number, privilegeCodes: string[]): Observable<void> {
+        return this.api.post<void>(ApiEndpoints.PRIVILEGE_ASSIGN_ROLE, { roleId, privilegeCodes });
+    }
+
+    roleCodes(roleId: number): Observable<string[]> {
+        return this.api.post<string[]>(ApiEndpoints.PRIVILEGE_ROLE_CODES, { roleId });
+    }
 }

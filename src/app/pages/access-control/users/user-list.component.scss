@@ -35,6 +35,14 @@
   color: var(--text-muted);
 }
 
+.error-message {
+  margin: 0 0 var(--layout-space-3);
+  padding: var(--layout-space-2);
+  border: var(--layout-border-width) solid var(--danger, #b42318);
+  border-radius: var(--layout-radius-sm);
+  color: var(--danger, #b42318);
+}
+
 .role-group-title {
   margin: var(--layout-space-2) 0;
   font-size: var(--layout-font-size-sm);

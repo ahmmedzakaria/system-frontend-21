@@ -74,6 +74,12 @@ export interface SubMenuRequestDto {
     subMenuOrder: number | null;
 }
 
+export const PRIVILEGE_PRIVILEGES = {
+    view: '11010100101',
+    manage: '11010100180',
+    assign: '11010100181'
+} as const;
+
 export function privilegeFields(subMenuOptions: DropdownOption<unknown>[]): FieldConfig[] {
     return [
         { type: 'text', key: 'moduleCode', label: 'Module Code', required: true },

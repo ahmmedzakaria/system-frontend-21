@@ -1,7 +1,7 @@
 <div class="page-header">
     <h2>User Administration</h2>
     <div class="header-actions">
-        @if (activeTabKey() === 'users') {
+        @if (activeTabKey() === 'users' && canManageUsers) {
             <app-button label="New User" icon="plus" variant="ghost" (clicked)="openUserEditor(null)" />
         } @else if (activeTabKey() === 'tenant-roles') {
             <app-button label="New Tenant Role" icon="plus" variant="ghost" (clicked)="openRoleEditor(null)" />
@@ -11,20 +11,26 @@
     </div>
 </div>
 
+@if (userError()) {
+    <p class="error-message" role="alert">{{ userError() }}</p>
+}
+
 <app-dynamic-tab #tabsRef [tabs]="tabs()" (tabChange)="activeTabIndex.set($event)" />
 
 <app-dynamic-modal
         [open]="userEditorOpen()"
         title="User"
         [width]="640"
-        [fields]="userFields"
+        [fields]="userFields()"
         [initialValue]="userEditorInitialValue()"
         [columns]="2"
         (closed)="closeUserEditor()"
         (submitted)="saveUserEditor($event)"
 />
 @if (userEditorOpen()) {
-    <p class="scope-note">Usernames are unique inside the selected tenant only. The same username may exist in another tenant.</p>
+    <p class="scope-note">
+        Usernames are unique inside tenant {{ currentTenantId }}. Canonical person details are captured only when the account is created; edit them through Person Administration afterward.
+    </p>
 }
 
 <app-dynamic-modal
@@ -43,7 +49,7 @@
         <p class="panel-hint">Tenant {{ user.tenantId }} account. Saving replaces {{ user.username }}'s entire role set after confirmation.</p>
         <h4 class="role-group-title">Global templates</h4>
         <div class="checklist">
-            @for (role of globalRoles(); track role.id) {
+            @for (role of assignableGlobalRoles(); track role.id) {
                 <label class="checklist-item">
                     <app-checkbox [ngModel]="isRoleSelected(role.id)" (ngModelChange)="toggleRole(role.id, $event)" />
                     <span>{{ role.name }} <small>{{ role.roleCode }}</small></span>
@@ -52,7 +58,7 @@
         </div>
         <h4 class="role-group-title">Tenant custom roles</h4>
         <div class="checklist">
-            @for (role of tenantRoles(); track role.id) {
+            @for (role of assignableTenantRoles(); track role.id) {
                 <label class="checklist-item">
                     <app-checkbox [ngModel]="isRoleSelected(role.id)" (ngModelChange)="toggleRole(role.id, $event)" />
                     <span>{{ role.name }} <small>{{ role.roleCode }}</small></span>
@@ -63,5 +69,26 @@
     <div class="modal-actions">
         <app-button label="Cancel" variant="ghost" (clicked)="closeAssignRoles()" />
         <app-button label="Save" icon="save" [loading]="savingRoleAssignment()" (clicked)="saveRoleAssignment()" />
+    </div>
+</app-modal>
+
+<app-modal [open]="assignPrivilegesOpen()" title="Assign Privileges" [width]="640" (closed)="closeAssignPrivileges()">
+    @if (assigningPrivilegesRole(); as role) {
+        <p class="panel-hint">Saving replaces role "{{ role.name }}"'s entire privilege set with what's checked below.</p>
+        @for (group of privilegeGroups(); track group.moduleName + group.submoduleName) {
+            <h4 class="role-group-title">{{ group.moduleName }} — {{ group.submoduleName }}</h4>
+            <div class="checklist">
+                @for (privilege of group.items; track privilege.id) {
+                    <label class="checklist-item">
+                        <app-checkbox [ngModel]="isPrivilegeSelected(privilege.privilegeCode)" (ngModelChange)="togglePrivilege(privilege.privilegeCode, $event)" />
+                        <span>{{ privilege.featureName }} — {{ privilege.actionName }} <small>{{ privilege.privilegeCode }}</small></span>
+                    </label>
+                }
+            </div>
+        }
+    }
+    <div class="modal-actions">
+        <app-button label="Cancel" variant="ghost" (clicked)="closeAssignPrivileges()" />
+        <app-button label="Save" icon="save" [loading]="savingPrivilegeAssignment()" (clicked)="saveAssignPrivileges()" />
     </div>
 </app-modal>

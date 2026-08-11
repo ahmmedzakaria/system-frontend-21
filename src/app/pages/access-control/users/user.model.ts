@@ -28,6 +28,7 @@ export interface UserDto {
     id: number;
     tenantId: number;
     username: string;
+    normalizedUsername: string;
     personId: number | null;
     personName: string | null;
     email: string | null;
@@ -39,6 +40,7 @@ export interface UserDto {
 
 export interface UserRequestDto {
     id: number | null;
+    tenantId: number;
     username: string;
     /** Required on create. On update, a blank/null password leaves the existing password unchanged. */
     password: string | null;
@@ -53,6 +55,12 @@ export interface UserRoleAssignmentRequestDto {
     userId: number;
     roleIds: number[];
 }
+
+export const USER_PRIVILEGES = {
+    view: '11020100701',
+    manage: '11020100787',
+    assignRoles: '11020100781'
+} as const;
 
 export function rolesLabel(roles: RoleDto[]): string {
     return roles.length ? roles.map((role) => role.name).join(', ') : '—';
@@ -73,13 +81,19 @@ export function formatDateTime(value: string | null): string {
 // the create-only fields simply have no effect when editing (username/
 // password/enabled remain live either way).
 
-export const USER_FIELDS: FieldConfig[] = [
+export const USER_CREATE_FIELDS: FieldConfig[] = [
     { type: 'text', key: 'username', label: 'Username', required: true },
-    { type: 'password', key: 'password', label: 'Password (leave blank to keep unchanged when editing)', required: false },
-    { type: 'email', key: 'email', label: 'Email (create only)' },
-    { type: 'tel', key: 'mobile', label: 'Mobile (create only)' },
-    { type: 'text', key: 'firstName', label: 'First Name (create only)' },
-    { type: 'text', key: 'lastName', label: 'Last Name (create only)' },
+    { type: 'password', key: 'password', label: 'Password', required: true },
+    { type: 'email', key: 'email', label: 'Canonical Email' },
+    { type: 'tel', key: 'mobile', label: 'Canonical Mobile' },
+    { type: 'text', key: 'firstName', label: 'First Name', required: true },
+    { type: 'text', key: 'lastName', label: 'Last Name' },
+    { type: 'checkbox', key: 'enabled', label: 'Enabled' }
+];
+
+export const USER_EDIT_FIELDS: FieldConfig[] = [
+    { type: 'text', key: 'username', label: 'Username', required: true },
+    { type: 'password', key: 'password', label: 'New Password (leave blank to keep unchanged)' },
     { type: 'checkbox', key: 'enabled', label: 'Enabled' }
 ];
 

@@ -14,11 +14,15 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from '@nexacore/platform';
 import { RoleService } from '../../../core/services/role.service';
 import { UserService } from '../../../core/services/user.service';
+import { PrivilegeService } from '../../../core/services/privilege.service';
+import { PRIVILEGE_PRIVILEGES, PrivilegeDto } from '../privileges/privileges.model';
 import {
     ROLE_FIELDS,
     RoleDto,
     RoleRequestDto,
-    USER_FIELDS,
+    USER_CREATE_FIELDS,
+    USER_EDIT_FIELDS,
+    USER_PRIVILEGES,
     UserDto,
     UserRequestDto,
     formatDateTime,
@@ -37,6 +41,7 @@ import {
 export class UserListComponent {
     private readonly userService = inject(UserService);
     private readonly roleService = inject(RoleService);
+    private readonly privilegeService = inject(PrivilegeService);
     private readonly authService = inject(AuthService);
 
     private readonly tabsRef = viewChild<DynamicTabComponent>('tabsRef');
@@ -47,11 +52,35 @@ export class UserListComponent {
     protected readonly roles = signal<RoleDto[]>([]);
     protected readonly globalRoles = computed(() => this.roles().filter((role) => role.globalTemplate));
     protected readonly tenantRoles = computed(() => this.roles().filter((role) => !role.globalTemplate));
+    protected readonly assignableGlobalRoles = computed(() => this.globalRoles().filter((role) => role.active));
+    protected readonly assignableTenantRoles = computed(() => this.tenantRoles().filter((role) => role.active));
     protected readonly isPlatformAdmin = this.authService.hasRole('ROLE_SYSTEM_ADMIN');
+    protected readonly canManageUsers = this.authService.hasPrivilege(USER_PRIVILEGES.manage);
+    protected readonly canAssignRoles = this.authService.hasPrivilege(USER_PRIVILEGES.assignRoles);
+    protected readonly canAssignPrivileges = this.authService.hasPrivilege(PRIVILEGE_PRIVILEGES.assign);
+    protected readonly currentTenantId = this.readCurrentTenantId();
+    protected readonly userError = signal<string | null>(null);
+
+    protected readonly privileges = signal<PrivilegeDto[]>([]);
+    protected readonly privilegeGroups = computed(() => {
+        const groups = new Map<string, { moduleName: string; submoduleName: string; items: PrivilegeDto[] }>();
+        for (const privilege of this.privileges()) {
+            if (!privilege.active) continue;
+            const key = `${privilege.moduleCode}:${privilege.submoduleCode}`;
+            const group = groups.get(key);
+            if (group) {
+                group.items.push(privilege);
+            } else {
+                groups.set(key, { moduleName: privilege.moduleName, submoduleName: privilege.submoduleName, items: [privilege] });
+            }
+        }
+        return [...groups.values()];
+    });
 
     constructor() {
         this.reloadUsers();
         this.reloadRoles();
+        this.reloadPrivileges();
     }
 
     private reloadUsers(): void {
@@ -69,6 +98,10 @@ export class UserListComponent {
         });
     }
 
+    private reloadPrivileges(): void {
+        this.privilegeService.list().subscribe((rows) => this.privileges.set(rows));
+    }
+
     private makeLoader<T>(source: () => T[], textOf: (row: T) => string): DynamicListLoader<T> {
         return (params) => {
             const rows = source();
@@ -83,29 +116,37 @@ export class UserListComponent {
 
     protected readonly loadUsers = this.makeLoader(this.users, (row) => `${row.username} ${row.personName ?? ''}`);
 
-    protected readonly userColumns: ListColumnConfig<UserDto>[] = [
+    private readonly userBaseColumns: ListColumnConfig<UserDto>[] = [
         { key: 'username', header: 'Username' },
+        { key: 'normalizedUsername', header: 'Normalized Username' },
         { key: 'tenantId', header: 'Tenant' },
-        { key: 'personName', header: 'Person', format: (row) => row.personName ?? '—' },
+        { key: 'personName', header: 'Canonical Person', format: (row) => row.personName ? `${row.personName} (#${row.personId})` : `Person #${row.personId}` },
+        { key: 'email', header: 'Canonical Email', format: (row) => row.email ?? '—' },
         { key: 'roles', header: 'Roles', format: (row) => rolesLabel(row.roles) },
         { key: 'enabled', header: 'Status', type: 'badge', status: (row) => (row.enabled ? 'verified' : 'draft') },
-        { key: 'lastLoginAt', header: 'Last Login', format: (row) => formatDateTime(row.lastLoginAt) },
-        {
-            key: 'actions', header: '', align: 'end', type: 'actions',
-            actions: [
-                { icon: 'edit', label: 'Edit', onClick: (row) => this.openUserEditor(row) },
-                { icon: 'user-shield', label: 'Assign Roles', onClick: (row) => this.openAssignRoles(row) }
-            ]
-        }
+        { key: 'lastLoginAt', header: 'Last Login', format: (row) => formatDateTime(row.lastLoginAt) }
     ];
 
-    protected readonly userFields = USER_FIELDS;
+    protected readonly userColumns: ListColumnConfig<UserDto>[] = [
+        ...this.userBaseColumns,
+        ...(this.canManageUsers || this.canAssignRoles ? [{
+            key: 'actions', header: '', align: 'end', type: 'actions',
+            actions: [
+                ...(this.canManageUsers ? [{ icon: 'edit', label: 'Edit', onClick: (row: UserDto) => this.openUserEditor(row) }] : []),
+                ...(this.canAssignRoles ? [{ icon: 'user-shield', label: 'Assign Roles', onClick: (row: UserDto) => this.openAssignRoles(row) }] : [])
+            ]
+        } as ListColumnConfig<UserDto>] : [])
+    ];
+
+    private readonly editingUserId = signal<number | null>(null);
+    protected readonly userFields = computed(() => this.editingUserId() == null ? USER_CREATE_FIELDS : USER_EDIT_FIELDS);
     protected readonly userEditorOpen = signal(false);
     protected readonly userEditorInitialValue = signal<Record<string, unknown>>({});
-    private editingUserId: number | null = null;
 
     protected openUserEditor(row: UserDto | null): void {
-        this.editingUserId = row?.id ?? null;
+        if (!this.canManageUsers) return;
+        this.editingUserId.set(row?.id ?? null);
+        this.userError.set(null);
         this.userEditorInitialValue.set(userInitialValue(row));
         this.userEditorOpen.set(true);
     }
@@ -113,8 +154,14 @@ export class UserListComponent {
         this.userEditorOpen.set(false);
     }
     protected saveUserEditor(value: Record<string, unknown>): void {
+        const tenantId = this.currentTenantId;
+        if (tenantId == null) {
+            this.userError.set('The authenticated token does not contain a tenant context. Please sign in again.');
+            return;
+        }
         const request: UserRequestDto = {
-            id: this.editingUserId,
+            id: this.editingUserId(),
+            tenantId,
             username: value['username'] as string,
             password: (value['password'] as string) || null,
             email: (value['email'] as string) || null,
@@ -123,9 +170,13 @@ export class UserListComponent {
             lastName: (value['lastName'] as string) || null,
             enabled: !!value['enabled']
         };
-        this.userService.save(request).subscribe(() => {
-            this.userEditorOpen.set(false);
-            this.reloadUsers();
+        this.userService.save(request).subscribe({
+            next: () => {
+                this.userEditorOpen.set(false);
+                this.userError.set(null);
+                this.reloadUsers();
+            },
+            error: (error) => this.userError.set(error?.error?.message?.[0]?.message ?? error?.message ?? 'Unable to save user')
         });
     }
 
@@ -147,7 +198,10 @@ export class UserListComponent {
         ...this.globalRoleColumns,
         {
             key: 'actions', header: '', align: 'end', type: 'actions',
-            actions: [{ icon: 'edit', label: 'Edit', onClick: (row) => this.openRoleEditor(row) }]
+            actions: [
+                { icon: 'edit', label: 'Edit', onClick: (row) => this.openRoleEditor(row) },
+                ...(this.canAssignPrivileges ? [{ icon: 'shield-check', label: 'Assign Privileges', onClick: (row: RoleDto) => this.openAssignPrivileges(row) }] : [])
+            ]
         }
     ];
 
@@ -160,7 +214,10 @@ export class UserListComponent {
         { key: 'updatedAt', header: 'Last Changed', format: (row) => formatDateTime(row.updatedAt) },
         {
             key: 'actions', header: '', align: 'end', type: 'actions',
-            actions: [{ icon: 'edit', label: 'Edit', onClick: (row) => this.openRoleEditor(row) }]
+            actions: [
+                { icon: 'edit', label: 'Edit', onClick: (row) => this.openRoleEditor(row) },
+                ...(this.canAssignPrivileges ? [{ icon: 'shield-check', label: 'Assign Privileges', onClick: (row: RoleDto) => this.openAssignPrivileges(row) }] : [])
+            ]
         }
     ];
 
@@ -205,6 +262,8 @@ export class UserListComponent {
     protected readonly savingRoleAssignment = signal(false);
 
     protected openAssignRoles(user: UserDto): void {
+        if (!this.canAssignRoles) return;
+        this.userError.set(null);
         this.assigningUser.set(user);
         this.selectedRoleIds.set(new Set(user.roles.map((role) => role.id)));
         this.assignRolesOpen.set(true);
@@ -239,7 +298,58 @@ export class UserListComponent {
                 this.assignRolesOpen.set(false);
                 this.reloadUsers();
             },
-            error: () => this.savingRoleAssignment.set(false)
+            error: (error) => {
+                this.savingRoleAssignment.set(false);
+                this.userError.set(error?.error?.message?.[0]?.message ?? error?.message ?? 'Unable to assign roles');
+            }
+        });
+    }
+
+    // ---- Assign Privileges ----
+
+    protected readonly assignPrivilegesOpen = signal(false);
+    protected readonly assigningPrivilegesRole = signal<RoleDto | null>(null);
+    protected readonly selectedPrivilegeCodes = signal<Set<string>>(new Set());
+    protected readonly savingPrivilegeAssignment = signal(false);
+
+    protected openAssignPrivileges(role: RoleDto): void {
+        if (!this.canAssignPrivileges) return;
+        this.userError.set(null);
+        this.assigningPrivilegesRole.set(role);
+        this.selectedPrivilegeCodes.set(new Set());
+        this.assignPrivilegesOpen.set(true);
+        this.privilegeService.roleCodes(role.id).subscribe((codes) => this.selectedPrivilegeCodes.set(new Set(codes)));
+    }
+    protected closeAssignPrivileges(): void {
+        this.assignPrivilegesOpen.set(false);
+    }
+    protected togglePrivilege(code: string, checked: boolean): void {
+        const next = new Set(this.selectedPrivilegeCodes());
+        checked ? next.add(code) : next.delete(code);
+        this.selectedPrivilegeCodes.set(next);
+    }
+    protected isPrivilegeSelected(code: string): boolean {
+        return this.selectedPrivilegeCodes().has(code);
+    }
+    protected saveAssignPrivileges(): void {
+        const role = this.assigningPrivilegesRole();
+        if (!role) {
+            return;
+        }
+        const count = this.selectedPrivilegeCodes().size;
+        if (!confirm(`Replace all privileges for role "${role.name}" with the ${count} selected privilege${count === 1 ? '' : 's'}?`)) {
+            return;
+        }
+        this.savingPrivilegeAssignment.set(true);
+        this.privilegeService.assignToRole(role.id, [...this.selectedPrivilegeCodes()]).subscribe({
+            next: () => {
+                this.savingPrivilegeAssignment.set(false);
+                this.assignPrivilegesOpen.set(false);
+            },
+            error: (error) => {
+                this.savingPrivilegeAssignment.set(false);
+                this.userError.set(error?.error?.message?.[0]?.message ?? error?.message ?? 'Unable to assign privileges');
+            }
         });
     }
 
@@ -271,4 +381,18 @@ export class UserListComponent {
             emptyMessage: 'Create a tenant-specific role for this tenant.'
         }
     ]);
+
+    private readCurrentTenantId(): number | null {
+        const token = this.authService.getToken();
+        if (!token) return null;
+        try {
+            const encodedPayload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+            const paddedPayload = encodedPayload.padEnd(Math.ceil(encodedPayload.length / 4) * 4, '=');
+            const payload = JSON.parse(atob(paddedPayload));
+            const tenantId = Number(payload['tenant_id']);
+            return Number.isSafeInteger(tenantId) && tenantId > 0 ? tenantId : null;
+        } catch {
+            return null;
+        }
+    }
 }
