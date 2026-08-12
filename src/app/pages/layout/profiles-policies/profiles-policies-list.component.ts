@@ -18,14 +18,21 @@ import {
     ClientLayoutAssignmentRequestDto,
     LayoutProfileDto,
     LayoutProfileRequestDto,
+    LayoutThemeChromeOverrides,
+    LayoutThemeColorPrimaries,
+    LayoutThemeConfig,
     PROFILE_FIELDS,
     UI_POLICY_FIELDS,
     UiPrivilegePolicyDto,
     LayoutUiPolicyRequestDto,
     clientAssignmentInitialValue,
+    defaultThemeConfig,
+    emptyChromeOverrides,
     profileInitialValue,
     splitPrivilegeCodes,
-    uiPolicyInitialValue
+    uiPolicyInitialValue,
+    unflattenFonts,
+    unflattenSizes
 } from '../layout.model';
 
 type Tab = 'profiles' | 'uiPolicies' | 'clientAssignment';
@@ -51,6 +58,7 @@ export class ProfilesPoliciesListComponent {
     protected readonly profileFields = PROFILE_FIELDS;
     protected readonly profileEditorOpen = signal(false);
     protected readonly profileEditorInitialValue = signal<Record<string, unknown>>({});
+    protected readonly themes = signal<LayoutThemeConfig[]>([]);
     private editingProfileId: number | null = null;
 
     protected readonly loadProfiles: DynamicListLoader<LayoutProfileDto> = (params) =>
@@ -156,6 +164,7 @@ export class ProfilesPoliciesListComponent {
     protected openProfileEditor(row: LayoutProfileDto | null): void {
         this.editingProfileId = row?.id ?? null;
         this.profileEditorInitialValue.set(profileInitialValue(row));
+        this.themes.set(row?.themes?.length ? row.themes : [defaultThemeConfig()]);
         this.profileEditorOpen.set(true);
     }
     protected closeProfileEditor(): void {
@@ -178,12 +187,42 @@ export class ProfilesPoliciesListComponent {
             breadcrumbEnabled: !!value['breadcrumbEnabled'],
             commandBarEnabled: !!value['commandBarEnabled'],
             rtlEnabled: !!value['rtlEnabled'],
-            active: !!value['active']
+            active: !!value['active'],
+            sizes: unflattenSizes(value),
+            fonts: unflattenFonts(value),
+            themes: this.themes()
         };
         this.service.profileSave(request).subscribe(() => {
             this.profileEditorOpen.set(false);
             this.profileList()?.reload();
         });
+    }
+
+    // -- Profiles: Themes --
+    protected addTheme(): void {
+        this.themes.update((list) => [...list, defaultThemeConfig()]);
+    }
+    protected removeTheme(index: number): void {
+        this.themes.update((list) => list.filter((_, i) => i !== index));
+    }
+    protected updateTheme(index: number, patch: Partial<LayoutThemeConfig>): void {
+        this.themes.update((list) => list.map((theme, i) => (i === index ? { ...theme, ...patch } : theme)));
+    }
+    protected updatePrimaries(index: number, patch: Partial<LayoutThemeColorPrimaries>): void {
+        this.themes.update((list) => list.map((theme, i) => (i === index ? { ...theme, primaries: { ...theme.primaries, ...patch } } : theme)));
+    }
+    protected updateChromeOverrides(index: number, patch: Partial<LayoutThemeChromeOverrides>): void {
+        this.themes.update((list) => list.map((theme, i) =>
+            i === index ? { ...theme, chromeOverrides: { ...(theme.chromeOverrides ?? emptyChromeOverrides()), ...patch } } : theme));
+    }
+    protected themeFieldInput(index: number, key: keyof LayoutThemeConfig, event: Event): void {
+        this.updateTheme(index, { [key]: (event.target as HTMLInputElement | HTMLSelectElement).value } as Partial<LayoutThemeConfig>);
+    }
+    protected primariesFieldInput(index: number, key: keyof LayoutThemeColorPrimaries, event: Event): void {
+        this.updatePrimaries(index, { [key]: (event.target as HTMLInputElement).value } as Partial<LayoutThemeColorPrimaries>);
+    }
+    protected chromeFieldInput(index: number, key: keyof LayoutThemeChromeOverrides, event: Event): void {
+        this.updateChromeOverrides(index, { [key]: (event.target as HTMLInputElement).value } as Partial<LayoutThemeChromeOverrides>);
     }
 
     // -- UI Policies --

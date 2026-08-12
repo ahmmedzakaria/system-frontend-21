@@ -82,3 +82,100 @@
   gap: var(--layout-space-2);
   margin-top: var(--layout-space-3);
 }
+
+.role-group-title {
+  margin: var(--layout-space-2) 0;
+  font-size: var(--layout-font-size-sm);
+  color: var(--text);
+}
+
+.themes-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--layout-space-4);
+  border-top: var(--layout-border-width) solid var(--border);
+  padding-top: var(--layout-space-3);
+
+  .role-group-title {
+    margin: 0;
+  }
+}
+
+.theme-card {
+  margin-bottom: var(--layout-space-3);
+  padding: var(--layout-space-3);
+  border: var(--layout-border-width) solid var(--border);
+  border-radius: var(--layout-radius-sm);
+  background: var(--paper);
+}
+
+.theme-card-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--layout-space-3);
+  margin-bottom: var(--layout-space-2);
+}
+
+.theme-card-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--layout-space-3);
+  flex: 1;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: var(--layout-space-1);
+    font-size: var(--layout-font-size-sm);
+    color: var(--text-muted);
+  }
+
+  input, select {
+    height: var(--layout-control-4xl);
+    border: var(--layout-border-width) solid var(--border);
+    border-radius: var(--layout-radius-sm);
+    background: var(--card);
+    color: var(--text);
+    font: inherit;
+    padding: 0 var(--layout-space-2);
+  }
+
+  input[type='color'] {
+    width: 3.5rem;
+    padding: var(--layout-space-1);
+  }
+}
+
+.theme-section-label {
+  margin: var(--layout-space-2) 0 var(--layout-space-1);
+  font-size: var(--layout-font-size-xs);
+  font-weight: var(--layout-font-weight-medium);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr));
+  gap: var(--layout-space-2);
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: var(--layout-space-1);
+    font-size: var(--layout-font-size-xs);
+    color: var(--text-muted);
+  }
+
+  input[type='color'] {
+    height: var(--layout-control-3xl);
+    width: 100%;
+    border: var(--layout-border-width) solid var(--border);
+    border-radius: var(--layout-radius-sm);
+    padding: var(--layout-space-1);
+    background: var(--card);
+  }
+}

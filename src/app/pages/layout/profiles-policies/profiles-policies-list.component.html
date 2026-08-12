@@ -70,8 +70,58 @@
     }
 </div>
 
-<app-modal [open]="profileEditorOpen()" title="Layout Profile" [width]="640" (closed)="closeProfileEditor()">
+<app-modal [open]="profileEditorOpen()" title="Layout Profile" [width]="900" (closed)="closeProfileEditor()">
     <app-dynamic-form #profileForm="dynamicForm" [fields]="profileFields" [initialValue]="profileEditorInitialValue()" [columns]="2" (submitted)="saveProfileEditor($event)" />
+
+    <div class="themes-header">
+        <h4 class="role-group-title">Themes</h4>
+        <app-button label="Add Theme" icon="plus" variant="ghost" (clicked)="addTheme()" />
+    </div>
+    @for (theme of themes(); track $index) {
+        <div class="theme-card">
+            <div class="theme-card-header">
+                <div class="theme-card-fields">
+                    <label>ID<input type="text" [value]="theme.id" (input)="themeFieldInput($index, 'id', $event)" placeholder="e.g. purple" /></label>
+                    <label>Label<input type="text" [value]="theme.label" (input)="themeFieldInput($index, 'label', $event)" placeholder="e.g. Purple Corporate" /></label>
+                    <label>Base
+                        <select [value]="theme.base" (change)="themeFieldInput($index, 'base', $event)">
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                        </select>
+                    </label>
+                    <label>Swatch<input type="color" [value]="theme.swatch" (input)="themeFieldInput($index, 'swatch', $event)" /></label>
+                </div>
+                <app-button label="Remove" icon="trash" variant="ghost" (clicked)="removeTheme($index)" />
+            </div>
+
+            <p class="theme-section-label">Primaries</p>
+            <div class="color-grid">
+                <label>Text<input type="color" [value]="theme.primaries.text" (input)="primariesFieldInput($index, 'text', $event)" /></label>
+                <label>Paper<input type="color" [value]="theme.primaries.paper" (input)="primariesFieldInput($index, 'paper', $event)" /></label>
+                <label>Card<input type="color" [value]="theme.primaries.card" (input)="primariesFieldInput($index, 'card', $event)" /></label>
+                <label>Accent<input type="color" [value]="theme.primaries.accent" (input)="primariesFieldInput($index, 'accent', $event)" /></label>
+                <label>Amber<input type="color" [value]="theme.primaries.amber" (input)="primariesFieldInput($index, 'amber', $event)" /></label>
+                <label>Red<input type="color" [value]="theme.primaries.red" (input)="primariesFieldInput($index, 'red', $event)" /></label>
+                <label>Success<input type="color" [value]="theme.primaries.success" (input)="primariesFieldInput($index, 'success', $event)" /></label>
+                <label>Info<input type="color" [value]="theme.primaries.info" (input)="primariesFieldInput($index, 'info', $event)" /></label>
+            </div>
+
+            <p class="theme-section-label">Chrome Overrides (optional)</p>
+            <div class="color-grid">
+                <label>Accent Soft<input type="color" [value]="theme.chromeOverrides?.accentSoft || '#000000'" (input)="chromeFieldInput($index, 'accentSoft', $event)" /></label>
+                <label>Background<input type="color" [value]="theme.chromeOverrides?.bg || '#000000'" (input)="chromeFieldInput($index, 'bg', $event)" /></label>
+                <label>Border<input type="color" [value]="theme.chromeOverrides?.border || '#000000'" (input)="chromeFieldInput($index, 'border', $event)" /></label>
+                <label>Border Strong<input type="color" [value]="theme.chromeOverrides?.borderStrong || '#000000'" (input)="chromeFieldInput($index, 'borderStrong', $event)" /></label>
+                <label>Hover Bg<input type="color" [value]="theme.chromeOverrides?.hoverBg || '#000000'" (input)="chromeFieldInput($index, 'hoverBg', $event)" /></label>
+                <label>Active Bg<input type="color" [value]="theme.chromeOverrides?.activeBg || '#000000'" (input)="chromeFieldInput($index, 'activeBg', $event)" /></label>
+                <label>Search Bg<input type="color" [value]="theme.chromeOverrides?.searchBg || '#000000'" (input)="chromeFieldInput($index, 'searchBg', $event)" /></label>
+                <label>Search Border<input type="color" [value]="theme.chromeOverrides?.searchBorder || '#000000'" (input)="chromeFieldInput($index, 'searchBorder', $event)" /></label>
+                <label>Search Text<input type="color" [value]="theme.chromeOverrides?.searchText || '#000000'" (input)="chromeFieldInput($index, 'searchText', $event)" /></label>
+                <label>Search Placeholder<input type="color" [value]="theme.chromeOverrides?.searchPlaceholder || '#000000'" (input)="chromeFieldInput($index, 'searchPlaceholder', $event)" /></label>
+            </div>
+        </div>
+    }
+
     <div class="modal-actions">
         <app-button label="Cancel" variant="ghost" (clicked)="closeProfileEditor()" />
         <app-button label="Save" icon="save" (clicked)="profileForm.submit()" />

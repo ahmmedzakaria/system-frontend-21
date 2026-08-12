@@ -19,6 +19,60 @@ export interface LayoutBrandDto {
     supportUrl: string | null;
 }
 
+export type FontSource = 'SYSTEM' | 'ASSET' | 'GOOGLE' | 'URL';
+
+export interface LayoutThemeColorPrimaries {
+    text: string;
+    paper: string;
+    card: string;
+    accent: string;
+    amber: string;
+    red: string;
+    success: string;
+    info: string;
+}
+
+export interface LayoutThemeChromeOverrides {
+    accentSoft: string | null;
+    bg: string | null;
+    border: string | null;
+    borderStrong: string | null;
+    hoverBg: string | null;
+    activeBg: string | null;
+    searchBg: string | null;
+    searchBorder: string | null;
+    searchText: string | null;
+    searchPlaceholder: string | null;
+}
+
+export interface LayoutThemeConfig {
+    id: string;
+    label: string;
+    base: string;
+    swatch: string;
+    primaries: LayoutThemeColorPrimaries;
+    chromeOverrides: LayoutThemeChromeOverrides | null;
+}
+
+export interface LayoutSizeConfig {
+    spaceUnit: number;
+    radiusBase: number;
+    fontSizeBase: number;
+    headerHeight: number;
+    statusBarHeight: number;
+    railWidthCollapsed: number;
+    railWidthExpanded: number;
+}
+
+export interface LayoutFontConfig {
+    bodyFamily: string;
+    headingFamily: string | null;
+    monoFamily: string | null;
+    fontSource: FontSource;
+    fontUrl: string | null;
+    fallbackStack: string;
+}
+
 export interface LayoutProfileDto {
     id: number;
     code: string;
@@ -37,6 +91,9 @@ export interface LayoutProfileDto {
     rtlEnabled: boolean;
     active: boolean;
     brand: LayoutBrandDto | null;
+    themes: LayoutThemeConfig[];
+    sizes: LayoutSizeConfig | null;
+    fonts: LayoutFontConfig | null;
 }
 
 export interface LayoutProfileRequestDto {
@@ -56,6 +113,9 @@ export interface LayoutProfileRequestDto {
     commandBarEnabled: boolean;
     rtlEnabled: boolean;
     active: boolean;
+    themes: LayoutThemeConfig[];
+    sizes: LayoutSizeConfig;
+    fonts: LayoutFontConfig;
 }
 
 export interface UiPrivilegePolicyDto {
@@ -184,7 +244,12 @@ export const MATCH_MODE_OPTIONS: DropdownOption<unknown>[] = [
     { label: 'Any', value: 'ANY' },
     { label: 'All', value: 'ALL' }
 ];
-
+const FONT_SOURCE_OPTIONS: DropdownOption<unknown>[] = [
+    { label: 'System', value: 'SYSTEM' },
+    { label: 'Asset (bundled)', value: 'ASSET' },
+    { label: 'Google Fonts', value: 'GOOGLE' },
+    { label: 'URL', value: 'URL' }
+];
 export const PROFILE_FIELDS: FieldConfig[] = [
     { type: 'text', key: 'profileCode', label: 'Code', required: true },
     { type: 'text', key: 'profileName', label: 'Name', required: true },
@@ -200,23 +265,104 @@ export const PROFILE_FIELDS: FieldConfig[] = [
     { type: 'checkbox', key: 'breadcrumbEnabled', label: 'Breadcrumb Enabled' },
     { type: 'checkbox', key: 'commandBarEnabled', label: 'Command Bar Enabled' },
     { type: 'checkbox', key: 'rtlEnabled', label: 'RTL Enabled' },
-    { type: 'checkbox', key: 'active', label: 'Active' }
+    { type: 'checkbox', key: 'active', label: 'Active' },
+    { type: 'number', key: 'sizeSpaceUnit', label: 'Size: Space Unit (px)' },
+    { type: 'number', key: 'sizeRadiusBase', label: 'Size: Radius Base (px)' },
+    { type: 'number', key: 'sizeFontSizeBase', label: 'Size: Font Size Base (px)' },
+    { type: 'number', key: 'sizeHeaderHeight', label: 'Size: Header Height (px)' },
+    { type: 'number', key: 'sizeStatusBarHeight', label: 'Size: Status Bar Height (px)' },
+    { type: 'number', key: 'sizeRailWidthCollapsed', label: 'Size: Rail Width Collapsed (px)' },
+    { type: 'number', key: 'sizeRailWidthExpanded', label: 'Size: Rail Width Expanded (px)' },
+    { type: 'text', key: 'fontBodyFamily', label: 'Font: Body Family' },
+    { type: 'text', key: 'fontHeadingFamily', label: 'Font: Heading Family' },
+    { type: 'text', key: 'fontMonoFamily', label: 'Font: Mono Family' },
+    { type: 'dropdown', key: 'fontSource', label: 'Font: Source', options: FONT_SOURCE_OPTIONS },
+    { type: 'text', key: 'fontUrl', label: 'Font: URL (source = URL/GOOGLE)' },
+    { type: 'text', key: 'fontFallbackStack', label: 'Font: Fallback Stack', colSpan: 2 }
 ];
+
+/** Seed values mirroring LayoutContextServiceImpl.defaultSizes()/defaultFonts()/defaultTheme()
+ * on the backend — used to pre-fill a brand-new profile with sensible, working defaults. */
+export function defaultSizeConfig(): LayoutSizeConfig {
+    return { spaceUnit: 2, radiusBase: 8, fontSizeBase: 13.5, headerHeight: 58, statusBarHeight: 28, railWidthCollapsed: 64, railWidthExpanded: 230 };
+}
+export function defaultFontConfig(): LayoutFontConfig {
+    return {
+        bodyFamily: 'Inter', headingFamily: 'Inter', monoFamily: 'JetBrains Mono', fontSource: 'SYSTEM', fontUrl: null,
+        fallbackStack: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    };
+}
+export function defaultThemeConfig(): LayoutThemeConfig {
+    return {
+        id: 'purple', label: 'Purple Corporate', base: 'light', swatch: '#6b3fa0',
+        primaries: { text: '#1a222c', paper: '#f3f5f7', card: '#ffffff', accent: '#6b3fa0', amber: '#a8630b', red: '#9f2b2b', success: '#1c7a4c', info: '#2f7dd1' },
+        chromeOverrides: null
+    };
+}
+export function emptyChromeOverrides(): LayoutThemeChromeOverrides {
+    return { accentSoft: null, bg: null, border: null, borderStrong: null, hoverBg: null, activeBg: null, searchBg: null, searchBorder: null, searchText: null, searchPlaceholder: null };
+}
 
 export function profileInitialValue(row: LayoutProfileDto | null): Record<string, unknown> {
     if (!row) {
+        const sizes = defaultSizeConfig();
+        const fonts = defaultFontConfig();
         return {
             layoutType: 'RAIL', navigationMode: 'MODULE_GROUP_MEGA_PANEL', themeMode: 'LIGHT', density: 'COMFORTABLE',
             topbarEnabled: true, sidebarEnabled: true, sidebarCollapsed: false, footerEnabled: true,
-            breadcrumbEnabled: true, commandBarEnabled: true, rtlEnabled: false, active: true
+            breadcrumbEnabled: true, commandBarEnabled: true, rtlEnabled: false, active: true,
+            ...flattenSizes(sizes), ...flattenFonts(fonts)
         };
     }
+    const sizes = row.sizes ?? defaultSizeConfig();
+    const fonts = row.fonts ?? defaultFontConfig();
     return {
         profileCode: row.code, profileName: row.name, description: row.description ?? '',
         layoutType: row.layoutType, navigationMode: row.navigationMode, themeMode: row.themeMode, density: row.density,
         topbarEnabled: row.topbarEnabled, sidebarEnabled: row.sidebarEnabled, sidebarCollapsed: row.sidebarCollapsed,
         footerEnabled: row.footerEnabled, breadcrumbEnabled: row.breadcrumbEnabled, commandBarEnabled: row.commandBarEnabled,
-        rtlEnabled: row.rtlEnabled, active: row.active
+        rtlEnabled: row.rtlEnabled, active: row.active,
+        ...flattenSizes(sizes), ...flattenFonts(fonts)
+    };
+}
+
+function flattenSizes(sizes: LayoutSizeConfig): Record<string, unknown> {
+    return {
+        sizeSpaceUnit: sizes.spaceUnit, sizeRadiusBase: sizes.radiusBase, sizeFontSizeBase: sizes.fontSizeBase,
+        sizeHeaderHeight: sizes.headerHeight, sizeStatusBarHeight: sizes.statusBarHeight,
+        sizeRailWidthCollapsed: sizes.railWidthCollapsed, sizeRailWidthExpanded: sizes.railWidthExpanded
+    };
+}
+
+function flattenFonts(fonts: LayoutFontConfig): Record<string, unknown> {
+    return {
+        fontBodyFamily: fonts.bodyFamily, fontHeadingFamily: fonts.headingFamily ?? '', fontMonoFamily: fonts.monoFamily ?? '',
+        fontSource: fonts.fontSource, fontUrl: fonts.fontUrl ?? '', fontFallbackStack: fonts.fallbackStack
+    };
+}
+
+/** Reads the flat sizeXxx form keys (see PROFILE_FIELDS) back into a LayoutSizeConfig for save. */
+export function unflattenSizes(value: Record<string, unknown>): LayoutSizeConfig {
+    return {
+        spaceUnit: Number(value['sizeSpaceUnit']) || 0,
+        radiusBase: Number(value['sizeRadiusBase']) || 0,
+        fontSizeBase: Number(value['sizeFontSizeBase']) || 0,
+        headerHeight: Number(value['sizeHeaderHeight']) || 0,
+        statusBarHeight: Number(value['sizeStatusBarHeight']) || 0,
+        railWidthCollapsed: Number(value['sizeRailWidthCollapsed']) || 0,
+        railWidthExpanded: Number(value['sizeRailWidthExpanded']) || 0
+    };
+}
+
+/** Reads the flat fontXxx form keys (see PROFILE_FIELDS) back into a LayoutFontConfig for save. */
+export function unflattenFonts(value: Record<string, unknown>): LayoutFontConfig {
+    return {
+        bodyFamily: (value['fontBodyFamily'] as string) || 'Inter',
+        headingFamily: (value['fontHeadingFamily'] as string) || null,
+        monoFamily: (value['fontMonoFamily'] as string) || null,
+        fontSource: (value['fontSource'] as FontSource) || 'SYSTEM',
+        fontUrl: (value['fontUrl'] as string) || null,
+        fallbackStack: (value['fontFallbackStack'] as string) || "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
     };
 }
 
@@ -310,7 +456,7 @@ export function featureGroupFields(parentOptions: DropdownOption<unknown>[]): Fi
 export function featureFields(parentOptions: DropdownOption<unknown>[]): FieldConfig[] {
     return navNodeFields(true, parentOptions, [
         { type: 'text', key: 'route', label: 'Route', required: true },
-        { type: 'text', key: 'tCode', label: 'T-Code (uppercase alphanumeric)' },
+        { type: 'text', key: 'tCode', label: 'T-Code (generated automatically)', readonly: true, placeholder: 'Assigned when saved' },
         { type: 'text', key: 'icon', label: 'Icon' },
         { type: 'text', key: 'physicalModuleCode', label: 'Physical Module Code' },
         { type: 'text', key: 'physicalSubmoduleCode', label: 'Physical Submodule Code' },
