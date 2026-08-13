@@ -11,11 +11,12 @@ import {
 import { ApiRegistryService } from '../../../core/services/api-registry.service';
 import { ApiInventoryItemDto, ApiRegistryDto, ApiRegistryRequestDto, ApiRegistrySyncReportDto } from '../access-control.model';
 import { API_REGISTRY_FIELDS, apiRegistryInitialValue } from './api-registry.model';
+import { AuthorizedUiDirective } from '@nexacore/platform';
 
 @Component({
     selector: 'app-api-registry-list',
     standalone: true,
-    imports: [ButtonComponent, DynamicModalComponent, DynamicTabComponent],
+    imports: [ButtonComponent, DynamicModalComponent, DynamicTabComponent, AuthorizedUiDirective],
     templateUrl: './api-registry-list.component.html',
     styleUrl: './api-registry-list.component.scss'
 })
@@ -68,7 +69,7 @@ export class ApiRegistryListComponent {
             header: '',
             align: 'end',
             type: 'actions',
-            actions: [{ icon: 'edit', label: 'Edit', onClick: (row) => this.openEditor(row) }]
+            actions: [{ icon: 'edit', label: 'Edit', permissionKey: 'api-registry.manage', onClick: (row) => this.openEditor(row) }]
         }
     ];
 

@@ -56,6 +56,18 @@ export interface UserRoleAssignmentRequestDto {
     roleIds: number[];
 }
 
+export interface UserScopeAssignmentDto {
+    tenantId: number;
+    businessId: number | null;
+    branchId: number | null;
+    active: boolean;
+}
+
+export interface UserScopeAssignmentRequestDto {
+    userId: number;
+    scopeAssignments: UserScopeAssignmentDto[];
+}
+
 export const USER_PRIVILEGES = {
     view: '11020100701',
     manage: '11020100787',

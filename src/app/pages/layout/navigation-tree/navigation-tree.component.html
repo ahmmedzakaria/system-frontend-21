@@ -2,15 +2,15 @@
     <h2>Navigation Tree</h2>
     <div class="header-actions">
         @if (activeLevel() === 'groups') {
-            <app-button label="New Module Group" icon="plus" variant="ghost" (clicked)="openEditor('groups', null)" />
+            <app-button *appAuthorizedUi="'layout.manage'" label="New Module Group" icon="plus" variant="ghost" (clicked)="openEditor('groups', null)" />
         } @else if (activeLevel() === 'modules') {
-            <app-button label="New Module" icon="plus" variant="ghost" (clicked)="openEditor('modules', null)" />
+            <app-button *appAuthorizedUi="'layout.manage'" label="New Module" icon="plus" variant="ghost" (clicked)="openEditor('modules', null)" />
         } @else if (activeLevel() === 'categories') {
-            <app-button label="New Category" icon="plus" variant="ghost" (clicked)="openEditor('categories', null)" />
+            <app-button *appAuthorizedUi="'layout.manage'" label="New Category" icon="plus" variant="ghost" (clicked)="openEditor('categories', null)" />
         } @else if (activeLevel() === 'featureGroups') {
-            <app-button label="New Feature Group" icon="plus" variant="ghost" (clicked)="openEditor('featureGroups', null)" />
+            <app-button *appAuthorizedUi="'layout.manage'" label="New Feature Group" icon="plus" variant="ghost" (clicked)="openEditor('featureGroups', null)" />
         } @else {
-            <app-button label="New Feature" icon="plus" variant="ghost" (clicked)="openEditor('features', null)" />
+            <app-button *appAuthorizedUi="'layout.manage'" label="New Feature" icon="plus" variant="ghost" (clicked)="openEditor('features', null)" />
         }
     </div>
 </div>

@@ -5,6 +5,8 @@ import { ApiEndpoints } from '../api/api-endpoints';
 import {
     ClientApplicationDto,
     ClientApplicationRequestDto,
+    ClientAdministrationDetailDto,
+    ClientScopeAssignmentDto,
     ClientPermissionAssignmentRequestDto,
     GeneratedClientCredentialDto
 } from '../../pages/access-control/access-control.model';
@@ -15,6 +17,10 @@ export class ClientApplicationService {
 
     list(): Observable<ClientApplicationDto[]> {
         return this.api.post<ClientApplicationDto[]>(ApiEndpoints.CLIENT_APP_LIST);
+    }
+
+    detail(clientApplicationId: number): Observable<ClientAdministrationDetailDto> {
+        return this.api.post<ClientAdministrationDetailDto>(ApiEndpoints.CLIENT_APP_DETAIL, { clientApplicationId });
     }
 
     save(request: ClientApplicationRequestDto): Observable<ClientApplicationDto> {
@@ -37,9 +43,9 @@ export class ClientApplicationService {
         return this.api.post<void>(ApiEndpoints.CLIENT_APP_ASSIGN_FEATURE_PERMISSIONS, request);
     }
 
-    /** Full-replace: the given tenant/business id pairs become the client's entire tenant scope. */
-    assignTenants(clientApplicationId: number, tenantIds: number[], businessIds: number[]): Observable<void> {
-        const request: ClientPermissionAssignmentRequestDto = { clientApplicationId, tenantIds, businessIds };
+    /** Full-replace: normalized tuples become the client's entire scope. */
+    assignScopes(clientApplicationId: number, scopeAssignments: ClientScopeAssignmentDto[]): Observable<void> {
+        const request: ClientPermissionAssignmentRequestDto = { clientApplicationId, scopeAssignments };
         return this.api.post<void>(ApiEndpoints.CLIENT_APP_ASSIGN_TENANTS, request);
     }
 }

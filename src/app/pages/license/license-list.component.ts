@@ -14,6 +14,7 @@ import {
 } from '@nexacore/shared';
 import { LicenseService } from '../../core/services/license.service';
 import { ClientApplicationService } from '../../core/services/client-application.service';
+import { AuthorizedUiDirective } from '@nexacore/platform';
 import {
     ENTITLEMENT_FIELDS,
     EntitlementOwnerType,
@@ -44,7 +45,7 @@ type SubscriptionAction = 'suspend' | 'reactivate' | 'cancel';
 @Component({
     selector: 'app-license-list',
     standalone: true,
-    imports: [ButtonComponent, ConfirmDialogComponent, DynamicModalComponent, DynamicTabComponent, ModalComponent],
+    imports: [ButtonComponent, ConfirmDialogComponent, DynamicModalComponent, DynamicTabComponent, ModalComponent, AuthorizedUiDirective],
     templateUrl: './license-list.component.html',
     styleUrl: './license-list.component.scss'
 })
@@ -116,7 +117,7 @@ export class LicenseListComponent {
         { key: 'active', header: 'Status', type: 'badge', status: (row) => (row.active ? 'verified' : 'draft') },
         {
             key: 'actions', header: '', align: 'end', type: 'actions',
-            actions: [{ icon: 'edit', label: 'Edit', onClick: (row) => this.openPlanEditor(row) }]
+            actions: [{ icon: 'edit', label: 'Edit', permissionKey: 'license.manage', onClick: (row) => this.openPlanEditor(row) }]
         }
     ];
 
@@ -164,10 +165,10 @@ export class LicenseListComponent {
         {
             key: 'actions', header: '', align: 'end', type: 'actions',
             actions: [
-                { icon: 'edit', label: 'Edit', onClick: (row) => this.openSubscriptionEditor(row) },
-                { icon: 'hourglass-half', label: 'Suspend', onClick: (row) => this.openSubscriptionAction('suspend', row) },
-                { icon: 'check', label: 'Reactivate', onClick: (row) => this.openSubscriptionAction('reactivate', row) },
-                { icon: 'ban', label: 'Cancel', onClick: (row) => this.openSubscriptionAction('cancel', row), danger: true }
+                { icon: 'edit', label: 'Edit', permissionKey: 'license.manage', onClick: (row) => this.openSubscriptionEditor(row) },
+                { icon: 'hourglass-half', label: 'Suspend', permissionKey: 'license.manage', onClick: (row) => this.openSubscriptionAction('suspend', row) },
+                { icon: 'check', label: 'Reactivate', permissionKey: 'license.manage', onClick: (row) => this.openSubscriptionAction('reactivate', row) },
+                { icon: 'ban', label: 'Cancel', permissionKey: 'license.manage', onClick: (row) => this.openSubscriptionAction('cancel', row), danger: true }
             ]
         }
     ];

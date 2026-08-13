@@ -36,12 +36,11 @@ Every module's sidebar entry is seeded by an idempotent Flyway migration under
 | `V29` | License Administration | `ACCESS_CONTROL` | `LICENSE_ADMINISTRATION_VIEW` (`11030199901`) |
 | `V32` | Database Backup | `ACCESS_CONTROL` | `DATABASE_BACKUP_VIEW` (`11060100101`) |
 
-A route added to `app.routes.ts` with no matching migration still works by direct URL
-— it just won't appear in the sidebar until the backend catches up. Every route in this
-app is currently `data: { public: true }` at the Angular route-guard level (backend
-`routePolicies`/`uiPolicies` aren't seeded yet — see the comment block at the top of
-`app.routes.ts`); real authorization is enforced entirely server-side by each
-endpoint's `@PrivilegeApi` code, not by the frontend guard.
+A route added to `app.routes.ts` with no matching migration will fail closed when
+opened directly. Phase 4 removed the administrative `data: { public: true }` bypasses;
+only the non-privileged dashboard remains explicitly public. Administrative routes
+and specialized controls now consume the backend-seeded route/UI policies, while
+backend `@PrivilegeApi` enforcement remains authoritative.
 
 ---
 
@@ -54,17 +53,18 @@ endpoint's `@PrivilegeApi` code, not by the frontend guard.
 - Components: `client-applications-list.component.ts`,
   `client-application-editor.component.ts`, `client-application-detail.component.ts`.
 - Model: `pages/access-control/access-control.model.ts`.
-- Backend endpoints: `client-app/list`, `client-app/save`, `client-app/rotate-api-key`,
+- Backend endpoints: `client-app/list`, `client-app/detail`, `client-app/save`, `client-app/rotate-api-key`,
+  `client-app/api-permissions`, `client-app/feature-permissions`, `client-app/scope-assignments`,
   `client-app/assign-api-permissions`, `client-app/assign-feature-permissions`,
   `client-app/assign-tenants`.
 - `ClientApplicationDto`: `id`, `clientCode`, `clientName`, `clientType`
   (`WEB`|`MOBILE`|`POS`|`ERP`|`PARTNER_PORTAL`|`INTERNAL_SERVICE`), `status`
   (`ACTIVE`|`DISABLED`|`SUSPENDED`|`EXPIRED`), `allowedOrigins`, `allowedIps`,
   `rateLimitPerMinute`, `description`.
-- The detail page is where a client's API/feature/tenant permissions are actually
+- The detail page loads one authoritative administration-detail snapshot before a client's API/feature/scope permissions are
   granted — three **full-replace** assignment calls
   (`ClientPermissionAssignmentRequestDto`): the submitted `apiRegistryIds[]` /
-  `privilegeCodes[]` / tenant-business id pairs become the client's *entire* set for
+  `privilegeCodes[]` / normalized `{tenantId,businessId,branchId}` tuples become the client's *entire* set for
   that dimension, not an add. This is the same "full-replace" pattern later reused (and
   the same footgun later caught) in Layout's UI Policies and License's Subscriptions.
 - Rotating an API key (`rotate-api-key`) returns a `GeneratedClientCredentialDto`
@@ -108,7 +108,8 @@ endpoint's `@PrivilegeApi` code, not by the frontend guard.
 
 - Route: `access-control/users` (2 tabs: Users, Roles).
 - Component: `users/user-list.component.ts`. Model: `users/user.model.ts`.
-- Backend endpoints: `user/list`, `user/save`, `user/assign-roles`, `role/list`,
+- Backend endpoints: `user/list`, `user/save`, `user/assign-roles`, `user/scope-assignments`,
+  `user/replace-scope-assignments`, `role/list`,
   `role/save`. These are new — `AuthUser`/`AuthRole` (`auth_users`/`auth_roles`,
   linked via `auth_user_roles`) previously had no REST API at all, only
   `DataSeeder`'s hardcoded `CommandLineRunner`. The new `UserController`/
@@ -154,6 +155,10 @@ endpoint's `@PrivilegeApi` code, not by the frontend guard.
   migration referencing its code can run, or the migration's `INSERT ... SELECT`
   silently inserts nothing and (since Flyway migrations only ever run once) never
   retries.
+- User creation now obtains its tenant ID from the live backend application context,
+  never by decoding the JWT. User scope administration uses normalized tuples and the
+  shared load-before-replace state machine; authorization context is refreshed after
+  user, role, privilege, or scope mutations.
 
 ---
 

@@ -9,6 +9,7 @@ import {
     ModalComponent
 } from '@nexacore/shared';
 import { PrivilegeService } from '../../../core/services/privilege.service';
+import { AuthorizedUiDirective } from '@nexacore/platform';
 import {
     PrivilegeDto,
     PrivilegeRequestDto,
@@ -25,7 +26,7 @@ type Tab = 'catalog' | 'subMenus';
 @Component({
     selector: 'app-privileges-list',
     standalone: true,
-    imports: [ButtonComponent, DynamicFormComponent, DynamicListComponent, ModalComponent],
+    imports: [ButtonComponent, DynamicFormComponent, DynamicListComponent, ModalComponent, AuthorizedUiDirective],
     templateUrl: './privileges-list.component.html',
     styleUrl: './privileges-list.component.scss'
 })
@@ -98,7 +99,7 @@ export class PrivilegesListComponent {
             header: '',
             align: 'end',
             type: 'actions',
-            actions: [{ icon: 'edit', label: 'Edit', onClick: (row) => this.openCatalogEditor(row) }]
+            actions: [{ icon: 'edit', label: 'Edit', permissionKey: 'privileges.assign', onClick: (row) => this.openCatalogEditor(row) }]
         }
     ];
 
@@ -113,7 +114,7 @@ export class PrivilegesListComponent {
             header: '',
             align: 'end',
             type: 'actions',
-            actions: [{ icon: 'edit', label: 'Edit', onClick: (row) => this.openSubMenuEditor(row) }]
+            actions: [{ icon: 'edit', label: 'Edit', permissionKey: 'privileges.assign', onClick: (row) => this.openSubMenuEditor(row) }]
         }
     ];
 

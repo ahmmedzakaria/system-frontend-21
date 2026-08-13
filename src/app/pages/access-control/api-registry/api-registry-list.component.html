@@ -1,8 +1,8 @@
 <div class="page-header">
     <h2>API Registry</h2>
     <div class="header-actions">
-        <app-button label="New Entry" icon="plus" variant="ghost" (clicked)="openEditor(null)" />
-        <app-button label="Sync from Code" icon="save" [loading]="syncing()" (clicked)="sync()" />
+        <app-button *appAuthorizedUi="'api-registry.manage'" label="New Entry" icon="plus" variant="ghost" (clicked)="openEditor(null)" />
+        <app-button *appAuthorizedUi="'api-registry.synchronize'" label="Sync from Code" icon="save" [loading]="syncing()" (clicked)="sync()" />
     </div>
 </div>
 

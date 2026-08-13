@@ -12,6 +12,7 @@ import {
 } from '@nexacore/shared';
 import { LayoutService } from '../../../core/services/layout.service';
 import { ClientApplicationService } from '../../../core/services/client-application.service';
+import { AuthorizedUiDirective } from '@nexacore/platform';
 import {
     CLIENT_ASSIGNMENT_FIELDS,
     ClientLayoutAssignmentDto,
@@ -40,7 +41,7 @@ type Tab = 'profiles' | 'uiPolicies' | 'clientAssignment';
 @Component({
     selector: 'app-profiles-policies-list',
     standalone: true,
-    imports: [ButtonComponent, DynamicFormComponent, DynamicListComponent, ModalComponent],
+    imports: [ButtonComponent, DynamicFormComponent, DynamicListComponent, ModalComponent, AuthorizedUiDirective],
     templateUrl: './profiles-policies-list.component.html',
     styleUrl: './profiles-policies-list.component.scss'
 })
@@ -82,7 +83,7 @@ export class ProfilesPoliciesListComponent {
         { key: 'active', header: 'Status', type: 'badge', status: (row) => (row.active ? 'verified' : 'draft') },
         {
             key: 'actions', header: '', align: 'end', type: 'actions',
-            actions: [{ icon: 'edit', label: 'Edit', onClick: (row) => this.openProfileEditor(row) }]
+            actions: [{ icon: 'edit', label: 'Edit', permissionKey: 'layout.manage', onClick: (row) => this.openProfileEditor(row) }]
         }
     ];
 
@@ -108,7 +109,7 @@ export class ProfilesPoliciesListComponent {
         { key: 'privilegeCodes', header: 'Privileges', format: (row) => row.privilegeCodes.join(', ') || '—' },
         {
             key: 'actions', header: '', align: 'end', type: 'actions',
-            actions: [{ icon: 'edit', label: 'Edit', onClick: (row) => this.openUiPolicyEditor(row) }]
+            actions: [{ icon: 'edit', label: 'Edit', permissionKey: 'layout.manage', onClick: (row) => this.openUiPolicyEditor(row) }]
         }
     ];
 
@@ -142,7 +143,7 @@ export class ProfilesPoliciesListComponent {
         { key: 'active', header: 'Status', type: 'badge', status: (row) => (row.active ? 'verified' : 'draft') },
         {
             key: 'actions', header: '', align: 'end', type: 'actions',
-            actions: [{ icon: 'edit', label: 'Edit', onClick: (row) => this.openClientAssignmentEditor(row) }]
+            actions: [{ icon: 'edit', label: 'Edit', permissionKey: 'layout.manage', onClick: (row) => this.openClientAssignmentEditor(row) }]
         }
     ];
 

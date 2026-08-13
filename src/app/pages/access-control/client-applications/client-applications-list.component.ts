@@ -5,6 +5,7 @@ import { DynamicListComponent, DynamicListLoader, ListColumnConfig } from '@nexa
 import { ButtonComponent } from '@nexacore/shared';
 import { ClientApplicationService } from '../../../core/services/client-application.service';
 import { ClientApplicationDto } from '../access-control.model';
+import { AuthorizedUiDirective } from '@nexacore/platform';
 
 const STATUS_TONE: Record<ClientApplicationDto['status'], 'success' | 'neutral' | 'amber' | 'red'> = {
     ACTIVE: 'success',
@@ -16,7 +17,7 @@ const STATUS_TONE: Record<ClientApplicationDto['status'], 'success' | 'neutral' 
 @Component({
     selector: 'app-client-applications-list',
     standalone: true,
-    imports: [DynamicListComponent, ButtonComponent],
+    imports: [DynamicListComponent, ButtonComponent, AuthorizedUiDirective],
     templateUrl: './client-applications-list.component.html',
     styleUrl: './client-applications-list.component.scss'
 })
@@ -48,7 +49,7 @@ export class ClientApplicationsListComponent {
             type: 'actions',
             actions: [
                 { icon: 'eye', label: 'View', onClick: (row) => this.router.navigate(['/access-control/client-applications', row.id]) },
-                { icon: 'edit', label: 'Edit', onClick: (row) => this.router.navigate(['/access-control/client-applications', row.id, 'edit']) }
+                { icon: 'edit', label: 'Edit', permissionKey: 'client-applications.edit', onClick: (row) => this.router.navigate(['/access-control/client-applications', row.id, 'edit']) }
             ]
         }
     ];

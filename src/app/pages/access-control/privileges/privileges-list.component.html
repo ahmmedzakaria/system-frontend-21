@@ -2,9 +2,9 @@
     <h2>Privileges</h2>
     <div class="header-actions">
         @if (activeTab() === 'catalog') {
-            <app-button label="New Privilege" icon="plus" variant="ghost" (clicked)="openCatalogEditor(null)" />
+            <app-button *appAuthorizedUi="'privileges.assign'" label="New Privilege" icon="plus" variant="ghost" (clicked)="openCatalogEditor(null)" />
         } @else {
-            <app-button label="New Sub Menu" icon="plus" variant="ghost" (clicked)="openSubMenuEditor(null)" />
+            <app-button *appAuthorizedUi="'privileges.assign'" label="New Sub Menu" icon="plus" variant="ghost" (clicked)="openSubMenuEditor(null)" />
         }
     </div>
 </div>

@@ -10,6 +10,7 @@ import {
     ModalComponent
 } from '@nexacore/shared';
 import { LayoutService } from '../../../core/services/layout.service';
+import { AuthorizedUiDirective } from '@nexacore/platform';
 import {
     LayoutNavigationNodeRequestDto,
     NavNodeDto,
@@ -27,7 +28,7 @@ type Level = 'groups' | 'modules' | 'categories' | 'featureGroups' | 'features';
 @Component({
     selector: 'app-navigation-tree',
     standalone: true,
-    imports: [ButtonComponent, DynamicFormComponent, DynamicListComponent, ModalComponent],
+    imports: [ButtonComponent, DynamicFormComponent, DynamicListComponent, ModalComponent, AuthorizedUiDirective],
     templateUrl: './navigation-tree.component.html',
     styleUrl: './navigation-tree.component.scss'
 })
@@ -137,7 +138,7 @@ export class NavigationTreeComponent {
         base.push({ key: 'active', header: 'Status', type: 'badge', status: (row) => (row.active ? 'verified' : 'draft') });
         base.push({
             key: 'actions', header: '', align: 'end', type: 'actions',
-            actions: [{ icon: 'edit', label: 'Edit', onClick: (row) => this.openEditor(level, row) }]
+            actions: [{ icon: 'edit', label: 'Edit', permissionKey: 'layout.manage', onClick: (row) => this.openEditor(level, row) }]
         });
         return base;
     }

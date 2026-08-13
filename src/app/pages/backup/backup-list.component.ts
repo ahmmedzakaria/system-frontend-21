@@ -3,11 +3,12 @@ import { map } from 'rxjs/operators';
 import { ButtonComponent, DynamicListComponent, DynamicListLoader, ListColumnConfig } from '@nexacore/shared';
 import { BackupService } from '../../core/services/backup.service';
 import { BackupJobDto, BackupStatus, formatBytes, formatDateTime } from './backup.model';
+import { AuthorizedUiDirective } from '@nexacore/platform';
 
 @Component({
     selector: 'app-backup-list',
     standalone: true,
-    imports: [ButtonComponent, DynamicListComponent],
+    imports: [ButtonComponent, DynamicListComponent, AuthorizedUiDirective],
     templateUrl: './backup-list.component.html',
     styleUrl: './backup-list.component.scss'
 })
@@ -37,7 +38,7 @@ export class BackupListComponent {
         { key: 'artifactSizeBytes', header: 'Encrypted Size', align: 'end', format: (row) => formatBytes(row.artifactSizeBytes) },
         {
             key: 'actions', header: '', align: 'end', type: 'actions',
-            actions: [{ icon: 'download', label: 'Download encrypted backup', onClick: (row) => this.download(row) }]
+            actions: [{ icon: 'download', label: 'Download encrypted backup', permissionKey: 'backup.download', onClick: (row) => this.download(row) }]
         }
     ];
 

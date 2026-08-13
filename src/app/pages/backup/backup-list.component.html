@@ -3,7 +3,7 @@
         <h2>Database Backup Administration</h2>
         <p>Encrypted platform backups for all configured application databases.</p>
     </div>
-    <app-button label="Run backup now" icon="archive" [loading]="running()" (clicked)="runBackup()" />
+    <app-button *appAuthorizedUi="'backup.execute'" label="Run backup now" icon="archive" [loading]="running()" (clicked)="runBackup()" />
 </div>
 
 @if (message()) {

@@ -1,5 +1,5 @@
 import { Component, inject, signal, viewChild } from '@angular/core';
-import { AuthService } from '@nexacore/platform';
+import { AuthorizationPolicyService } from '@nexacore/platform';
 import {
     ButtonComponent, ConfirmDialogComponent, DynamicListComponent, DynamicListLoader,
     DynamicModalComponent, ListColumnConfig
@@ -7,7 +7,7 @@ import {
 import { map } from 'rxjs/operators';
 import { TenantAdministrationService } from '../../core/services/tenant-administration.service';
 import {
-    TENANT_PRIVILEGES, TENANT_REGISTRATION_FIELDS, TenantDomainType, TenantDto,
+    TENANT_REGISTRATION_FIELDS, TenantDomainType, TenantDto,
     TenantRegistrationRequest, TenantStatus
 } from './tenant.model';
 
@@ -22,12 +22,12 @@ type LifecycleAction = 'activate' | 'suspend' | 'reactivate' | 'cancel';
 })
 export class TenantAdministrationComponent {
     private readonly service = inject(TenantAdministrationService);
-    private readonly auth = inject(AuthService);
+    private readonly policy = inject(AuthorizationPolicyService);
     private readonly listRef = viewChild<DynamicListComponent<TenantDto>>('tenantList');
 
-    protected readonly canRegister = this.auth.hasPrivilege(TENANT_PRIVILEGES.register);
-    protected readonly canVerify = this.auth.hasPrivilege(TENANT_PRIVILEGES.verifyDomain);
-    protected readonly canManage = this.auth.hasPrivilege(TENANT_PRIVILEGES.manageLifecycle);
+    protected readonly canRegister = this.policy.isActionAllowed('tenants.register');
+    protected readonly canVerify = this.policy.isActionAllowed('tenants.verify-domain');
+    protected readonly canManage = this.policy.isActionAllowed('tenants.manage-lifecycle');
     protected readonly registrationFields = TENANT_REGISTRATION_FIELDS;
     protected readonly registrationOpen = signal(false);
     protected readonly registrationInitial = { domainType: 'CUSTOM', defaultLocale: 'en', defaultTimeZone: 'Asia/Dhaka' };

@@ -29,7 +29,7 @@
 />
 @if (userEditorOpen()) {
     <p class="scope-note">
-        Usernames are unique inside tenant {{ currentTenantId }}. Canonical person details are captured only when the account is created; edit them through Person Administration afterward.
+        Usernames are unique inside tenant {{ currentTenantId() }}. Canonical person details are captured only when the account is created; edit them through Person Administration afterward.
     </p>
 }
 
@@ -69,6 +69,21 @@
     <div class="modal-actions">
         <app-button label="Cancel" variant="ghost" (clicked)="closeAssignRoles()" />
         <app-button label="Save" icon="save" [loading]="savingRoleAssignment()" (clicked)="saveRoleAssignment()" />
+    </div>
+</app-modal>
+
+<app-modal [open]="assignScopesOpen()" title="Assign User Scopes" [width]="640" (closed)="closeAssignScopes()">
+    @if (assigningScopesUser(); as user) {
+        <p class="panel-hint">Saving replaces {{ user.username }}'s complete normalized tenant/business/branch scope set.</p>
+        <app-assignment-load-state [status]="scopeState.status()" [error]="scopeState.error()" (retry)="openAssignScopes(user)" />
+        @if (scopeState.status() === 'loaded') {
+            <app-assignment-checklist [items]="availableScopes()" [selectedKeys]="selectedScopeKeys()" [keyOf]="scopeKey" [labelOf]="scopeLabel" (selectionChanged)="toggleScope($event)" />
+            <app-replacement-summary [summary]="scopeState.summary()" />
+        }
+    }
+    <div class="modal-actions">
+        <app-button label="Cancel" variant="ghost" (clicked)="closeAssignScopes()" />
+        <app-button label="Replace Scopes" icon="save" [loading]="scopeState.status() === 'saving'" [disabled]="!scopeState.canSave()" (clicked)="saveScopes()" />
     </div>
 </app-modal>
 

@@ -2,13 +2,13 @@
     <h2>License Administration</h2>
     <div class="header-actions">
         @if (activeTabKey() === 'plans') {
-            <app-button label="New Plan" icon="plus" variant="ghost" (clicked)="openPlanEditor(null)" />
+            <app-button *appAuthorizedUi="'license.manage'" label="New Plan" icon="plus" variant="ghost" (clicked)="openPlanEditor(null)" />
         } @else if (activeTabKey() === 'subscriptions') {
-            <app-button label="New Subscription" icon="plus" variant="ghost" (clicked)="openSubscriptionEditor(null)" />
+            <app-button *appAuthorizedUi="'license.manage'" label="New Subscription" icon="plus" variant="ghost" (clicked)="openSubscriptionEditor(null)" />
         } @else if (activeTabKey() === 'entitlements') {
-            <app-button label="New Entitlement" icon="plus" variant="ghost" [disabled]="!entitlementOwnerCode()" (clicked)="openEntitlementEditor()" />
+            <app-button *appAuthorizedUi="'license.manage'" label="New Entitlement" icon="plus" variant="ghost" [disabled]="!entitlementOwnerCode()" (clicked)="openEntitlementEditor()" />
         } @else {
-            <app-button label="New Key" icon="plus" variant="ghost" [disabled]="!keyFilterSubscriptionCode()" (clicked)="openKeyEditor()" />
+            <app-button *appAuthorizedUi="'license.manage'" label="New Key" icon="plus" variant="ghost" [disabled]="!keyFilterSubscriptionCode()" (clicked)="openKeyEditor()" />
         }
     </div>
 </div>

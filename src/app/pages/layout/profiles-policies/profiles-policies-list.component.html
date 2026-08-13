@@ -2,11 +2,11 @@
     <h2>Layout Profiles</h2>
     <div class="header-actions">
         @if (activeTab() === 'profiles') {
-            <app-button label="New Profile" icon="plus" variant="ghost" (clicked)="openProfileEditor(null)" />
+            <app-button *appAuthorizedUi="'layout.manage'" label="New Profile" icon="plus" variant="ghost" (clicked)="openProfileEditor(null)" />
         } @else if (activeTab() === 'uiPolicies') {
-            <app-button label="New UI Policy" icon="plus" variant="ghost" (clicked)="openUiPolicyEditor(null)" />
+            <app-button *appAuthorizedUi="'layout.manage'" label="New UI Policy" icon="plus" variant="ghost" (clicked)="openUiPolicyEditor(null)" />
         } @else {
-            <app-button label="New Assignment" icon="plus" variant="ghost" [disabled]="!assignmentFilterClientCode()" (clicked)="openClientAssignmentEditor(null)" />
+            <app-button *appAuthorizedUi="'layout.manage'" label="New Assignment" icon="plus" variant="ghost" [disabled]="!assignmentFilterClientCode()" (clicked)="openClientAssignmentEditor(null)" />
         }
     </div>
 </div>

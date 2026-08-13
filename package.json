@@ -23,7 +23,6 @@
     "@jsverse/transloco": "^7.0.0",
     "@nexacore/platform": "file:../frontend-libs-21/dist/platform",
     "@nexacore/shared": "file:../frontend-libs-21/dist/shared",
-    "jwt-decode": "^4.0.0",
     "rxjs": "^7.8.0",
     "tslib": "^2.6.0"
   },

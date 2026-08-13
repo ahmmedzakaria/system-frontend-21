@@ -8,10 +8,14 @@ import {
     DynamicTabComponent,
     DynamicTabConfig,
     ListColumnConfig,
-    ModalComponent
+    ModalComponent,
+    AssignmentChecklistComponent,
+    AssignmentLoadStateComponent,
+    ReplacementSelectionState,
+    ReplacementSummaryComponent
 } from '@nexacore/shared';
 import { FormsModule } from '@angular/forms';
-import { AuthService } from '@nexacore/platform';
+import { ApplicationContextService, AuthService, AuthorizationPolicyService } from '@nexacore/platform';
 import { RoleService } from '../../../core/services/role.service';
 import { UserService } from '../../../core/services/user.service';
 import { PrivilegeService } from '../../../core/services/privilege.service';
@@ -25,6 +29,7 @@ import {
     USER_PRIVILEGES,
     UserDto,
     UserRequestDto,
+    UserScopeAssignmentDto,
     formatDateTime,
     roleInitialValue,
     rolesLabel,
@@ -34,7 +39,8 @@ import {
 @Component({
     selector: 'app-user-list',
     standalone: true,
-    imports: [ButtonComponent, CheckboxComponent, DynamicModalComponent, DynamicTabComponent, FormsModule, ModalComponent],
+    imports: [ButtonComponent, CheckboxComponent, DynamicModalComponent, DynamicTabComponent, FormsModule, ModalComponent,
+        AssignmentChecklistComponent, AssignmentLoadStateComponent, ReplacementSummaryComponent],
     templateUrl: './user-list.component.html',
     styleUrl: './user-list.component.scss'
 })
@@ -43,6 +49,8 @@ export class UserListComponent {
     private readonly roleService = inject(RoleService);
     private readonly privilegeService = inject(PrivilegeService);
     private readonly authService = inject(AuthService);
+    private readonly context = inject(ApplicationContextService);
+    private readonly policy = inject(AuthorizationPolicyService);
 
     private readonly tabsRef = viewChild<DynamicTabComponent>('tabsRef');
     protected readonly activeTabIndex = signal(0);
@@ -55,10 +63,11 @@ export class UserListComponent {
     protected readonly assignableGlobalRoles = computed(() => this.globalRoles().filter((role) => role.active));
     protected readonly assignableTenantRoles = computed(() => this.tenantRoles().filter((role) => role.active));
     protected readonly isPlatformAdmin = this.authService.hasRole('ROLE_SYSTEM_ADMIN');
-    protected readonly canManageUsers = this.authService.hasPrivilege(USER_PRIVILEGES.manage);
-    protected readonly canAssignRoles = this.authService.hasPrivilege(USER_PRIVILEGES.assignRoles);
+    protected readonly canManageUsers = this.policy.isActionAllowed('users.manage');
+    protected readonly canAssignRoles = this.policy.isActionAllowed('users.assign');
+    protected readonly canAssignScopes = this.policy.isActionAllowed('users.assign');
     protected readonly canAssignPrivileges = this.authService.hasPrivilege(PRIVILEGE_PRIVILEGES.assign);
-    protected readonly currentTenantId = this.readCurrentTenantId();
+    protected readonly currentTenantId = computed(() => this.context.effectiveTenant()?.tenantId ?? null);
     protected readonly userError = signal<string | null>(null);
 
     protected readonly privileges = signal<PrivilegeDto[]>([]);
@@ -129,11 +138,12 @@ export class UserListComponent {
 
     protected readonly userColumns: ListColumnConfig<UserDto>[] = [
         ...this.userBaseColumns,
-        ...(this.canManageUsers || this.canAssignRoles ? [{
+        ...(this.canManageUsers || this.canAssignRoles || this.canAssignScopes ? [{
             key: 'actions', header: '', align: 'end', type: 'actions',
             actions: [
                 ...(this.canManageUsers ? [{ icon: 'edit', label: 'Edit', onClick: (row: UserDto) => this.openUserEditor(row) }] : []),
-                ...(this.canAssignRoles ? [{ icon: 'user-shield', label: 'Assign Roles', onClick: (row: UserDto) => this.openAssignRoles(row) }] : [])
+                ...(this.canAssignRoles ? [{ icon: 'user-shield', label: 'Assign Roles', onClick: (row: UserDto) => this.openAssignRoles(row) }] : []),
+                ...(this.canAssignScopes ? [{ icon: 'layers', label: 'Assign Scopes', onClick: (row: UserDto) => this.openAssignScopes(row) }] : [])
             ]
         } as ListColumnConfig<UserDto>] : [])
     ];
@@ -154,7 +164,7 @@ export class UserListComponent {
         this.userEditorOpen.set(false);
     }
     protected saveUserEditor(value: Record<string, unknown>): void {
-        const tenantId = this.currentTenantId;
+        const tenantId = this.currentTenantId();
         if (tenantId == null) {
             this.userError.set('The authenticated token does not contain a tenant context. Please sign in again.');
             return;
@@ -175,6 +185,7 @@ export class UserListComponent {
                 this.userEditorOpen.set(false);
                 this.userError.set(null);
                 this.reloadUsers();
+                this.context.refresh().subscribe({ error: () => undefined });
             },
             error: (error) => this.userError.set(error?.error?.message?.[0]?.message ?? error?.message ?? 'Unable to save user')
         });
@@ -251,6 +262,7 @@ export class UserListComponent {
         save.subscribe(() => {
             this.roleEditorOpen.set(false);
             this.reloadRoles();
+            this.context.refresh().subscribe({ error: () => undefined });
         });
     }
 
@@ -297,6 +309,7 @@ export class UserListComponent {
                 this.savingRoleAssignment.set(false);
                 this.assignRolesOpen.set(false);
                 this.reloadUsers();
+                this.context.refresh().subscribe({ error: () => undefined });
             },
             error: (error) => {
                 this.savingRoleAssignment.set(false);
@@ -345,11 +358,55 @@ export class UserListComponent {
             next: () => {
                 this.savingPrivilegeAssignment.set(false);
                 this.assignPrivilegesOpen.set(false);
+                this.context.refresh().subscribe({ error: () => undefined });
             },
             error: (error) => {
                 this.savingPrivilegeAssignment.set(false);
                 this.userError.set(error?.error?.message?.[0]?.message ?? error?.message ?? 'Unable to assign privileges');
             }
+        });
+    }
+
+    // ---- Assign Scopes ----
+
+    protected readonly assignScopesOpen = signal(false);
+    protected readonly assigningScopesUser = signal<UserDto | null>(null);
+    protected readonly scopeState = new ReplacementSelectionState<UserScopeAssignmentDto, string>({ keyOf: userScopeKey });
+    protected readonly availableScopes = computed(() => {
+        const choices = new Map<string, UserScopeAssignmentDto>();
+        (this.context.effectiveTenant()?.scopeAssignments ?? []).forEach(scope =>
+            choices.set(userScopeKey(scope), { ...scope, active: true }));
+        this.scopeState.original().forEach(scope => choices.set(userScopeKey(scope), scope));
+        return [...choices.values()];
+    });
+    protected readonly selectedScopeKeys = computed(() => new Set(this.scopeState.selected().map(userScopeKey)));
+    protected readonly scopeKey = userScopeKey;
+    protected readonly scopeLabel = (scope: UserScopeAssignmentDto) =>
+        `Tenant ${scope.tenantId}${scope.businessId ? ` / Business ${scope.businessId}` : ''}${scope.branchId ? ` / Branch ${scope.branchId}` : ''}`;
+
+    protected openAssignScopes(user: UserDto): void {
+        if (!this.canAssignScopes) return;
+        this.assigningScopesUser.set(user);
+        this.scopeState.beginLoad();
+        this.assignScopesOpen.set(true);
+        this.userService.scopeAssignments(user.id).subscribe({
+            next: scopes => this.scopeState.loadSucceeded(scopes.filter(scope => scope.active)),
+            error: () => this.scopeState.loadFailed('Current user scopes could not be loaded. Saving is disabled.')
+        });
+    }
+
+    protected closeAssignScopes(): void { this.assignScopesOpen.set(false); this.scopeState.reset(); }
+    protected toggleScope(change: { item: UserScopeAssignmentDto; selected: boolean }): void { this.scopeState.toggle(change.item, change.selected); }
+    protected saveScopes(): void {
+        const user = this.assigningScopesUser();
+        if (!user || !this.scopeState.beginSave()) return;
+        this.userService.replaceScopeAssignments(user.id, [...this.scopeState.selected()]).subscribe({
+            next: () => {
+                this.scopeState.saveSucceeded();
+                this.assignScopesOpen.set(false);
+                this.context.refresh().subscribe({ error: () => undefined });
+            },
+            error: () => this.scopeState.saveFailed('The scope replacement was rejected. Current selections were retained.')
         });
     }
 
@@ -382,17 +439,8 @@ export class UserListComponent {
         }
     ]);
 
-    private readCurrentTenantId(): number | null {
-        const token = this.authService.getToken();
-        if (!token) return null;
-        try {
-            const encodedPayload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-            const paddedPayload = encodedPayload.padEnd(Math.ceil(encodedPayload.length / 4) * 4, '=');
-            const payload = JSON.parse(atob(paddedPayload));
-            const tenantId = Number(payload['tenant_id']);
-            return Number.isSafeInteger(tenantId) && tenantId > 0 ? tenantId : null;
-        } catch {
-            return null;
-        }
-    }
+}
+
+function userScopeKey(scope: Pick<UserScopeAssignmentDto, 'tenantId' | 'businessId' | 'branchId'>): string {
+    return `${scope.tenantId}:${scope.businessId ?? ''}:${scope.branchId ?? ''}`;
 }
