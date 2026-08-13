@@ -2,6 +2,7 @@
   "brand": { "name": "নেক্সাকোর সিস্টেম অ্যাডমিন", "tagline": "প্ল্যাটফর্ম প্রশাসন" },
   "search": { "placeholder": "খুঁজুন...", "button": "খুঁজুন" },
   "header": {
+    "favorites": "প্রিয়",
     "apps": "অ্যাপস",
     "alerts": "বিজ্ঞপ্তি",
     "tasks": "কাজ",

@@ -4,6 +4,10 @@
 
 This document defines the implementation required to align `system-frontend-21` with the backend tenant, privilege, client, API-registry, and data-scope architecture.
 
+For the cross-application analysis and ownership boundary between
+`system-frontend-21`, `kyc-frontend-21`, and `frontend-libs-21`, see
+`../FRONTEND_TENANT_PRIVILEGE_API_ACCESS_CONTROL_ARCHITECTURE_PLAN.md`.
+
 It is the frontend companion to:
 
 `backend/src/main/java/com/nexacore/systemmodule/accesscontrol/TENANT_PRIVILEGE_API_ACCESS_CONTROL_TEST_ROADMAP.md`
@@ -590,4 +594,3 @@ Implementation is complete when:
 - Unit, HTTP, Playwright, backend filter-chain, and object-authorization tests pass.
 - Cross-tenant IDs cannot be used to view or mutate protected data.
 - `MODULES.md` documents all implemented and intentionally deferred endpoints.
-

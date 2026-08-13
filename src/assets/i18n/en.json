@@ -2,6 +2,7 @@
   "brand": { "name": "NexaCore System Admin", "tagline": "Platform Administration" },
   "search": { "placeholder": "Search...", "button": "Search" },
   "header": {
+    "favorites": "Favorites",
     "apps": "Apps",
     "alerts": "Alerts",
     "tasks": "Tasks",
