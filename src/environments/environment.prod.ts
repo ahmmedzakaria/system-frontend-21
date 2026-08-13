@@ -5,6 +5,7 @@ import { NexacoreEnvironment } from '@nexacore/platform';
  * backend host, so backendOrigin stays empty and every request is relative.
  */
 export const environment: NexacoreEnvironment = {
+  production: true,
   backendOrigin: '',
   loginUrl: '/api/v1/auth',
   apiBaseUrl: '/api/v1',

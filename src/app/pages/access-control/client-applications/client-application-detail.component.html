@@ -22,52 +22,10 @@
     </div>
 
     <div class="panel">
-        <h3>API Permissions</h3>
-        <p class="panel-hint warning">Saving replaces this client's entire API permission set with exactly what's checked below — this is not an incremental add.</p>
-        <div class="checklist">
-            @for (api of apiRegistryRows(); track api.id) {
-                <label class="checklist-item">
-                    <app-checkbox [ngModel]="isApiSelected(api.id)" (ngModelChange)="toggleApi(api.id, $event)" />
-                    <span>{{ api.httpMethod }} {{ api.pathPattern }}</span>
-                </label>
-            }
-        </div>
-        <app-button label="Save API Permissions" icon="save" [loading]="savingApiPermissions()" (clicked)="saveApiPermissions()" />
-    </div>
-
-    <div class="panel">
-        <h3>Feature Permissions</h3>
-        <p class="panel-hint warning">Saving replaces this client's entire feature (privilege) permission set with exactly what's checked below.</p>
-        <div class="checklist">
-            @for (privilege of privileges(); track privilege.id) {
-                <label class="checklist-item">
-                    <app-checkbox [ngModel]="isPrivilegeSelected(privilege.privilegeCode)" (ngModelChange)="togglePrivilege(privilege.privilegeCode, $event)" />
-                    <span>{{ privilege.privilegeCode }} — {{ privilege.featureName }} / {{ privilege.actionName }}</span>
-                </label>
-            }
-        </div>
-        <app-button label="Save Feature Permissions" icon="save" [loading]="savingFeaturePermissions()" (clicked)="saveFeaturePermissions()" />
-    </div>
-
-    <div class="panel">
-        <h3>Tenant Assignments</h3>
-        <p class="panel-hint warning">Saving replaces this client's entire tenant scope with exactly the pairs listed below.</p>
-        <div class="tenant-add-row">
-            <input type="number" placeholder="Tenant ID" [(ngModel)]="newTenantId" />
-            <input type="number" placeholder="Business ID (optional)" [(ngModel)]="newBusinessId" />
-            <app-button label="Add" icon="plus" variant="ghost" size="sm" (clicked)="addTenantPair()" />
-        </div>
-        <ul class="tenant-list">
-            @for (pair of tenantPairs(); track $index) {
-                <li>
-                    Tenant {{ pair.tenantId }}@if (pair.businessId != null) { , Business {{ pair.businessId }} }
-                    <button type="button" class="remove-btn" (click)="removeTenantPair($index)">
-                        <app-icon name="times" [size]="12" />
-                    </button>
-                </li>
-            }
-        </ul>
-        <app-button label="Save Tenant Assignments" icon="save" [loading]="savingTenants()" (clicked)="saveTenantAssignments()" />
+        <h3>API, Feature, and Tenant Assignments</h3>
+        <p class="panel-hint warning">
+            Assignment editing is temporarily unavailable. It will be enabled after the current server assignments can be loaded and verified before any full-replacement save.
+        </p>
     </div>
 }
 
