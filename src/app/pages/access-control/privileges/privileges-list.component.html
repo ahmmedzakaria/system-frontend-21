@@ -2,12 +2,13 @@
     <h2>Privileges</h2>
     <div class="header-actions">
         @if (activeTab() === 'catalog') {
-            <app-button *appAuthorizedUi="'privileges.assign'" label="New Privilege" icon="plus" variant="ghost" (clicked)="openCatalogEditor(null)" />
+            <app-button *appAuthorizedUi="'privileges.manage'" label="New Privilege" icon="plus" variant="ghost" (clicked)="openCatalogEditor(null)" />
         } @else {
             <app-button *appAuthorizedUi="'privileges.assign'" label="New Sub Menu" icon="plus" variant="ghost" (clicked)="openSubMenuEditor(null)" />
         }
     </div>
 </div>
+@if(error()){<p class="error-message" role="alert">{{error()}}</p>}
 
 <div class="tabs">
     <button type="button" class="tab" [class.active]="activeTab() === 'catalog'" (click)="setTab('catalog')">Privilege Catalog</button>
@@ -17,7 +18,7 @@
 <div [hidden]="activeTab() !== 'catalog'">
     <app-dynamic-list
             #catalogList
-            [columns]="catalogColumns"
+            [columns]="catalogColumns()"
             [loadItems]="loadCatalog"
             [pageSize]="10"
             searchPlaceholder="Search by privilege code, module, or feature…"
@@ -39,12 +40,25 @@
 </div>
 
 <app-modal [open]="catalogEditorOpen()" title="Privilege" [width]="640" (closed)="closeCatalogEditor()">
+    <p>Composed privilege code: <code>{{codePreview() || 'Enter 2+2+2+3+2 numeric code parts'}}</code></p>
     <app-dynamic-form #catalogForm="dynamicForm" [fields]="privilegeFields()" [initialValue]="catalogEditorInitialValue()" [columns]="2" (submitted)="saveCatalogEditor($event)" />
     <div class="modal-actions">
         <app-button label="Cancel" variant="ghost" (clicked)="closeCatalogEditor()" />
         <app-button label="Save" icon="save" (clicked)="catalogForm.submit()" />
     </div>
 </app-modal>
+
+<app-modal [open]="impactOpen()" title="Privilege dependency impact" [width]="600" (closed)="impactOpen.set(false)">
+ @if(impact();as value){<p><strong>{{value.privilegeCode}}</strong> has {{value.totalActiveDependencies}} active access paths.</p><ul>
+  @for(entry of dependencyEntries();track entry[0]){<li>{{entry[0]}}: {{entry[1]}}</li>}
+ </ul>}
+</app-modal>
+
+<app-confirm-dialog [open]="deactivateConfirmOpen()" title="Deactivate privilege"
+ [message]="'This removes '+(impact()?.totalActiveDependencies??0)+' active access paths. The dependency impact above was loaded from the server.'"
+ confirmLabel="Deactivate" [danger]="true" [loading]="mutation.pending()" (confirmed)="confirmDeactivate()" (cancelled)="cancelDeactivate()">
+ @if(impact();as value){<ul>@for(entry of dependencyEntries();track entry[0]){<li>{{entry[0]}}: {{entry[1]}}</li>}</ul>}
+</app-confirm-dialog>
 
 <app-modal [open]="subMenuEditorOpen()" title="Sub Menu" [width]="640" (closed)="closeSubMenuEditor()">
     <app-dynamic-form #subMenuForm="dynamicForm" [fields]="subMenuFields" [initialValue]="subMenuEditorInitialValue()" [columns]="2" (submitted)="saveSubMenuEditor($event)" />

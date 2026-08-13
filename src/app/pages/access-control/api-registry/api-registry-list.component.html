@@ -22,6 +22,22 @@
     </div>
 }
 
+<app-modal [open]="syncPreviewOpen()" title="API Registry Synchronization Preview" [width]="840" (closed)="syncPreviewOpen.set(false)">
+ @if(syncReport();as report){
+  <p>{{report.added}} added, {{report.changed}} changed, {{report.deactivated}} deactivated, {{report.conflicted}} conflicted.</p>
+  @if(report.changes.length){<ul>@for(change of report.changes;track change.kind+change.apiCode){<li><strong>{{change.kind}}</strong> {{change.apiCode}}</li>}</ul>}
+  @if(report.conflictDetails.length){<h3>Blocking conflicts</h3><ul>@for(conflict of report.conflictDetails;track conflict.apiCode){
+   <li><strong>{{conflict.apiCode}}</strong><br/>{{conflict.reasons.join('; ')}}<br/><small>{{conflict.candidateHandlers.join(' ↔ ')}}</small></li>}
+  </ul>}
+  <div class="modal-actions"><app-button label="Cancel" variant="ghost" (clicked)="syncPreviewOpen.set(false)" />
+   <app-button label="Apply Preview" icon="save" [disabled]="report.conflicted>0 || mutation.pending()" [loading]="mutation.pending()" (clicked)="applyPreview()" /></div>
+ }
+</app-modal>
+
+<app-confirm-dialog [open]="sensitiveConfirmOpen()" title="Confirm security metadata change"
+ message="This changes public/authentication/authorization/data-scope enforcement and requires recent reauthentication."
+ confirmLabel="Confirm and save" [loading]="mutation.pending()" (confirmed)="confirmSensitiveSave()" (cancelled)="cancelSensitiveSave()" />
+
 <app-dynamic-tab #tabsRef [tabs]="tabs" />
 
 <app-dynamic-modal

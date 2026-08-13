@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from '@nexacore/platform';
 import { ApiEndpoints } from '../api/api-endpoints';
-import { PrivilegeDto, PrivilegeRequestDto, SubMenuDto, SubMenuRequestDto } from '../../pages/access-control/privileges/privileges.model';
+import { PrivilegeDto, PrivilegeRequestDto, SubMenuDto, SubMenuRequestDto, PrivilegeImpactDto, PrivilegeDeactivateResultDto } from '../../pages/access-control/privileges/privileges.model';
 
 @Injectable({ providedIn: 'root' })
 export class PrivilegeService {
@@ -10,6 +10,9 @@ export class PrivilegeService {
 
     list(): Observable<PrivilegeDto[]> {
         return this.api.post<PrivilegeDto[]>(ApiEndpoints.PRIVILEGE_LIST);
+    }
+    search(query:string,page:number,pageSize:number):Observable<{items:PrivilegeDto[];total:number}> {
+        return this.api.post<{items:PrivilegeDto[];total:number}>(ApiEndpoints.PRIVILEGE_SEARCH,{query,page,pageSize});
     }
 
     save(request: PrivilegeRequestDto): Observable<PrivilegeDto> {
@@ -31,5 +34,13 @@ export class PrivilegeService {
 
     roleCodes(roleId: number): Observable<string[]> {
         return this.api.post<string[]>(ApiEndpoints.PRIVILEGE_ROLE_CODES, { roleId });
+    }
+
+    impact(privilegeCode:string):Observable<PrivilegeImpactDto> {
+        return this.api.post<PrivilegeImpactDto>(ApiEndpoints.PRIVILEGE_IMPACT,{privilegeCode});
+    }
+
+    deactivate(privilegeCode:string,version:string):Observable<PrivilegeDeactivateResultDto> {
+        return this.api.post<PrivilegeDeactivateResultDto>(ApiEndpoints.PRIVILEGE_DEACTIVATE,{privilegeCode,version,dependenciesPresented:true});
     }
 }

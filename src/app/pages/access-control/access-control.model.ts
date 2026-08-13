@@ -77,6 +77,7 @@ export interface GeneratedClientCredentialDto {
 
 export interface ApiRegistryDto {
     id: number;
+    version: number;
     apiCode: string;
     httpMethod: string;
     pathPattern: string;
@@ -103,6 +104,7 @@ export interface ApiRegistryDto {
 
 export interface ApiRegistryRequestDto {
     id?: number | null;
+    version?: number | null;
     apiCode: string;
     httpMethod: string;
     pathPattern: string;
@@ -153,7 +155,14 @@ export interface ApiRegistrySyncReportDto {
     conflicted: number;
     conflicts: string[];
     records: ApiRegistryDto[];
+    previewVersion: string;
+    applied: boolean;
+    changes: ApiRegistrySyncChangeDto[];
+    conflictDetails: ApiRegistryConflictDto[];
 }
+
+export interface ApiRegistrySyncChangeDto { kind:'ADDED'|'CHANGED'|'DEACTIVATED'; apiCode:string; before:ApiRegistryDto|null; after:ApiRegistryDto|null; }
+export interface ApiRegistryConflictDto { apiCode:string; candidateHandlers:string[]; reasons:string[]; }
 
 /** Minimal shape read from /system/privilege/list — just what the Feature
  * Permissions checklist needs; the full Privilege module (a later phase)

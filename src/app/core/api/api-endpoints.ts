@@ -21,8 +21,12 @@ export const ApiEndpoints = {
     // Access Control — API Registry
     API_REGISTRY_INVENTORY: { apiPath: 'system/api-registry/inventory', actionType: ActionTypes.SEARCH },
     API_REGISTRY_LIST: { apiPath: 'system/api-registry/list', actionType: ActionTypes.SEARCH },
+    API_REGISTRY_SEARCH: { apiPath: 'system/api-registry/search', actionType: ActionTypes.SEARCH },
+    API_REGISTRY_INVENTORY_SEARCH: { apiPath: 'system/api-registry/inventory/search', actionType: ActionTypes.SEARCH },
     API_REGISTRY_SAVE: { apiPath: 'system/api-registry/save', actionType: ActionTypes.CREATE },
     API_REGISTRY_SYNC: { apiPath: 'system/api-registry/sync', actionType: ActionTypes.UPDATE },
+    API_REGISTRY_SYNC_PREVIEW: { apiPath: 'system/api-registry/sync/preview', actionType: ActionTypes.SEARCH },
+    API_REGISTRY_SYNC_APPLY: { apiPath: 'system/api-registry/sync/apply', actionType: ActionTypes.UPDATE },
 
     // Access Control — Users & Roles
     USER_LIST: { apiPath: 'system/user/list', actionType: ActionTypes.SEARCH },
@@ -52,9 +56,12 @@ export const ApiEndpoints = {
 
     // Privileges
     PRIVILEGE_LIST: { apiPath: 'system/privilege/list', actionType: ActionTypes.SEARCH },
+    PRIVILEGE_SEARCH: { apiPath: 'system/privilege/search', actionType: ActionTypes.SEARCH },
     PRIVILEGE_SAVE: { apiPath: 'system/privilege/save', actionType: ActionTypes.CREATE },
     PRIVILEGE_ASSIGN_ROLE: { apiPath: 'system/privilege/assign-role', actionType: ActionTypes.CREATE },
     PRIVILEGE_ROLE_CODES: { apiPath: 'system/privilege/role-codes', actionType: ActionTypes.SEARCH },
+    PRIVILEGE_IMPACT: { apiPath: 'system/privilege/impact', actionType: ActionTypes.SEARCH },
+    PRIVILEGE_DEACTIVATE: { apiPath: 'system/privilege/deactivate', actionType: ActionTypes.UPDATE },
     SUB_MENU_LIST: { apiPath: 'system/privilege/sub-menu/list', actionType: ActionTypes.SEARCH },
     SUB_MENU_SAVE: { apiPath: 'system/privilege/sub-menu/save', actionType: ActionTypes.CREATE },
 

@@ -44,8 +44,9 @@ export const SYSTEM_FEATURE_CONTRACTS: readonly SystemFeatureContract[] = [
     {
         feature: 'api-registry', routes: { '/access-control/api-registry': '11020100601' },
         actions: { 'api-registry.manage': '11020100687', 'api-registry.synchronize': '11020100680' },
-        endpoints: [endpoint('API_REGISTRY_INVENTORY', '11020100601'), endpoint('API_REGISTRY_LIST', '11020100601'),
+        endpoints: [endpoint('API_REGISTRY_INVENTORY', '11020100601'), endpoint('API_REGISTRY_LIST', '11020100601'), endpoint('API_REGISTRY_SEARCH','11020100601'),endpoint('API_REGISTRY_INVENTORY_SEARCH','11020100601'),
             endpoint('API_REGISTRY_SAVE', '11020100687'), endpoint('API_REGISTRY_SYNC', '11020100680')]
+            .concat([endpoint('API_REGISTRY_SYNC_PREVIEW','11020100680'),endpoint('API_REGISTRY_SYNC_APPLY','11020100680')])
     },
     {
         feature: 'users-and-roles', routes: {
@@ -71,10 +72,11 @@ export const SYSTEM_FEATURE_CONTRACTS: readonly SystemFeatureContract[] = [
     },
     {
         feature: 'privileges', routes: { '/access-control/privileges': '11010100101' },
-        actions: { 'privileges.assign': '11010100181' },
-        endpoints: [endpoint('PRIVILEGE_LIST', '11010100101'), endpoint('PRIVILEGE_SAVE', '11010100180'),
+        actions: { 'privileges.manage': '11010100180', 'privileges.assign': '11010100181' },
+        endpoints: [endpoint('PRIVILEGE_LIST', '11010100101'),endpoint('PRIVILEGE_SEARCH','11010100101'), endpoint('PRIVILEGE_SAVE', '11010100180'),
             endpoint('PRIVILEGE_ASSIGN_ROLE', '11010100181'), endpoint('PRIVILEGE_ROLE_CODES', '11010100101'),
             endpoint('SUB_MENU_LIST', '11010100101'), endpoint('SUB_MENU_SAVE', '11010100180')]
+            .concat([endpoint('PRIVILEGE_IMPACT','11010100101'),endpoint('PRIVILEGE_DEACTIVATE','11010100180')])
     },
     {
         feature: 'layout', routes: { '/layout/profiles': '11040100101', '/layout/navigation-tree': '11040100101' },

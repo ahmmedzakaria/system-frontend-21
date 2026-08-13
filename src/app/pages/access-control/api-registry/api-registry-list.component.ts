@@ -6,7 +6,7 @@ import {
     DynamicModalComponent,
     DynamicTabComponent,
     DynamicTabConfig,
-    ListColumnConfig, MutationState
+    ListColumnConfig, MutationState, ModalComponent, ConfirmDialogComponent
 } from '@nexacore/shared';
 import { ApiRegistryService } from '../../../core/services/api-registry.service';
 import { ApiInventoryItemDto, ApiRegistryDto, ApiRegistryRequestDto, ApiRegistrySyncReportDto } from '../access-control.model';
@@ -17,7 +17,7 @@ import { PageOperationService } from '../../../core/authorization/page-operation
 @Component({
     selector: 'app-api-registry-list',
     standalone: true,
-    imports: [ButtonComponent, DynamicModalComponent, DynamicTabComponent, AuthorizedUiDirective],
+    imports: [ButtonComponent, DynamicModalComponent, DynamicTabComponent, AuthorizedUiDirective,ModalComponent,ConfirmDialogComponent],
     templateUrl: './api-registry-list.component.html',
     styleUrl: './api-registry-list.component.scss'
 })
@@ -34,11 +34,15 @@ export class ApiRegistryListComponent {
 
     protected readonly syncing = signal(false);
     protected readonly syncReport = signal<ApiRegistrySyncReportDto | null>(null);
+    protected readonly syncPreviewOpen=signal(false);
 
     protected readonly editorOpen = signal(false);
     protected readonly editorFields = API_REGISTRY_FIELDS;
     protected readonly editorInitialValue = signal<Record<string, unknown>>({});
     private editingId: number | null = null;
+    private editingRow:ApiRegistryDto|null=null;
+    protected readonly sensitiveConfirmOpen=signal(false);
+    private pendingSave:ApiRegistryRequestDto|null=null;
 
     private readonly tabsRef = viewChild<DynamicTabComponent>('tabsRef');
 
@@ -47,29 +51,11 @@ export class ApiRegistryListComponent {
         this.destroyRef.onDestroy(()=>editor.destroy());
     }
 
-    protected readonly loadRegistered: DynamicListLoader<ApiRegistryDto> = (params) =>
-        this.service.list().pipe(
-            map((rows) => {
-                const query = params.query.trim().toLowerCase();
-                const filtered = query
-                    ? rows.filter((row) => row.apiCode.toLowerCase().includes(query) || row.pathPattern.toLowerCase().includes(query))
-                    : rows;
-                const start = (params.page - 1) * params.pageSize;
-                return { items: filtered.slice(start, start + params.pageSize), total: filtered.length };
-            })
-        );
+    protected readonly loadRegistered: DynamicListLoader<ApiRegistryDto> = params =>
+        this.service.search(params.query,params.page-1,params.pageSize);
 
-    protected readonly loadInventory: DynamicListLoader<ApiInventoryItemDto> = (params) =>
-        this.service.inventory().pipe(
-            map((rows) => {
-                const query = params.query.trim().toLowerCase();
-                const filtered = query
-                    ? rows.filter((row) => row.apiCode.toLowerCase().includes(query) || row.pathPattern.toLowerCase().includes(query))
-                    : rows;
-                const start = (params.page - 1) * params.pageSize;
-                return { items: filtered.slice(start, start + params.pageSize), total: filtered.length };
-            })
-        );
+    protected readonly loadInventory: DynamicListLoader<ApiInventoryItemDto> = params =>
+        this.service.inventorySearch(params.query,params.page-1,params.pageSize);
 
     protected readonly registeredColumns: ListColumnConfig<ApiRegistryDto>[] = [
         { key: 'apiCode', header: 'API Code' },
@@ -123,12 +109,12 @@ export class ApiRegistryListComponent {
     protected sync(): void {
         if(!this.canSync() || !this.mutation.begin()) return;
         this.syncing.set(true);
-        this.service.sync().subscribe({
+        this.service.previewSync().subscribe({
             next: (report) => {
                 this.syncing.set(false);
                 this.mutation.succeed();
                 this.syncReport.set(report);
-                this.tabsRef()?.reloadTab('registered');
+                this.syncPreviewOpen.set(true);
             },
             error: error => { this.syncing.set(false); this.fail(error,'API registry synchronization failed.'); }
         });
@@ -137,6 +123,7 @@ export class ApiRegistryListComponent {
     protected openEditor(row: ApiRegistryDto | null): void {
         if(!this.canManage()) return;
         this.editingId = row?.id ?? null;
+        this.editingRow=row;
         this.editorInitialValue.set(apiRegistryInitialValue(row));
         this.editorOpen.set(true);
     }
@@ -149,6 +136,7 @@ export class ApiRegistryListComponent {
         if(!this.canManage() || !this.mutation.begin()) return;
         const request: ApiRegistryRequestDto = {
             id: this.editingId,
+            version:this.editingRow?.version ?? null,
             apiCode: value['apiCode'] as string,
             httpMethod: value['httpMethod'] as string,
             pathPattern: value['pathPattern'] as string,
@@ -165,12 +153,27 @@ export class ApiRegistryListComponent {
             publicApi: !!value['publicApi'],
             active: !!value['active']
         };
-        this.service.save(request).subscribe({next:() => {
+        if(this.isSensitiveChange(request)){ this.pendingSave=request; this.sensitiveConfirmOpen.set(true); this.mutation.reset(); return; }
+        this.executeSave(request);
+    }
+
+    protected confirmSensitiveSave():void { const request=this.pendingSave; if(!request)return;
+        this.sensitiveConfirmOpen.set(false); this.pendingSave=null; if(!this.mutation.begin())return; this.executeSave(request); }
+    protected cancelSensitiveSave():void { this.sensitiveConfirmOpen.set(false); this.pendingSave=null; }
+    protected applyPreview():void { const preview=this.syncReport(); if(!preview || preview.conflicted>0 || !this.mutation.begin())return;
+        this.service.applySync(preview.previewVersion).subscribe({next:report=>{this.mutation.succeed();this.syncReport.set(report);this.syncPreviewOpen.set(false);this.tabsRef()?.reloadTab('registered');},
+            error:error=>this.fail(error,'API registry synchronization apply failed.')}); }
+
+    private executeSave(request:ApiRegistryRequestDto):void {
+        this.service.saveStepUp(request).subscribe({next:() => {
             this.mutation.succeed();
             this.editorOpen.set(false);
             this.tabsRef()?.reloadTab('registered');
         },error:error=>this.fail(error,'API registry save was rejected.')});
     }
+    private isSensitiveChange(request:ApiRegistryRequestDto):boolean { const row=this.editingRow;
+        return !row || row.publicApi!==!!request.publicApi || row.clientAuthenticationRequirement!==request.clientAuthenticationRequirement
+            || row.userAuthorizationRequirement!==request.userAuthorizationRequirement || row.dataScope!==request.dataScope; }
 
     private fail(error:unknown,fallback:string):void { const failure=this.operations.failure(error,fallback);
         this.mutation.failStructured(failure.message,failure.code,failure.traceId); this.error.set(this.operations.display(failure)); }

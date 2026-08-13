@@ -23,7 +23,11 @@ export interface PrivilegeDto {
     active: boolean;
 }
 
+export interface PrivilegeImpactDto { privilegeId:number; privilegeCode:string; version:string; activeDependencies:Record<string,number>; totalActiveDependencies:number; }
+export interface PrivilegeDeactivateResultDto { deactivated:boolean; impact:PrivilegeImpactDto; }
+
 export interface PrivilegeRequestDto {
+    id:number|null;
     moduleCode: string;
     moduleName: string;
     submoduleCode: string;
@@ -93,7 +97,7 @@ export function privilegeFields(subMenuOptions: DropdownOption<unknown>[]): Fiel
         { type: 'text', key: 'actionCode', label: 'Action Code', required: true },
         { type: 'text', key: 'actionName', label: 'Action Name', required: true },
         { type: 'dropdown', key: 'subMenuId', label: 'Sub Menu', options: subMenuOptions, colSpan: 2 },
-        { type: 'checkbox', key: 'active', label: 'Active' }
+        // Deactivation is intentionally excluded from ordinary save; it requires an impact review.
     ];
 }
 

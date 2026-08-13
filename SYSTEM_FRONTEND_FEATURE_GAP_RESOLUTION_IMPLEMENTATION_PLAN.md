@@ -333,6 +333,21 @@ Component tests cover revocation and all stable denial classes on representative
 
 ## 10. Phase 5 — API Registry and Privilege Catalog safety
 
+Status: **Implemented (2026-08-14)**.
+
+Current implementation:
+
+- API Registry synchronization is now a two-step `sync/preview` → `sync/apply` protocol. Preview returns added, changed, deactivated, and conflicted records, structured conflict candidates/reasons, and a deterministic preview version.
+- Apply recomputes the preview, rejects stale versions, and refuses to activate any synchronization while ambiguous mappings remain. The legacy `/sync` route is non-mutating and returns the preview.
+- API registry rows use JPA optimistic versions backed by system migration `V52__add_api_registry_optimistic_version.sql`; stale manual saves fail instead of overwriting current metadata.
+- Registry save requires recent step-up authentication. The frontend explicitly confirms changes to public, client-authentication, user-authorization, or data-scope metadata and sends the step-up marker; the backend also validates token age.
+- API Registry and live inventory have server-side searchable, paged endpoints and the system frontend loaders use them directly.
+- Privilege impact reports active role, direct-user, client, API-route, route-policy, UI-policy, navigation-feature, and license-entitlement dependencies with a deterministic version.
+- Safe privilege deactivation requires that exact impact version and an explicit `dependenciesPresented` confirmation. Ordinary privilege save no longer exposes active-state deactivation.
+- Privilege creation/editing composes and validates the 11-digit `2+2+2+3+2` code, blocks client-visible collisions, and the backend independently rejects collisions rather than updating another privilege implicitly.
+- The Privilege Catalog provides an impact drawer and a destructive confirmation containing every dependency category. No hard-delete path is exposed.
+- Privilege Catalog search is server paged. V52 conditionally grants every new Phase 5 endpoint to `SYSTEM_ADMIN_WEB`, and API metadata coverage includes the new contracts.
+
 ### API Registry
 
 Backend additions:
