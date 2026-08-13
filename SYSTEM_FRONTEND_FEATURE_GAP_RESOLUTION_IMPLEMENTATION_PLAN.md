@@ -130,6 +130,10 @@ The inventory test fails when a protected frontend endpoint, route policy, UI po
 
 ## 6. Phase 1 — Shared administration safety primitives
 
+**Status: Implemented on 2026-08-14.** Platform now exposes normalized authorization failures, reactive decisions, revocation coordination, single-flight mutation execution, and optional context refresh without mutation replay. Shared now exposes fail-closed resource and mutation state, version-aware replacement summaries, grouped searchable assignments, accessible retry/trace feedback, and application-owned authorized hierarchy adapters.
+
+Verification baseline: platform 34 tests and shared 29 tests pass; both Angular packages build successfully. Source inspection confirms `platform` has no dependency on the `@nexacore/shared` package.
+
 ### `frontend-libs-21/platform`
 
 Add or complete:
