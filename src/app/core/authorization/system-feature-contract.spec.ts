@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { ApiEndpoints } from '../api/api-endpoints';
-import { SYSTEM_ACTION_PRIVILEGES, SYSTEM_FEATURE_CONTRACTS, SYSTEM_ROUTE_PRIVILEGES } from './system-feature-contract';
+import {
+    AUTHENTICATED_POLICY,
+    SYSTEM_ACTION_POLICIES,
+    SYSTEM_FEATURE_CONTRACTS,
+    SYSTEM_ROUTE_POLICIES
+} from './system-feature-contract';
 
 describe('SYSTEM_ADMIN_WEB feature contract', () => {
     it('inventories every app-owned endpoint exactly once', () => {
@@ -9,12 +14,17 @@ describe('SYSTEM_ADMIN_WEB feature contract', () => {
         expect([...contracted].sort()).toEqual(Object.keys(ApiEndpoints).sort());
     });
 
-    it('uses valid backend privilege codes or the authenticated marker', () => {
-        const privileges = [
-            ...Object.values(SYSTEM_ROUTE_PRIVILEGES), ...Object.values(SYSTEM_ACTION_PRIVILEGES),
-            ...SYSTEM_FEATURE_CONTRACTS.flatMap(feature => feature.endpoints.map(item => item.privilege))
+    it('contains semantic policy keys and no backend-owned numeric privilege codes', () => {
+        const policies = [
+            ...Object.values(SYSTEM_ROUTE_POLICIES), ...Object.values(SYSTEM_ACTION_POLICIES),
+            ...SYSTEM_FEATURE_CONTRACTS.flatMap(feature => feature.endpoints.map(item => item.policy))
         ];
-        expect(privileges.every(code => code === 'AUTHENTICATED' || /^\d{11}$/.test(code))).toBe(true);
+        expect(policies.some(policy => /^\d+$/.test(policy))).toBe(false);
+        expect(policies.every(policy => policy === AUTHENTICATED_POLICY || /^[a-z][a-z0-9-]*\.[a-z][a-z0-9-]*$/.test(policy))).toBe(true);
+    });
+
+    it('uses declared UI action codes as their stable policy keys', () => {
+        expect(Object.entries(SYSTEM_ACTION_POLICIES).every(([action, policy]) => action === policy)).toBe(true);
     });
 
     it('inventories unique route and action policies', () => {

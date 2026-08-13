@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { routes } from './app.routes';
-import { SYSTEM_ROUTE_PRIVILEGES } from './core/authorization/system-feature-contract';
+import { SYSTEM_ROUTE_POLICIES } from './core/authorization/system-feature-contract';
 
 describe('system administration routes', () => {
     it('keeps only the non-authorized dashboard route explicitly public', () => {
@@ -19,6 +19,6 @@ describe('system administration routes', () => {
             .map(route => `/${route.path}`)
             .sort();
 
-        expect(protectedPaths).toEqual(Object.keys(SYSTEM_ROUTE_PRIVILEGES).sort());
+        expect(protectedPaths).toEqual(Object.keys(SYSTEM_ROUTE_POLICIES).sort());
     });
 });

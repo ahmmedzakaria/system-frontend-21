@@ -86,7 +86,7 @@ Common state and visual primitives remain in `frontend-libs-21`. Domain endpoint
 
 ## 5. Phase 0 — Baseline and contract inventory
 
-**Status: Implemented on 2026-08-14.** The typed feature inventory, frontend inventory tests, backend metadata contract, V49 migration fixture, startup route/UI policy reconciliation, and module-reference reconciliation are in place.
+**Status: Implemented on 2026-08-14.** The typed feature inventory, frontend inventory tests, backend metadata contract, V49 migration fixture, startup route/UI policy reconciliation, and module-reference reconciliation are in place. The inventory now uses stable semantic policy keys rather than duplicating backend-owned numeric privilege codes. Runtime route and action decisions remain dynamic: the authenticated application context supplies `routePolicies`, `uiPolicies`, current privilege codes, and `authorizationVersion`; missing policies fail closed.
 
 Baseline recorded on 2026-08-14:
 
@@ -102,12 +102,14 @@ Baseline recorded on 2026-08-14:
 
 ```ts
 interface SystemFeatureContract {
-  route: string;
-  routePrivilege: string;
-  actions: Record<string, string>;
-  endpoints: string[];
+  feature: string;
+  routes: Record<string, SystemPolicyKey>;
+  actions: Record<string, SystemPolicyKey>;
+  endpoints: Array<{ endpoint: SystemApiEndpointKey; policy: SystemPolicyKey | 'AUTHENTICATED' }>;
 }
 ```
+
+Numeric privilege codes are intentionally excluded from this frontend contract. Route paths and UI action codes are stable frontend/backend integration keys; the backend policy catalog resolves them to the active privilege set. Endpoint policy keys are diagnostic inventory only—the API registry and backend filter chain remain authoritative for API authorization.
 
 3. Add a backend `SYSTEM_ADMIN_WEB` contract test that verifies:
    - the client is active and browser-compatible;
@@ -653,7 +655,7 @@ Deployment promotion additionally requires:
 
 ## 21. Completion checklist
 
-- [ ] Machine-readable feature contract and `SYSTEM_ADMIN_WEB` grant test exist.
+- [x] Machine-readable semantic feature contract and `SYSTEM_ADMIN_WEB` grant test exist; numeric privilege resolution remains backend-owned.
 - [ ] User and Role Administration are privilege-separated.
 - [ ] All replacement workflows enforce authoritative load-before-save and version checks.
 - [ ] Hierarchical scopes use authorized dependent lookups.
