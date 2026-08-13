@@ -389,6 +389,20 @@ Frontend additions:
 
 ## 11. Phase 6 — Layout and navigation integrity
 
+**Status: Implemented on 2026-08-14.** UI policies now expose client identity, active state, and optimistic version. UI-policy and navigation-feature privilege links are validated full replacements: empty selections remove existing links and stale edits fail. `V55__version_and_deduplicate_layout_policy_links.sql` adds policy/feature versions, removes historical feature-link duplicates, and enforces `(layout_feature_id, privilege_id)` uniqueness.
+
+The backend navigation tree now intersects user privileges with the selected active client's feature grants before pruning. Administrative preview accepts an explicit client/user pair and uses that same backend tree builder. Integrity diagnostics report active children beneath inactive parents, duplicate codes/routes, active feature routes without route policies, and active links to inactive privileges. Active feature writes reject unknown route policies and duplicate active routes; active child writes reject inactive parents. Category reorder remains audited and now rejects duplicates, unknown categories, and cross-parent batches.
+
+The system frontend uses searchable catalog-backed privilege checklists for UI policies and navigation features, shows additions/removals/unchanged assignments and versions before save, provides effective-navigation preview and integrity warnings, exposes accessible move-up/down category controls, and previews the selected layout profile before client assignment.
+
+Verification on 2026-08-14:
+
+- system frontend: 4 files and 13 tests passed;
+- system frontend production build passed with the pre-existing initial bundle budget warning (554.96 kB against 500 kB);
+- `LayoutUiPolicyServiceImplTest`: 3 tests passed, including empty full-replacement removal;
+- backend compilation passed;
+- V55 executed successfully inside a rollback-only `system_db` transaction.
+
 ### Backend changes
 
 - Include client identity and version in UI policy DTOs.

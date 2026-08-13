@@ -15,6 +15,30 @@
     </div>
 </div>
 
+<section class="integrity-tools" aria-label="Navigation integrity and preview">
+    <div>
+        <label>Client code <input type="text" [value]="previewClientCode()" (input)="updatePreviewClient($event)" /></label>
+        <label>Username <input type="text" [value]="previewUsername()" (input)="updatePreviewUsername($event)" /></label>
+        <app-button label="Preview effective navigation" icon="search" variant="ghost" (clicked)="loadPreview()" />
+        @if (previewTree()) { <span role="status">{{ previewFeatureCount() }} visible features</span> }
+    </div>
+    <div>
+        <app-button label="Run integrity check" icon="check" variant="ghost" (clicked)="loadIntegrity()" />
+        @if (integrity(); as report) {
+            <span role="status" [class.warning]="!report.valid">{{ report.valid ? 'Navigation integrity valid' : 'Integrity issues detected' }}</span>
+            @if (!report.valid) {
+                <ul>
+                    @for (issue of report.invalidParents; track issue) { <li>Invalid parent: {{ issue }}</li> }
+                    @for (issue of report.duplicateCodes; track issue) { <li>Duplicate code: {{ issue }}</li> }
+                    @for (issue of report.duplicateRoutes; track issue) { <li>Duplicate route: {{ issue }}</li> }
+                    @for (issue of report.unknownRoutes; track issue) { <li>Unknown route policy: {{ issue }}</li> }
+                    @for (issue of report.invalidPrivilegeReferences; track issue) { <li>Invalid privilege: {{ issue }}</li> }
+                </ul>
+            }
+        }
+    </div>
+</section>
+
 <div class="tabs">
     <button type="button" class="tab" [class.active]="activeLevel() === 'groups'" (click)="setLevel('groups')">Module Groups</button>
     <button type="button" class="tab" [class.active]="activeLevel() === 'modules'" (click)="setLevel('modules')">Modules</button>
@@ -41,6 +65,12 @@
 
 <app-modal [open]="editorOpen()" [title]="titleForActiveLevel()" [width]="640" (closed)="closeEditor()">
     <app-dynamic-form #navForm="dynamicForm" [fields]="fieldsForActiveLevel()" [initialValue]="editorInitialValue()" [columns]="2" (submitted)="saveEditor($event)" />
+    @if (editingLevel === 'features') {
+        <app-assignment-checklist [items]="privileges()" [selectedKeys]="featureSelectedCodes()" [keyOf]="privilegeKey"
+                [labelOf]="privilegeLabel" [detailOf]="privilegeDetail" [groupOf]="privilegeGroup"
+                searchPlaceholder="Search active privileges" (selectionChanged)="toggleFeaturePrivilege($event)" />
+        <app-replacement-summary [summary]="featurePrivilegeSummary()" [version]="editingVersionLabel()" />
+    }
     <div class="modal-actions">
         <app-button label="Cancel" variant="ghost" (clicked)="closeEditor()" />
         <app-button label="Save" icon="save" (clicked)="navForm.submit()" />

@@ -130,6 +130,16 @@
 
 <app-modal [open]="uiPolicyEditorOpen()" title="UI Policy" [width]="640" (closed)="closeUiPolicyEditor()">
     <app-dynamic-form #uiPolicyForm="dynamicForm" [fields]="uiPolicyFields" [initialValue]="uiPolicyEditorInitialValue()" [columns]="2" (submitted)="saveUiPolicyEditor($event)" />
+    <app-assignment-checklist
+            [items]="privileges()"
+            [selectedKeys]="uiPolicySelectedCodes()"
+            [keyOf]="privilegeKey"
+            [labelOf]="privilegeLabel"
+            [detailOf]="privilegeDetail"
+            [groupOf]="privilegeGroup"
+            searchPlaceholder="Search active privileges"
+            (selectionChanged)="toggleUiPolicyPrivilege($event)" />
+    <app-replacement-summary [summary]="uiPolicySummary()" [version]="editingUiPolicyVersionLabel()" />
     <div class="modal-actions">
         <app-button label="Cancel" variant="ghost" (clicked)="closeUiPolicyEditor()" />
         <app-button label="Save" icon="save" (clicked)="uiPolicyForm.submit()" />
@@ -137,6 +147,18 @@
 </app-modal>
 
 <app-modal [open]="clientAssignmentEditorOpen()" title="Client Layout Assignment" [width]="640" (closed)="closeClientAssignmentEditor()">
+    <label for="assignment-profile-preview">Layout profile</label>
+    <select id="assignment-profile-preview" [value]="selectedAssignmentProfileCode()" (change)="selectAssignmentProfile($event)">
+        <option value="">Select a profile…</option>
+        @for (profile of profileCatalog(); track profile.id) { <option [value]="profile.code">{{ profile.name }} ({{ profile.code }})</option> }
+    </select>
+    @if (selectedAssignmentProfile(); as profile) {
+        <section class="profile-preview" aria-label="Selected profile preview">
+            <strong>{{ profile.name }}</strong>
+            <span>{{ profile.layoutType }} · {{ profile.navigationMode }} · {{ profile.themeMode }} · {{ profile.density }}</span>
+            <span>Sidebar {{ profile.sidebarEnabled ? 'enabled' : 'disabled' }}, topbar {{ profile.topbarEnabled ? 'enabled' : 'disabled' }}</span>
+        </section>
+    }
     <app-dynamic-form #assignmentForm="dynamicForm" [fields]="clientAssignmentFields" [initialValue]="clientAssignmentEditorInitialValue()" [columns]="2" (submitted)="saveClientAssignmentEditor($event)" />
     <div class="modal-actions">
         <app-button label="Cancel" variant="ghost" (clicked)="closeClientAssignmentEditor()" />

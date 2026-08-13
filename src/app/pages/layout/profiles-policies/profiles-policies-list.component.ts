@@ -1,4 +1,4 @@
-import { Component, inject, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { of } from 'rxjs';
 import { map } from 'rxjs/operators';
 import {
@@ -8,10 +8,14 @@ import {
     DynamicListComponent,
     DynamicListLoader,
     ListColumnConfig,
-    ModalComponent
+    ModalComponent,
+    AssignmentChecklistComponent,
+    ReplacementSummaryComponent
 } from '@nexacore/shared';
 import { LayoutService } from '../../../core/services/layout.service';
 import { ClientApplicationService } from '../../../core/services/client-application.service';
+import { PrivilegeService } from '../../../core/services/privilege.service';
+import { PrivilegeDto } from '../../access-control/privileges/privileges.model';
 import { AuthorizedUiDirective, AuthorizationPolicyService } from '@nexacore/platform';
 import {
     CLIENT_ASSIGNMENT_FIELDS,
@@ -30,7 +34,6 @@ import {
     defaultThemeConfig,
     emptyChromeOverrides,
     profileInitialValue,
-    splitPrivilegeCodes,
     uiPolicyInitialValue,
     unflattenFonts,
     unflattenSizes
@@ -41,13 +44,15 @@ type Tab = 'profiles' | 'uiPolicies' | 'clientAssignment';
 @Component({
     selector: 'app-profiles-policies-list',
     standalone: true,
-    imports: [ButtonComponent, DynamicFormComponent, DynamicListComponent, ModalComponent, AuthorizedUiDirective],
+    imports: [ButtonComponent, DynamicFormComponent, DynamicListComponent, ModalComponent, AuthorizedUiDirective,
+        AssignmentChecklistComponent, ReplacementSummaryComponent],
     templateUrl: './profiles-policies-list.component.html',
     styleUrl: './profiles-policies-list.component.scss'
 })
 export class ProfilesPoliciesListComponent {
     private readonly service = inject(LayoutService);
     private readonly clientAppService = inject(ClientApplicationService);
+    private readonly privilegeService = inject(PrivilegeService);
     private readonly policy = inject(AuthorizationPolicyService);
 
     protected readonly activeTab = signal<Tab>('profiles');
@@ -93,6 +98,27 @@ export class ProfilesPoliciesListComponent {
     protected readonly uiPolicyEditorOpen = signal(false);
     protected readonly uiPolicyEditorInitialValue = signal<Record<string, unknown>>({});
     protected readonly uiPolicyFilterClientCode = signal('');
+    protected readonly privileges = signal<PrivilegeDto[]>([]);
+    protected readonly uiPolicySelectedCodes = signal<ReadonlySet<string>>(new Set());
+    private readonly uiPolicyOriginalCodes = signal<ReadonlySet<string>>(new Set());
+    protected readonly editingUiPolicyVersion = signal<number | null>(null);
+    protected readonly privilegeKey = (item: PrivilegeDto) => item.privilegeCode;
+    protected readonly privilegeLabel = (item: PrivilegeDto) => `${item.featureName} — ${item.actionName}`;
+    protected readonly privilegeDetail = (item: PrivilegeDto) => item.privilegeCode;
+    protected readonly privilegeGroup = (item: PrivilegeDto) => `${item.moduleName} — ${item.submoduleName}`;
+    protected readonly uiPolicySummary = computed(() => {
+        const original = this.uiPolicyOriginalCodes();
+        const selected = this.uiPolicySelectedCodes();
+        return {
+            additions: [...selected].filter(code => !original.has(code)),
+            removals: [...original].filter(code => !selected.has(code)),
+            unchanged: [...selected].filter(code => original.has(code))
+        };
+    });
+    protected readonly editingUiPolicyVersionLabel = computed(() => {
+        const version = this.editingUiPolicyVersion();
+        return version === null ? null : `${version}`;
+    });
 
     protected readonly loadUiPolicies: DynamicListLoader<UiPrivilegePolicyDto> = (params) =>
         this.service.uiPolicyList(this.uiPolicyFilterClientCode() || null).pipe(
@@ -120,6 +146,10 @@ export class ProfilesPoliciesListComponent {
     protected readonly clientAssignmentEditorInitialValue = signal<Record<string, unknown>>({});
     protected readonly clientOptions = signal<DropdownOption<unknown>[]>([]);
     protected readonly assignmentFilterClientCode = signal('');
+    protected readonly profileCatalog = signal<LayoutProfileDto[]>([]);
+    protected readonly selectedAssignmentProfileCode = signal('');
+    protected readonly selectedAssignmentProfile = computed(() => this.profileCatalog()
+        .find(profile => profile.code === this.selectedAssignmentProfileCode()) ?? null);
     private editingAssignmentId: number | null = null;
 
     protected readonly loadClientAssignments: DynamicListLoader<ClientLayoutAssignmentDto> = (params) => {
@@ -149,6 +179,8 @@ export class ProfilesPoliciesListComponent {
     ];
 
     constructor() {
+        this.privilegeService.list().subscribe(privileges => this.privileges.set(privileges.filter(item => item.active)));
+        this.service.profileList().subscribe(profiles => this.profileCatalog.set(profiles.filter(profile => profile.active)));
         if (this.policy.hasPrivilege('11020100101')) this.clientAppService.list().subscribe((clients) => {
             this.clientOptions.set(clients.map((client) => ({ label: `${client.clientName} (${client.clientCode})`, value: client.clientCode })));
         });
@@ -230,18 +262,28 @@ export class ProfilesPoliciesListComponent {
     // -- UI Policies --
     protected openUiPolicyEditor(row: UiPrivilegePolicyDto | null): void {
         this.uiPolicyEditorInitialValue.set(uiPolicyInitialValue(row, this.uiPolicyFilterClientCode()));
+        const codes = new Set(row?.privilegeCodes ?? []);
+        this.uiPolicyOriginalCodes.set(codes);
+        this.uiPolicySelectedCodes.set(new Set(codes));
+        this.editingUiPolicyVersion.set(row?.version ?? null);
         this.uiPolicyEditorOpen.set(true);
     }
     protected closeUiPolicyEditor(): void {
         this.uiPolicyEditorOpen.set(false);
     }
+    protected toggleUiPolicyPrivilege(change: { item: PrivilegeDto; selected: boolean }): void {
+        const next = new Set(this.uiPolicySelectedCodes());
+        change.selected ? next.add(change.item.privilegeCode) : next.delete(change.item.privilegeCode);
+        this.uiPolicySelectedCodes.set(next);
+    }
     protected saveUiPolicyEditor(value: Record<string, unknown>): void {
         const request: LayoutUiPolicyRequestDto = {
+            version: this.editingUiPolicyVersion(),
             clientCode: (value['clientCode'] as string) || null,
             actionCode: value['actionCode'] as string,
             matchMode: value['matchMode'] as LayoutUiPolicyRequestDto['matchMode'],
             active: !!value['active'],
-            privilegeCodes: splitPrivilegeCodes((value['privilegeCodesText'] as string) || '')
+            privilegeCodes: [...this.uiPolicySelectedCodes()]
         };
         this.service.uiPolicySave(request).subscribe(() => {
             this.uiPolicyEditorOpen.set(false);
@@ -253,10 +295,14 @@ export class ProfilesPoliciesListComponent {
     protected openClientAssignmentEditor(row: ClientLayoutAssignmentDto | null): void {
         this.editingAssignmentId = row?.id ?? null;
         this.clientAssignmentEditorInitialValue.set(clientAssignmentInitialValue(row));
+        this.selectedAssignmentProfileCode.set(row?.profileCode ?? '');
         this.clientAssignmentEditorOpen.set(true);
     }
     protected closeClientAssignmentEditor(): void {
         this.clientAssignmentEditorOpen.set(false);
+    }
+    protected selectAssignmentProfile(event: Event): void {
+        this.selectedAssignmentProfileCode.set((event.target as HTMLSelectElement).value);
     }
     protected saveClientAssignmentEditor(value: Record<string, unknown>): void {
         const request: ClientLayoutAssignmentRequestDto = {
@@ -264,7 +310,7 @@ export class ProfilesPoliciesListComponent {
             clientApplicationId: null,
             clientCode: this.assignmentFilterClientCode(),
             layoutProfileId: null,
-            profileCode: value['profileCode'] as string,
+            profileCode: this.selectedAssignmentProfileCode(),
             assignmentScope: value['assignmentScope'] as ClientLayoutAssignmentRequestDto['assignmentScope'],
             roleCode: (value['roleCode'] as string) || null,
             privilegeCode: (value['privilegeCode'] as string) || null,

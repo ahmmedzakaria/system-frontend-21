@@ -6,6 +6,8 @@ import {
     ClientLayoutAssignmentDto,
     ClientLayoutAssignmentRequestDto,
     LayoutNavigationNodeRequestDto,
+    LayoutNavigationCategoryOrderRequestDto,
+    LayoutNavigationIntegrityDto,
     LayoutProfileDto,
     LayoutProfileRequestDto,
     LayoutUiPolicyRequestDto,
@@ -49,6 +51,14 @@ export class LayoutService {
         return this.api.post<NavNodeDto[]>(ApiEndpoints.LAYOUT_NAVIGATION_TREE_ADMIN, {});
     }
 
+    navigationPreview(clientCode: string, username: string): Observable<NavNodeDto[]> {
+        return this.api.post<NavNodeDto[]>(ApiEndpoints.LAYOUT_NAVIGATION_PREVIEW, { clientCode, username });
+    }
+
+    navigationIntegrity(): Observable<LayoutNavigationIntegrityDto> {
+        return this.api.post<LayoutNavigationIntegrityDto>(ApiEndpoints.LAYOUT_NAVIGATION_INTEGRITY, {});
+    }
+
     saveGroup(request: LayoutNavigationNodeRequestDto): Observable<NavNodeDto> {
         return this.api.post<NavNodeDto>(ApiEndpoints.LAYOUT_NAVIGATION_GROUP_SAVE, request);
     }
@@ -59,6 +69,10 @@ export class LayoutService {
 
     saveCategory(request: LayoutNavigationNodeRequestDto): Observable<NavNodeDto> {
         return this.api.post<NavNodeDto>(ApiEndpoints.LAYOUT_NAVIGATION_CATEGORY_SAVE, request);
+    }
+
+    reorderCategories(request: LayoutNavigationCategoryOrderRequestDto): Observable<void> {
+        return this.api.post<void>(ApiEndpoints.LAYOUT_NAVIGATION_CATEGORY_REORDER, request);
     }
 
     saveFeatureGroup(request: LayoutNavigationNodeRequestDto): Observable<NavNodeDto> {

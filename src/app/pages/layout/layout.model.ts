@@ -119,12 +119,18 @@ export interface LayoutProfileRequestDto {
 }
 
 export interface UiPrivilegePolicyDto {
+    id: number;
+    version: number;
+    clientApplicationId: number | null;
+    clientCode: string | null;
     actionCode: string;
     matchMode: string;
+    active: boolean;
     privilegeCodes: string[];
 }
 
 export interface LayoutUiPolicyRequestDto {
+    version: number | null;
     clientCode: string | null;
     actionCode: string;
     matchMode: PrivilegeMatchMode;
@@ -171,6 +177,7 @@ export interface ClientLayoutAssignmentRequestDto {
 // creates and correctly pre-fill edit forms; see V28 migration + LayoutNavigationServiceImpl).
 export interface NavNodeDto {
     id: number;
+    version: number | null;
     parentId: number | null;
     code: string;
     tCode: string | null;
@@ -187,6 +194,7 @@ export interface NavNodeDto {
 
 export interface LayoutNavigationNodeRequestDto {
     id: number | null;
+    version: number | null;
     parentId: number | null;
     code: string;
     tCode: string | null;
@@ -202,6 +210,19 @@ export interface LayoutNavigationNodeRequestDto {
     displayOrder: number | null;
     active: boolean | null;
     privilegeCodes: string[];
+}
+
+export interface LayoutNavigationCategoryOrderRequestDto {
+    categories: Array<{ id: number; displayOrder: number }>;
+}
+
+export interface LayoutNavigationIntegrityDto {
+    valid: boolean;
+    invalidParents: string[];
+    duplicateCodes: string[];
+    duplicateRoutes: string[];
+    unknownRoutes: string[];
+    invalidPrivilegeReferences: string[];
 }
 
 // ---- Field configs ----
@@ -370,7 +391,6 @@ export const UI_POLICY_FIELDS: FieldConfig[] = [
     { type: 'text', key: 'clientCode', label: 'Client Code (blank = global)' },
     { type: 'text', key: 'actionCode', label: 'Action Code', required: true },
     { type: 'dropdown', key: 'matchMode', label: 'Match Mode', options: MATCH_MODE_OPTIONS },
-    { type: 'text', key: 'privilegeCodesText', label: 'Privilege Codes (comma-separated)', colSpan: 2 },
     { type: 'checkbox', key: 'active', label: 'Active' }
 ];
 
@@ -386,16 +406,15 @@ export function splitPrivilegeCodes(text: string): string[] {
 
 export function uiPolicyInitialValue(row: UiPrivilegePolicyDto | null, filterClientCode: string): Record<string, unknown> {
     if (!row) {
-        return { clientCode: filterClientCode, matchMode: 'ANY', privilegeCodesText: '', active: true };
+        return { clientCode: filterClientCode, matchMode: 'ANY', active: true };
     }
     return {
-        clientCode: filterClientCode, actionCode: row.actionCode, matchMode: row.matchMode,
-        privilegeCodesText: joinPrivilegeCodes(row.privilegeCodes), active: true
+        clientCode: row.clientCode ?? filterClientCode, actionCode: row.actionCode, matchMode: row.matchMode,
+        active: row.active
     };
 }
 
 export const CLIENT_ASSIGNMENT_FIELDS: FieldConfig[] = [
-    { type: 'text', key: 'profileCode', label: 'Profile Code', required: true },
     { type: 'dropdown', key: 'assignmentScope', label: 'Scope', options: ASSIGNMENT_SCOPE_OPTIONS },
     { type: 'text', key: 'roleCode', label: 'Role Code' },
     { type: 'text', key: 'privilegeCode', label: 'Privilege Code' },
@@ -462,11 +481,7 @@ export function featureFields(parentOptions: DropdownOption<unknown>[]): FieldCo
         { type: 'text', key: 'physicalSubmoduleCode', label: 'Physical Submodule Code' },
         { type: 'text', key: 'physicalFeatureTypeCode', label: 'Physical Feature Type Code' },
         { type: 'text', key: 'physicalFeatureCode', label: 'Physical Feature Code' },
-        // The backend's privilege-code sync is append-only for features (never clears/dedupes
-        // existing links — see saveFeature/syncFeaturePrivileges), so unlike UI Policies this
-        // is safe to leave blank on edit (no data-loss risk), but resubmitting the same codes
-        // repeatedly will create duplicate join rows — avoid re-saving unchanged codes.
-        { type: 'text', key: 'privilegeCodesText', label: 'Privilege Codes to add (comma-separated)', colSpan: 2 }
+        // Privileges are selected through the validated searchable catalog in the editor.
     ]);
 }
 
@@ -477,7 +492,6 @@ export function navNodeInitialValue(row: NavNodeDto | null): Record<string, unkn
     return {
         code: row.code, name: row.label, parentId: row.parentId, icon: row.icon ?? '',
         description: row.description ?? '', route: row.route ?? '', tCode: row.tCode ?? '',
-        privilegeCodesText: joinPrivilegeCodes(row.privilegeCodes ?? []),
         displayOrder: row.displayOrder, active: row.active
     };
 }

@@ -7,10 +7,14 @@ import {
     DynamicListComponent,
     DynamicListLoader,
     ListColumnConfig,
-    ModalComponent
+    ModalComponent,
+    AssignmentChecklistComponent,
+    ReplacementSummaryComponent
 } from '@nexacore/shared';
 import { LayoutService } from '../../../core/services/layout.service';
 import { AuthorizedUiDirective } from '@nexacore/platform';
+import { PrivilegeService } from '../../../core/services/privilege.service';
+import { PrivilegeDto } from '../../access-control/privileges/privileges.model';
 import {
     LayoutNavigationNodeRequestDto,
     NavNodeDto,
@@ -20,7 +24,6 @@ import {
     moduleFields,
     moduleGroupFields,
     navNodeInitialValue,
-    splitPrivilegeCodes
 } from '../layout.model';
 
 type Level = 'groups' | 'modules' | 'categories' | 'featureGroups' | 'features';
@@ -28,14 +31,21 @@ type Level = 'groups' | 'modules' | 'categories' | 'featureGroups' | 'features';
 @Component({
     selector: 'app-navigation-tree',
     standalone: true,
-    imports: [ButtonComponent, DynamicFormComponent, DynamicListComponent, ModalComponent, AuthorizedUiDirective],
+    imports: [ButtonComponent, DynamicFormComponent, DynamicListComponent, ModalComponent, AuthorizedUiDirective,
+        AssignmentChecklistComponent, ReplacementSummaryComponent],
     templateUrl: './navigation-tree.component.html',
     styleUrl: './navigation-tree.component.scss'
 })
 export class NavigationTreeComponent {
     private readonly service = inject(LayoutService);
+    private readonly privilegeService = inject(PrivilegeService);
 
     protected readonly activeLevel = signal<Level>('groups');
+    protected readonly previewClientCode = signal('SYSTEM_ADMIN_WEB');
+    protected readonly previewUsername = signal('');
+    protected readonly previewTree = signal<NavNodeDto[] | null>(null);
+    protected readonly integrity = signal<import('../layout.model').LayoutNavigationIntegrityDto | null>(null);
+    protected readonly previewFeatureCount = computed(() => this.countFeatures(this.previewTree() ?? []));
 
     protected readonly groups = signal<NavNodeDto[]>([]);
     protected readonly modules = signal<NavNodeDto[]>([]);
@@ -66,10 +76,26 @@ export class NavigationTreeComponent {
 
     protected readonly editorOpen = signal(false);
     protected readonly editorInitialValue = signal<Record<string, unknown>>({});
-    private editingLevel: Level = 'groups';
+    protected editingLevel: Level = 'groups';
     private editingId: number | null = null;
+    protected editingVersion: number | null = null;
+    protected readonly privileges = signal<PrivilegeDto[]>([]);
+    protected readonly featureSelectedCodes = signal<ReadonlySet<string>>(new Set());
+    private readonly featureOriginalCodes = signal<ReadonlySet<string>>(new Set());
+    protected readonly privilegeKey = (item: PrivilegeDto) => item.privilegeCode;
+    protected readonly privilegeLabel = (item: PrivilegeDto) => `${item.featureName} — ${item.actionName}`;
+    protected readonly privilegeDetail = (item: PrivilegeDto) => item.privilegeCode;
+    protected readonly privilegeGroup = (item: PrivilegeDto) => `${item.moduleName} — ${item.submoduleName}`;
+    protected readonly featurePrivilegeSummary = computed(() => {
+        const original = this.featureOriginalCodes();
+        const selected = this.featureSelectedCodes();
+        return { additions: [...selected].filter(code => !original.has(code)), removals: [...original].filter(code => !selected.has(code)),
+            unchanged: [...selected].filter(code => original.has(code)) };
+    });
+    protected editingVersionLabel(): string | null { return this.editingVersion === null ? null : `${this.editingVersion}`; }
 
     constructor() {
+        this.privilegeService.list().subscribe(privileges => this.privileges.set(privileges.filter(item => item.active)));
         this.reload();
     }
 
@@ -138,7 +164,13 @@ export class NavigationTreeComponent {
         base.push({ key: 'active', header: 'Status', type: 'badge', status: (row) => (row.active ? 'verified' : 'draft') });
         base.push({
             key: 'actions', header: '', align: 'end', type: 'actions',
-            actions: [{ icon: 'edit', label: 'Edit', permissionKey: 'layout.manage', onClick: (row) => this.openEditor(level, row) }]
+            actions: [
+                { icon: 'edit', label: 'Edit', permissionKey: 'layout.manage', onClick: (row) => this.openEditor(level, row) },
+                ...(level === 'categories' ? [
+                    { icon: 'chevron-up', label: 'Move up', permissionKey: 'layout.manage', onClick: (row: NavNodeDto) => this.moveCategory(row, -1) },
+                    { icon: 'chevron-down', label: 'Move down', permissionKey: 'layout.manage', onClick: (row: NavNodeDto) => this.moveCategory(row, 1) }
+                ] : [])
+            ]
         });
         return base;
     }
@@ -151,6 +183,18 @@ export class NavigationTreeComponent {
 
     protected setLevel(level: Level): void {
         this.activeLevel.set(level);
+    }
+
+    protected updatePreviewClient(event: Event): void { this.previewClientCode.set((event.target as HTMLInputElement).value); }
+    protected updatePreviewUsername(event: Event): void { this.previewUsername.set((event.target as HTMLInputElement).value); }
+    protected loadPreview(): void {
+        if (!this.previewClientCode().trim() || !this.previewUsername().trim()) return;
+        this.service.navigationPreview(this.previewClientCode().trim(), this.previewUsername().trim())
+            .subscribe(tree => this.previewTree.set(tree));
+    }
+    protected loadIntegrity(): void { this.service.navigationIntegrity().subscribe(report => this.integrity.set(report)); }
+    private countFeatures(nodes: NavNodeDto[]): number {
+        return nodes.reduce((count, node) => count + (node.type === 'feature' ? 1 : 0) + this.countFeatures(node.children), 0);
     }
 
     protected fieldsForActiveLevel() {
@@ -176,6 +220,10 @@ export class NavigationTreeComponent {
     protected openEditor(level: Level, row: NavNodeDto | null): void {
         this.editingLevel = level;
         this.editingId = row?.id ?? null;
+        this.editingVersion = row?.version ?? null;
+        const codes = new Set(row?.privilegeCodes ?? []);
+        this.featureOriginalCodes.set(codes);
+        this.featureSelectedCodes.set(new Set(codes));
         this.editorInitialValue.set(navNodeInitialValue(row));
         this.editorOpen.set(true);
     }
@@ -184,9 +232,29 @@ export class NavigationTreeComponent {
         this.editorOpen.set(false);
     }
 
+    protected toggleFeaturePrivilege(change: { item: PrivilegeDto; selected: boolean }): void {
+        const next = new Set(this.featureSelectedCodes());
+        change.selected ? next.add(change.item.privilegeCode) : next.delete(change.item.privilegeCode);
+        this.featureSelectedCodes.set(next);
+    }
+
+    protected moveCategory(row: NavNodeDto, direction: -1 | 1): void {
+        const siblings = this.categories().filter(item => item.parentId === row.parentId)
+            .sort((left, right) => left.displayOrder - right.displayOrder || left.id - right.id);
+        const index = siblings.findIndex(item => item.id === row.id);
+        const target = siblings[index + direction];
+        if (!target) return;
+        const currentOrder = row.displayOrder;
+        this.service.reorderCategories({ categories: [
+                { id: row.id, displayOrder: target.displayOrder },
+                { id: target.id, displayOrder: currentOrder }
+            ] }).subscribe(() => this.reload());
+    }
+
     protected saveEditor(value: Record<string, unknown>): void {
         const request: LayoutNavigationNodeRequestDto = {
             id: this.editingId,
+            version: this.editingVersion,
             parentId: (value['parentId'] as number) ?? null,
             code: (value['code'] as string) || '',
             tCode: (value['tCode'] as string) || null,
@@ -201,7 +269,7 @@ export class NavigationTreeComponent {
             physicalFeatureCode: (value['physicalFeatureCode'] as string) || null,
             displayOrder: (value['displayOrder'] as number) ?? 100,
             active: !!value['active'],
-            privilegeCodes: splitPrivilegeCodes((value['privilegeCodesText'] as string) || '')
+            privilegeCodes: this.editingLevel === 'features' ? [...this.featureSelectedCodes()] : []
         };
 
         const save$ = (() => {

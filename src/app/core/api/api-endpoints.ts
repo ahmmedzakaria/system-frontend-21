@@ -74,9 +74,12 @@ export const ApiEndpoints = {
     LAYOUT_CLIENT_ASSIGN_SAVE: { apiPath: 'system/layout/client/assign', actionType: ActionTypes.CREATE },
     LAYOUT_NAVIGATION_TREE: { apiPath: 'system/layout/navigation/tree', actionType: ActionTypes.SEARCH },
     LAYOUT_NAVIGATION_TREE_ADMIN: { apiPath: 'system/layout/navigation/tree/admin', actionType: ActionTypes.SEARCH },
+    LAYOUT_NAVIGATION_PREVIEW: { apiPath: 'system/layout/navigation/preview', actionType: ActionTypes.SEARCH },
+    LAYOUT_NAVIGATION_INTEGRITY: { apiPath: 'system/layout/navigation/integrity', actionType: ActionTypes.SEARCH },
     LAYOUT_NAVIGATION_GROUP_SAVE: { apiPath: 'system/layout/navigation/group/save', actionType: ActionTypes.CREATE },
     LAYOUT_NAVIGATION_MODULE_SAVE: { apiPath: 'system/layout/navigation/module/save', actionType: ActionTypes.CREATE },
     LAYOUT_NAVIGATION_CATEGORY_SAVE: { apiPath: 'system/layout/navigation/category/save', actionType: ActionTypes.CREATE },
+    LAYOUT_NAVIGATION_CATEGORY_REORDER: { apiPath: 'system/layout/navigation/category/reorder', actionType: ActionTypes.UPDATE },
     LAYOUT_NAVIGATION_FEATURE_GROUP_SAVE: { apiPath: 'system/layout/navigation/feature-group/save', actionType: ActionTypes.CREATE },
     LAYOUT_NAVIGATION_FEATURE_SAVE: { apiPath: 'system/layout/navigation/feature/save', actionType: ActionTypes.CREATE },
 
