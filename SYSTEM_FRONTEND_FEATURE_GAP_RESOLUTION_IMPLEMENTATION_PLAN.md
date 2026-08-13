@@ -86,6 +86,15 @@ Common state and visual primitives remain in `frontend-libs-21`. Domain endpoint
 
 ## 5. Phase 0 — Baseline and contract inventory
 
+**Status: Implemented on 2026-08-14.** The typed feature inventory, frontend inventory tests, backend metadata contract, V49 migration fixture, startup route/UI policy reconciliation, and module-reference reconciliation are in place.
+
+Baseline recorded on 2026-08-14:
+
+- `npm test`: 3 files and 7 tests passed;
+- `npm run build`: passed, with the existing initial-bundle budget warning (553.31 kB against 500 kB);
+- focused backend authorization/metadata suite: 18 tests passed;
+- `SystemDatabaseMigrationTest`: compiled and completed with all 4 cases skipped because no Docker environment was available. The V49 grant assertion still requires execution in a Docker-enabled CI or developer environment.
+
 ### Deliverables
 
 1. Freeze an inventory of every system frontend route, action code, endpoint, backend privilege, data scope, and required client grant.
@@ -611,4 +620,3 @@ Deployment promotion additionally requires:
 - [ ] Audit and session revocation administration are implemented.
 - [ ] Server paging and accessibility gates pass.
 - [ ] Unit, component, backend, and authenticated Playwright matrices pass under `ENFORCE`.
-

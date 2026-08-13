@@ -12,6 +12,26 @@ All backend endpoints below are relative to `/api/v1/system/...` and are defined
 `backend/src/main/java/com/nexacore/systemmodule/`. All frontend endpoint constants
 live in `src/app/core/api/api-endpoints.ts`.
 
+## Machine-readable feature contract
+
+`src/app/core/authorization/system-feature-contract.ts` is the enforceable inventory
+for every protected application route, UI action, app-owned endpoint, required backend
+privilege, and declared data scope. Tests require every `ApiEndpoints` entry to occur
+exactly once and every protected Angular route to occur in the contract. When adding or
+removing an endpoint, route, or action, update this contract in the same change.
+
+Backend `SystemAdminWebApiContractTest` verifies that the frontend's required endpoint
+families still exist with reviewed annotations. `SystemDatabaseMigrationTest` verifies
+the upgraded-database V49 lifecycle grants after seeding annotation-discovered API rows.
+`DataSeeder` reconciles `SYSTEM_ADMIN_WEB` route/UI policies at every startup, so a
+previous migration that inserted no link cannot leave the application permanently
+without its policy. Bootstrap privilege rows are migration-seeded before the navigation
+migrations, while application startup synchronizes their catalog representation.
+
+V49 is intentionally limited to authenticated application context, session status, and
+logout. Feature API/privilege grants remain owned by their feature migrations and
+fresh-install seeding.
+
 ## Dashboard
 
 Route: `dashboard` (`pages/dashboard/`). Five static cards — Client Applications,
