@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-for (const path of ['/access-control/client-applications', '/access-control/users', '/backup']) {
+for (const path of ['/access-control/client-applications', '/access-control/users', '/access-control/tenants', '/backup']) {
   test(`unauthenticated request to ${path} cannot render administration`, async ({ page }) => {
     await page.goto(path);
     await expect(page).toHaveURL(/\/login(?:[/?#]|$)/);
