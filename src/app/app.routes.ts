@@ -54,6 +54,10 @@ export const routes: Routes = [
                     import('./pages/tenant/tenant-administration.component').then(m => m.TenantAdministrationComponent),
             },
             {
+                path: 'access-control/tenants/:id',
+                loadComponent: () => import('./pages/tenant/tenant-administration.component').then(m => m.TenantAdministrationComponent),
+            },
+            {
                 path: 'access-control/users',
                 loadComponent: () =>
                     import('./pages/access-control/users/user-list.component').then(m => m.UserListComponent),

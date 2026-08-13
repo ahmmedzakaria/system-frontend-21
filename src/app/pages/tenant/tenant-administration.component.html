@@ -1,3 +1,40 @@
+@if (detail(); as tenant) {
+<div class="page-header">
+    <div><h2>{{ tenant.displayName }}</h2><p>{{ tenant.tenantCode }} · {{ tenant.status }}</p></div>
+    <app-button label="Back to tenants" icon="arrow-left" variant="ghost" (clicked)="backToList()" />
+</div>
+@if (message()) { <div class="message">{{ message() }}</div> }
+<section class="detail-grid" aria-label="Tenant details">
+    <article><h3>Identity</h3><dl><dt>Legal name</dt><dd>{{ tenant.legalName || '—' }}</dd><dt>Registration</dt><dd>{{ tenant.registrationNumber || '—' }}</dd><dt>Billing email</dt><dd>{{ tenant.billingEmail || '—' }}</dd><dt>Locale / time zone</dt><dd>{{ tenant.defaultLocale }} / {{ tenant.defaultTimeZone }}</dd><dt>Version</dt><dd>{{ tenant.version }}</dd></dl></article>
+    <article><h3>Assignments</h3><dl><dt>Clients</dt><dd>{{ tenant.assignments.clients }}</dd><dt>Users</dt><dd>{{ tenant.assignments.users }}</dd><dt>Layouts</dt><dd>{{ tenant.assignments.layouts }}</dd><dt>Licenses</dt><dd>{{ tenant.assignments.licenses }}</dd><dt>Branding overrides</dt><dd>{{ tenant.assignments.brandingOverrides }}</dd></dl></article>
+</section>
+@if (canManage()) {
+<div class="detail-actions">
+    @if (tenant.status === 'PENDING') { <app-button label="Activate" icon="play" (clicked)="openDetailAction('activate')" /> }
+    @if (tenant.status === 'ACTIVE') { <app-button label="Suspend" icon="pause" (clicked)="openDetailAction('suspend')" /> }
+    @if (tenant.status === 'SUSPENDED') { <app-button label="Reactivate" icon="rotate-right" (clicked)="openDetailAction('reactivate')" /> }
+    @if (tenant.status !== 'CANCELLED') { <app-button label="Cancel" icon="ban" variant="ghost" (clicked)="openDetailAction('cancel')" /> }
+</div>
+}
+<section>
+    <div class="section-header"><h3>Domains</h3>@if (canVerify() && tenant.status !== 'CANCELLED') { <app-button label="Add domain" icon="plus" variant="ghost" (clicked)="domainEditorOpen.set(true)" /> }</div>
+    <div class="domain-list">
+    @for (domain of tenant.domains; track domain.id) {
+        <article [class.inactive]="!domain.active"><div><strong>{{ domain.hostname }}</strong><span>{{ domain.domainType }} · {{ domain.verificationStatus }}{{ domain.primaryDomain ? ' · Primary' : '' }}</span></div>
+            @if (canVerify() && domain.active) { <div>
+                @if (domain.verificationStatus !== 'VERIFIED') { <app-button label="Verify" icon="check" variant="ghost" (clicked)="verifyDetailDomain(domain)" /> }
+                @if (domain.verificationStatus === 'VERIFIED' && !domain.primaryDomain) { <app-button label="Set primary" icon="check" variant="ghost" (clicked)="setPrimary(domain)" /> }
+                @if (!domain.primaryDomain) { <app-button label="Deactivate" icon="ban" variant="ghost" (clicked)="deactivateDomain(domain)" /> }
+            </div> }
+        </article>
+    }
+    </div>
+</section>
+<section><h3>Lifecycle and administration history</h3><ol class="audit-list">@for (event of tenant.history; track event.id) { <li><strong>{{ event.actionCode }}</strong> — {{ event.outcome }} <span>{{ event.createdAt }}</span>@if (event.reason) { <p>{{ event.reason }}</p> }</li> }</ol></section>
+<app-dynamic-modal [open]="domainEditorOpen()" title="Add Tenant Domain" [width]="560" [fields]="domainFields" [initialValue]="domainInitial" [columns]="2" (closed)="domainEditorOpen.set(false)" (submitted)="addDomain($event)" />
+} @else if (detailLoading()) {
+<p role="status">Loading tenant details…</p>
+} @else {
 <div class="page-header">
     <div>
         <h2>Tenant Administration</h2>
@@ -21,6 +58,7 @@
 <app-dynamic-modal [open]="registrationOpen()" title="Register Tenant" [width]="720"
                    [fields]="registrationFields" [initialValue]="registrationInitial" [columns]="2"
                    (closed)="registrationOpen.set(false)" (submitted)="saveRegistration($event)" />
+}
 
 <app-confirm-dialog [open]="!!pendingAction()" [title]="actionTitle()" [message]="actionMessage()"
                     confirmLabel="Confirm" [danger]="pendingAction() === 'cancel'"

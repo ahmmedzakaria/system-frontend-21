@@ -5,6 +5,7 @@ export type TenantDomainType = 'CUSTOM' | 'PLATFORM_SUBDOMAIN';
 
 export interface TenantDto {
     id: number;
+    version: number;
     tenantCode: string;
     displayName: string;
     status: TenantStatus;
@@ -12,6 +13,34 @@ export interface TenantDto {
     hostname: string | null;
     createdAt: string;
     updatedAt: string;
+}
+
+export interface TenantDomainDto {
+    id: number; hostname: string; domainType: TenantDomainType;
+    verificationStatus: 'PENDING' | 'VERIFIED' | 'FAILED';
+    primaryDomain: boolean; active: boolean; verifiedAt: string | null;
+    lastCheckedAt: string | null; createdAt: string; updatedAt: string;
+}
+
+export interface TenantAssignmentSummaryDto {
+    clients: number; users: number; layouts: number; licenses: number; brandingOverrides: number;
+}
+
+export interface PlatformAdminAuditEventDto {
+    id: number; actorUserId: number; actionCode: string; outcome: string;
+    reason: string | null; traceId: string | null; createdAt: string;
+}
+
+export interface TenantDetailDto {
+    id: number; version: number; tenantCode: string; displayName: string; legalName: string | null;
+    registrationNumber: string | null; billingEmail: string | null; defaultLocale: string; defaultTimeZone: string;
+    status: TenantStatus; activatedAt: string | null; suspendedAt: string | null; suspensionReason: string | null;
+    cancelledAt: string | null; cancellationReason: string | null; domains: TenantDomainDto[];
+    assignments: TenantAssignmentSummaryDto; history: PlatformAdminAuditEventDto[]; createdAt: string; updatedAt: string;
+}
+
+export interface TenantDomainMutationRequest {
+    tenantId: number; domainId?: number | null; hostname?: string | null; domainType?: TenantDomainType | null;
 }
 
 export interface TenantRegistrationRequest {
@@ -46,4 +75,11 @@ export const TENANT_REGISTRATION_FIELDS: FieldConfig[] = [
     ] },
     { type: 'text', key: 'defaultLocale', label: 'Default Locale' },
     { type: 'text', key: 'defaultTimeZone', label: 'Default Time Zone' }
+];
+
+export const TENANT_DOMAIN_FIELDS: FieldConfig[] = [
+    { type: 'text', key: 'hostname', label: 'Hostname', required: true },
+    { type: 'dropdown', key: 'domainType', label: 'Domain Type', required: true, options: [
+        { label: 'Custom domain', value: 'CUSTOM' }, { label: 'Platform subdomain', value: 'PLATFORM_SUBDOMAIN' }
+    ] }
 ];

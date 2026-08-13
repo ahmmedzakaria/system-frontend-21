@@ -66,11 +66,13 @@ export const SYSTEM_FEATURE_CONTRACTS: readonly SystemFeatureContract[] = [
             endpoint('ROLE_PRIVILEGE_ASSIGNMENTS', 'roles.view'), endpoint('ROLE_SAVE', 'roles.manage'), endpoint('GLOBAL_ROLE_SAVE', 'roles.manage')]
     },
     {
-        feature: 'tenants', routes: { '/access-control/tenants': 'tenants.view' },
+        feature: 'tenants', routes: { '/access-control/tenants': 'tenants.view', '/access-control/tenants/:id': 'tenants.view' },
         actions: { 'tenants.register': 'tenants.register', 'tenants.verify-domain': 'tenants.verify-domain', 'tenants.manage-lifecycle': 'tenants.manage-lifecycle' },
-        endpoints: [endpoint('TENANT_REGISTER', 'tenants.register'), endpoint('TENANT_LIST', 'tenants.view'),
+        endpoints: [endpoint('TENANT_REGISTER', 'tenants.register'), endpoint('TENANT_LIST', 'tenants.view'), endpoint('TENANT_DETAIL', 'tenants.view'),
             endpoint('TENANT_AUTHORIZED', AUTHENTICATED_POLICY), endpoint('TENANT_BUSINESSES', AUTHENTICATED_POLICY),
             endpoint('TENANT_BRANCHES', AUTHENTICATED_POLICY), endpoint('TENANT_DOMAIN_VERIFY', 'tenants.verify-domain'),
+            endpoint('TENANT_DOMAIN_ADD', 'tenants.verify-domain'), endpoint('TENANT_DOMAIN_SET_PRIMARY', 'tenants.verify-domain'),
+            endpoint('TENANT_DOMAIN_DEACTIVATE', 'tenants.verify-domain'),
             endpoint('TENANT_ACTIVATE', 'tenants.manage-lifecycle'), endpoint('TENANT_SUSPEND', 'tenants.manage-lifecycle'),
             endpoint('TENANT_REACTIVATE', 'tenants.manage-lifecycle'), endpoint('TENANT_CANCEL', 'tenants.manage-lifecycle')]
     },

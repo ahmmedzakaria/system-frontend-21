@@ -5,9 +5,10 @@ import {
     DynamicModalComponent, ListColumnConfig, MutationState
 } from '@nexacore/shared';
 import { map } from 'rxjs/operators';
+import { ActivatedRoute, Router } from '@angular/router';
 import { TenantAdministrationService } from '../../core/services/tenant-administration.service';
 import {
-    TENANT_REGISTRATION_FIELDS, TenantDomainType, TenantDto,
+    TENANT_DOMAIN_FIELDS, TENANT_REGISTRATION_FIELDS, TenantDetailDto, TenantDomainDto, TenantDomainType, TenantDto,
     TenantRegistrationRequest, TenantStatus
 } from './tenant.model';
 import { PageOperationService } from '../../core/authorization/page-operation.service';
@@ -27,6 +28,8 @@ export class TenantAdministrationComponent {
     private readonly revocation = inject(AuthorizationRevocationService);
     private readonly operations = inject(PageOperationService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly route = inject(ActivatedRoute);
+    private readonly router = inject(Router);
     private readonly listRef = viewChild<DynamicListComponent<TenantDto>>('tenantList');
 
     protected readonly canRegister = this.policy.actionAllowed('tenants.register');
@@ -41,6 +44,11 @@ export class TenantAdministrationComponent {
     protected readonly actionLoading = signal(false);
     protected readonly mutation = new MutationState();
     protected readonly message = signal<string | null>(null);
+    protected readonly detail = signal<TenantDetailDto | null>(null);
+    protected readonly detailLoading = signal(false);
+    protected readonly domainEditorOpen = signal(false);
+    protected readonly domainFields = TENANT_DOMAIN_FIELDS;
+    protected readonly domainInitial = { domainType: 'CUSTOM' };
 
     protected readonly loadTenants: DynamicListLoader<TenantDto> = (params) => this.service.list().pipe(map(rows => {
         const query = params.query.trim().toLowerCase();
@@ -56,12 +64,13 @@ export class TenantAdministrationComponent {
         { key: 'status', header: 'Status', type: 'badge', label: row => row.status, status: row => this.statusTone(row.status) },
         {
             key: 'actions', header: '', align: 'end', type: 'actions', actions: [
+                { icon: 'eye', label: 'View details', onClick: (row: TenantDto) => this.router.navigate(['/access-control/tenants', row.id]) },
                 ...(this.canVerify() ? [{ icon: 'check', label: 'Verify domain', onClick: (row: TenantDto) => this.verify(row) }] : []),
                 ...(this.canManage() ? [
-                    { icon: 'play', label: 'Activate', onClick: (row: TenantDto) => { if (row.status === 'PENDING') this.openAction('activate', row); } },
-                    { icon: 'pause', label: 'Suspend', onClick: (row: TenantDto) => { if (row.status === 'ACTIVE') this.openAction('suspend', row); } },
-                    { icon: 'rotate-right', label: 'Reactivate', onClick: (row: TenantDto) => { if (row.status === 'SUSPENDED') this.openAction('reactivate', row); } },
-                    { icon: 'ban', label: 'Cancel', danger: true, onClick: (row: TenantDto) => { if (row.status !== 'CANCELLED') this.openAction('cancel', row); } }
+                    { icon: 'play', label: 'Activate', hidden: (row: TenantDto) => row.status !== 'PENDING', onClick: (row: TenantDto) => this.openAction('activate', row) },
+                    { icon: 'pause', label: 'Suspend', hidden: (row: TenantDto) => row.status !== 'ACTIVE', onClick: (row: TenantDto) => this.openAction('suspend', row) },
+                    { icon: 'rotate-right', label: 'Reactivate', hidden: (row: TenantDto) => row.status !== 'SUSPENDED', onClick: (row: TenantDto) => this.openAction('reactivate', row) },
+                    { icon: 'ban', label: 'Cancel', danger: true, hidden: (row: TenantDto) => row.status === 'CANCELLED', onClick: (row: TenantDto) => this.openAction('cancel', row) }
                 ] : [])
             ]
         }
@@ -71,6 +80,8 @@ export class TenantAdministrationComponent {
         const registration = this.revocation.watch(this.canRegister, () => this.registrationOpen.set(false));
         const lifecycle = this.revocation.watch(this.canManage, () => this.closeAction());
         this.destroyRef.onDestroy(() => { registration.destroy(); lifecycle.destroy(); });
+        const tenantId = Number(this.route.snapshot.paramMap.get('id'));
+        if (Number.isSafeInteger(tenantId) && tenantId > 0) this.loadDetail(tenantId);
     }
 
     protected saveRegistration(value: Record<string, unknown>): void {
@@ -109,10 +120,49 @@ export class TenantAdministrationComponent {
         const action = this.pendingAction(); const tenant = this.pendingTenant();
         if (!action || !tenant || !this.canManage() || (this.requiresReason() && !this.reason().trim()) || !this.mutation.begin()) return;
         this.actionLoading.set(true);
-        this.service.transition(action, tenant.id, this.reason().trim() || null).subscribe({
+        this.service.transition(action, tenant.id, tenant.version, this.reason().trim() || null).subscribe({
             next: () => { this.mutation.succeed(); this.actionLoading.set(false); this.closeAction(); this.reload(); },
             error: error => { this.actionLoading.set(false); this.recordFailure(error, 'Tenant lifecycle change was rejected.'); }
         });
+    }
+
+    protected backToList(): void { void this.router.navigate(['/access-control/tenants']); }
+    protected addDomain(value: Record<string, unknown>): void {
+        const tenant = this.detail();
+        if (!tenant || !this.canVerify() || !this.mutation.begin()) return;
+        this.service.addDomain({ tenantId: tenant.id, hostname: value['hostname'] as string,
+            domainType: value['domainType'] as TenantDomainType }).subscribe({
+            next: () => { this.mutation.succeed(); this.domainEditorOpen.set(false); this.loadDetail(tenant.id); },
+            error: error => this.recordFailure(error, 'Domain addition was rejected.')
+        });
+    }
+    protected verifyDetailDomain(domain: TenantDomainDto): void {
+        const tenant = this.detail(); if (!tenant || !this.canVerify() || !this.mutation.begin()) return;
+        this.service.verifyDomain(domain.id).subscribe({ next: () => { this.mutation.succeed(); this.loadDetail(tenant.id); },
+            error: error => this.recordFailure(error, 'Domain verification was rejected.') });
+    }
+    protected setPrimary(domain: TenantDomainDto): void {
+        const tenant = this.detail(); if (!tenant || !this.canVerify() || !this.mutation.begin()) return;
+        this.service.setPrimaryDomain(tenant.id, domain.id).subscribe({ next: () => { this.mutation.succeed(); this.loadDetail(tenant.id); },
+            error: error => this.recordFailure(error, 'Primary-domain change was rejected.') });
+    }
+    protected deactivateDomain(domain: TenantDomainDto): void {
+        const tenant = this.detail(); if (!tenant || !this.canVerify() || !this.mutation.begin()) return;
+        this.service.deactivateDomain(tenant.id, domain.id).subscribe({ next: () => { this.mutation.succeed(); this.loadDetail(tenant.id); },
+            error: error => this.recordFailure(error, 'Domain deactivation was rejected.') });
+    }
+    protected openDetailAction(action: LifecycleAction): void {
+        const tenant = this.detail(); if (!tenant) return;
+        const primary = tenant.domains.find(domain => domain.primaryDomain);
+        this.openAction(action, { id: tenant.id, version: tenant.version, tenantCode: tenant.tenantCode,
+            displayName: tenant.displayName, status: tenant.status, primaryDomainId: primary?.id ?? null,
+            hostname: primary?.hostname ?? null, createdAt: tenant.createdAt, updatedAt: tenant.updatedAt });
+    }
+
+    private loadDetail(tenantId: number): void {
+        this.detailLoading.set(true); this.message.set(null);
+        this.service.detail(tenantId).subscribe({ next: detail => { this.detail.set(detail); this.detailLoading.set(false); },
+            error: error => { this.detailLoading.set(false); this.recordFailure(error, 'Tenant detail could not be loaded.'); } });
     }
 
     private recordFailure(error: unknown, fallback: string): void {

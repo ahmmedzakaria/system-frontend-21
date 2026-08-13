@@ -434,6 +434,8 @@ Verification on 2026-08-14:
 
 ## 12. Phase 7 — Tenant administration completion
 
+**Status:** Implemented (2026-08-14)
+
 ### Backend additions
 
 - scoped tenant detail;
@@ -457,6 +459,24 @@ Verification on 2026-08-14:
 - Invalid lifecycle transitions cannot be invoked from UI or API.
 - Domain ownership and primary-domain invariants are tested.
 - Lifecycle reasons and actor identity appear in audit history.
+
+### Current implementation
+
+- `TenantAdministrationController` and `TenantAdministrationService` now expose a tenant-scoped detail contract, domain mutation contracts, assignment counts, and the latest platform-administration audit events.
+- Domain mutation resolves the domain through both domain ID and tenant ID. A primary domain must be active and verified, cannot be deactivated, and setting a new primary clears the previous primary atomically.
+- Lifecycle mutations require the caller's current tenant version and reject stale writes before applying the existing transition rules. Successful registrations, domain changes, verification, and lifecycle changes are recorded with actor, reason, action, tenant target, and outcome.
+- Sensitive domain and lifecycle endpoints use the existing token-freshness step-up guard. The frontend adds an explicit confirmation header only after the user confirms the operation; the backend remains authoritative.
+- The detail page is available at `/access-control/tenants/:id`. It contains identity and lifecycle state, domain management, client/user/layout/license/branding assignment counts, lifecycle controls, and audit history.
+- Lifecycle and domain controls are hidden when the current state makes the operation invalid. All mutations use the shared pending/error state so duplicate submission is prevented and backend errors remain visible.
+- `V56__complete_tenant_administration_contract.sql` registers the detail route policy, associates it with `TENANT_VIEW`, grants the tenant-management APIs when present in the registry, and adds the audit-history lookup index. Runtime API synchronization remains responsible for registering concrete controller endpoints.
+
+### Verification completed
+
+- Backend test compilation completed successfully.
+- `TenantAdministrationServiceTest` and `StepUpAuthenticationServiceTest`: 4 tests passed.
+- System frontend Vitest suite: 13 tests passed.
+- System frontend production build completed successfully; the existing initial-bundle budget warning remains.
+- V56 executed successfully against the local `system_db` in a rollback-only transaction.
 
 ## 13. Phase 8 — License administration completion
 
