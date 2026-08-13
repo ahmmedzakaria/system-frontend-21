@@ -288,6 +288,21 @@ Validate duplicates and parent-child relationships server-side.
 
 ## 9. Phase 4 — Reactive authorization and consistent page state
 
+Status: **Implemented (2026-08-14)**.
+
+Current implementation:
+
+- The shared `DynamicListComponent` now owns an explicit `ResourceLoadState` and renders loading, empty, denied, and failed outcomes consistently. Denials retain their stable backend code and `X-Trace-Id`; failed reads expose an explicit retry that replays only the read.
+- `PageOperationService` normalizes authorization and non-authorization API failures for page-level editors, replacements, lifecycle actions, and downloads without retrying rejected mutations.
+- `MutationState` now retains stable error code and trace metadata in addition to its pending/succeeded/failed/revoked lifecycle. Its `begin()` guard prevents duplicate submissions.
+- User Administration conditionally loads only with its effective view privilege, uses structured initial-read/editor/replacement failures, and closes editors or assignment dialogs when live authorization is revoked.
+- Tenant Administration uses computed live action decisions and computed action columns. Registration and lifecycle editors close on revocation, and registration, verification, and lifecycle mutations are guarded by one pending state.
+- Backup Administration uses computed execute/download decisions and action columns. Backup execution and binary download have independent pending guards and preserve API code and trace information on failure.
+- API Registry synchronization and editing are guarded mutations; its editor closes when manage authorization is revoked and errors remain supportable.
+- Client Applications, API Registry, Privilege Catalog, Tenants, Layout Profiles/Policies, Navigation Tree, License Administration, and Backup Administration inherit the shared list-state behavior. Dashboard currently has no remote initial read to classify.
+- License and Layout supporting client-application lookups execute only when the effective context includes Client Application view access.
+- Shared component tests cover denial rendering with a stable code and trace. System frontend tests cover all stable authorization denial classes plus structured non-denial replacement conflicts.
+
 Apply the Phase 1 primitives across all pages:
 
 - Client Applications

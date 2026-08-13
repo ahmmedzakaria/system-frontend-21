@@ -3,19 +3,21 @@ import { of } from 'rxjs';
 import { ApplicationContextService, AuthorizationPolicyService, AuthorizationRevocationService } from '@nexacore/platform';
 import { AssignmentChecklistComponent, AssignmentLoadStateComponent, ButtonComponent, DynamicListLoader,
     DynamicModalComponent, DynamicTabComponent, DynamicTabConfig, ListColumnConfig, ModalComponent,
-    ReplacementSelectionState, ReplacementSummaryComponent, HierarchicalScopeSelectorComponent, HierarchicalScopeValue } from '@nexacore/shared';
+    ReplacementSelectionState, ReplacementSummaryComponent, HierarchicalScopeSelectorComponent, HierarchicalScopeValue,
+    AccessFeedbackComponent, ResourceLoadState, MutationState } from '@nexacore/shared';
 import { FormsModule } from '@angular/forms';
 import { UserService } from '../../../core/services/user.service';
 import { RoleService } from '../../../core/services/role.service';
 import { AuthorizedScopeService } from '../../../core/services/authorized-scope.service';
 import { ROLE_PRIVILEGES, RoleDto, USER_CREATE_FIELDS, USER_EDIT_FIELDS, UserDto, UserRequestDto,
-    UserScopeAssignmentDto, formatDateTime, rolesLabel, userInitialValue } from './user.model';
+    UserScopeAssignmentDto, USER_PRIVILEGES, formatDateTime, rolesLabel, userInitialValue } from './user.model';
+import { PageOperationService } from '../../../core/authorization/page-operation.service';
 
 @Component({
     selector: 'app-user-list', standalone: true,
     imports: [ButtonComponent, DynamicModalComponent, DynamicTabComponent, ModalComponent,
         AssignmentChecklistComponent, AssignmentLoadStateComponent, ReplacementSummaryComponent,
-        HierarchicalScopeSelectorComponent, FormsModule],
+        HierarchicalScopeSelectorComponent, FormsModule, AccessFeedbackComponent],
     templateUrl: './user-list.component.html', styleUrl: './user-list.component.scss'
 })
 export class UserListComponent {
@@ -26,14 +28,18 @@ export class UserListComponent {
     private readonly policy = inject(AuthorizationPolicyService);
     private readonly revocation = inject(AuthorizationRevocationService);
     private readonly destroyRef = inject(DestroyRef);
+    private readonly operations = inject(PageOperationService);
     private readonly tabs = viewChild<DynamicTabComponent>('tabs');
 
     protected readonly canManage = this.policy.actionAllowed('users.manage');
     protected readonly canAssign = this.policy.actionAllowed('users.assign');
+    protected readonly canView = this.policy.privilegeAllowed(USER_PRIVILEGES.view);
     protected readonly canViewRoles = this.policy.privilegeAllowed(ROLE_PRIVILEGES.view);
     protected readonly users = signal<UserDto[]>([]);
     protected readonly roles = signal<RoleDto[]>([]);
     protected readonly error = signal<string | null>(null);
+    protected readonly listState = new ResourceLoadState<readonly UserDto[]>();
+    protected readonly editorMutation = new MutationState();
 
     protected readonly editorOpen = signal(false);
     protected readonly editingId = signal<number | null>(null);
@@ -88,22 +94,28 @@ export class UserListComponent {
         columns: this.columns() as ListColumnConfig<unknown>[], loadItems: this.loader as DynamicListLoader<unknown> }]);
 
     constructor() {
-        this.reload();
+        if (this.canView()) this.reload(); else this.listState.deny('User viewing is not allowed by the effective authorization context.');
         const registration = this.revocation.watch(this.canManage, () => this.editorOpen.set(false));
         const assignmentRegistration = this.revocation.watch(this.canAssign, () => { this.closeRoles(); this.closeScopes(); });
         this.destroyRef.onDestroy(() => { registration.destroy(); assignmentRegistration.destroy(); });
     }
 
-    private reload(): void { this.usersApi.list().subscribe({ next: rows => { this.users.set(rows); this.tabs()?.reloadTab('users'); }, error: () => this.error.set('Users could not be loaded.') }); }
+    protected reload(): void { if (!this.canView()) return; this.listState.begin(); this.usersApi.list().subscribe({ next: rows => {
+        this.users.set(rows); this.listState.succeed(rows,rows.length===0); this.tabs()?.reloadTab('users'); },
+        error: error => { const failure=this.operations.failure(error,'Users could not be loaded.');
+            failure.denied ? this.listState.deny(this.operations.display(failure),failure.traceId) : this.listState.fail(this.operations.display(failure),failure.traceId); } }); }
     protected openEditor(row: UserDto | null): void { if (!this.canManage()) return; this.editingId.set(row?.id ?? null); this.editorValue.set(userInitialValue(row)); this.editorOpen.set(true); }
     protected closeEditor(): void { this.editorOpen.set(false); }
     protected saveEditor(value: Record<string, unknown>): void {
+        if (!this.canManage() || !this.editorMutation.begin()) return;
         const tenantId = this.context.effectiveTenant()?.tenantId;
         if (!tenantId) { this.error.set('Effective tenant is unavailable.'); return; }
         const request: UserRequestDto = { id: this.editingId(), tenantId, username: String(value['username']), password: String(value['password'] || '') || null,
             email: String(value['email'] || '') || null, mobile: String(value['mobile'] || '') || null,
             firstName: String(value['firstName'] || '') || null, lastName: String(value['lastName'] || '') || null, enabled: !!value['enabled'] };
-        this.usersApi.save(request).subscribe({ next: () => { this.closeEditor(); this.reload(); }, error: () => this.error.set('User save was rejected.') });
+        this.usersApi.save(request).subscribe({ next: () => { this.editorMutation.succeed(); this.closeEditor(); this.reload(); },
+            error: error => { const failure=this.operations.failure(error,'User save was rejected.');
+                this.editorMutation.failStructured(failure.message,failure.code,failure.traceId); this.error.set(this.operations.display(failure)); } });
     }
     protected openRoles(user: UserDto): void {
         if (!this.canAssign() || !this.canViewRoles()) return;
@@ -112,8 +124,8 @@ export class UserListComponent {
             this.roles.set(roles.filter(role => role.active));
             this.usersApi.roleAssignments(user.id).subscribe({
                 next: current => this.roleState.loadSucceeded(current.items, current.version),
-                error: () => this.roleState.loadFailed('Current role assignments could not be loaded. Saving is disabled.') });
-        }, error: () => this.roleState.loadFailed('Assignable roles could not be loaded. Saving is disabled.') });
+                error: error => this.replacementLoadFailure(this.roleState,error,'Current role assignments could not be loaded. Saving is disabled.') });
+        }, error: error => this.replacementLoadFailure(this.roleState,error,'Assignable roles could not be loaded. Saving is disabled.') });
     }
     protected toggleRole(change: { item: RoleDto; selected: boolean }): void { this.roleState.toggle(change.item, change.selected); }
     protected closeRoles(): void { this.roleModalOpen.set(false); this.roleState.reset(); }
@@ -122,11 +134,11 @@ export class UserListComponent {
         if (!user || !version || !this.roleState.beginSave()) return;
         this.usersApi.assignRoles(user.id, this.roleState.selected().map(role => role.id), version).subscribe({
             next: () => { this.roleState.saveSucceeded(); this.closeRoles(); this.reload(); },
-            error: () => this.roleState.saveFailed('Role replacement was rejected. Reload before retrying.') });
+            error: error => this.replacementSaveFailure(this.roleState,error,'Role replacement was rejected. Reload before retrying.') });
     }
     protected openScopes(user: UserDto): void { if (!this.canAssign()) return; this.scopeUser.set(user); this.scopeState.beginLoad(); this.scopeModalOpen.set(true);
         this.usersApi.scopeAssignments(user.id).subscribe({ next: result => this.scopeState.loadSucceeded(result.items.filter(scope => scope.active),result.version),
-            error: () => this.scopeState.loadFailed('Current scopes could not be loaded. Saving is disabled.') }); }
+            error: error => this.replacementLoadFailure(this.scopeState,error,'Current scopes could not be loaded. Saving is disabled.') }); }
     protected toggleScope(change: { item: UserScopeAssignmentDto; selected: boolean }): void { this.scopeState.toggle(change.item, change.selected); }
     protected addScope(): void { const value=this.scopeDraft(); if(!value || this.scopeState.selected().some(scope=>scopeKey(scope)===scopeKey(value))) return;
         this.scopeState.setSelection([...this.scopeState.selected(),{...value,active:true}]); this.scopeDraft.set(null); }
@@ -138,7 +150,14 @@ export class UserListComponent {
     protected closeScopes(): void { this.scopeModalOpen.set(false); this.scopeState.reset(); }
     protected saveScopes(): void { const user = this.scopeUser(); const version=this.scopeState.version(); if (!user || !version || !this.scopeState.beginSave()) return;
         this.usersApi.replaceScopeAssignments(user.id, [...this.scopeState.selected()],version).subscribe({ next: () => { this.scopeState.saveSucceeded(); this.closeScopes(); },
-            error: () => this.scopeState.saveFailed('Scope replacement was rejected. Reload before retrying.') }); }
+            error: error => this.replacementSaveFailure(this.scopeState,error,'Scope replacement was rejected. Reload before retrying.') }); }
+
+    private replacementLoadFailure<T,K>(state: ReplacementSelectionState<T,K>,error:unknown,fallback:string):void {
+        const failure=this.operations.failure(error,fallback); state.loadFailed(this.operations.display(failure),failure.code,failure.traceId);
+    }
+    private replacementSaveFailure<T,K>(state: ReplacementSelectionState<T,K>,error:unknown,fallback:string):void {
+        const failure=this.operations.failure(error,fallback); state.saveFailed(this.operations.display(failure),failure.code,failure.traceId);
+    }
 }
 
 function scopeKey(scope: Pick<UserScopeAssignmentDto, 'tenantId' | 'businessId' | 'branchId'>): string {

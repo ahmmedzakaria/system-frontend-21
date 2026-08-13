@@ -1,10 +1,11 @@
 <div class="page-header">
     <h2>API Registry</h2>
     <div class="header-actions">
-        <app-button *appAuthorizedUi="'api-registry.manage'" label="New Entry" icon="plus" variant="ghost" (clicked)="openEditor(null)" />
-        <app-button *appAuthorizedUi="'api-registry.synchronize'" label="Sync from Code" icon="save" [loading]="syncing()" (clicked)="sync()" />
+        <app-button *appAuthorizedUi="'api-registry.manage'" label="New Entry" icon="plus" variant="ghost" [disabled]="mutation.pending()" (clicked)="openEditor(null)" />
+        <app-button *appAuthorizedUi="'api-registry.synchronize'" label="Sync from Code" icon="save" [loading]="syncing()" [disabled]="mutation.pending()" (clicked)="sync()" />
     </div>
 </div>
+@if(error()){ <p class="error-message" role="alert">{{error()}}</p> }
 
 @if (syncReport(); as report) {
     <div class="sync-report">

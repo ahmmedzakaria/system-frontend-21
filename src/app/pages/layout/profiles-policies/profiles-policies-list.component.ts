@@ -12,7 +12,7 @@ import {
 } from '@nexacore/shared';
 import { LayoutService } from '../../../core/services/layout.service';
 import { ClientApplicationService } from '../../../core/services/client-application.service';
-import { AuthorizedUiDirective } from '@nexacore/platform';
+import { AuthorizedUiDirective, AuthorizationPolicyService } from '@nexacore/platform';
 import {
     CLIENT_ASSIGNMENT_FIELDS,
     ClientLayoutAssignmentDto,
@@ -48,6 +48,7 @@ type Tab = 'profiles' | 'uiPolicies' | 'clientAssignment';
 export class ProfilesPoliciesListComponent {
     private readonly service = inject(LayoutService);
     private readonly clientAppService = inject(ClientApplicationService);
+    private readonly policy = inject(AuthorizationPolicyService);
 
     protected readonly activeTab = signal<Tab>('profiles');
 
@@ -148,7 +149,7 @@ export class ProfilesPoliciesListComponent {
     ];
 
     constructor() {
-        this.clientAppService.list().subscribe((clients) => {
+        if (this.policy.hasPrivilege('11020100101')) this.clientAppService.list().subscribe((clients) => {
             this.clientOptions.set(clients.map((client) => ({ label: `${client.clientName} (${client.clientCode})`, value: client.clientCode })));
         });
     }

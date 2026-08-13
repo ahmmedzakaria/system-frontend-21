@@ -3,8 +3,8 @@
         <h2>Tenant Administration</h2>
         <p>Platform control-plane registration, domain verification, and lifecycle management.</p>
     </div>
-    @if (canRegister) {
-        <app-button label="Register Tenant" icon="plus" variant="primary" (clicked)="registrationOpen.set(true)" />
+    @if (canRegister()) {
+        <app-button label="Register Tenant" icon="plus" variant="primary" [disabled]="mutation.pending()" (clicked)="registrationOpen.set(true)" />
     }
 </div>
 
@@ -14,7 +14,7 @@
 
 @if (message()) { <div class="message">{{ message() }}</div> }
 
-<app-dynamic-list #tenantList [columns]="columns" [loadItems]="loadTenants" [pageSize]="20"
+<app-dynamic-list #tenantList [columns]="columns()" [loadItems]="loadTenants" [pageSize]="20"
                   searchPlaceholder="Search tenant code, name, or domain…"
                   emptyTitle="No tenants found" emptyMessage="Register the first tenant to begin onboarding." />
 

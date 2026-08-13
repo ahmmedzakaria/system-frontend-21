@@ -1,4 +1,4 @@
-import { Component, inject, signal, viewChild } from '@angular/core';
+import { Component, DestroyRef, inject, signal, viewChild } from '@angular/core';
 import { map } from 'rxjs/operators';
 import {
     ButtonComponent,
@@ -6,12 +6,13 @@ import {
     DynamicModalComponent,
     DynamicTabComponent,
     DynamicTabConfig,
-    ListColumnConfig
+    ListColumnConfig, MutationState
 } from '@nexacore/shared';
 import { ApiRegistryService } from '../../../core/services/api-registry.service';
 import { ApiInventoryItemDto, ApiRegistryDto, ApiRegistryRequestDto, ApiRegistrySyncReportDto } from '../access-control.model';
 import { API_REGISTRY_FIELDS, apiRegistryInitialValue } from './api-registry.model';
-import { AuthorizedUiDirective } from '@nexacore/platform';
+import { AuthorizedUiDirective, AuthorizationPolicyService, AuthorizationRevocationService } from '@nexacore/platform';
+import { PageOperationService } from '../../../core/authorization/page-operation.service';
 
 @Component({
     selector: 'app-api-registry-list',
@@ -22,6 +23,14 @@ import { AuthorizedUiDirective } from '@nexacore/platform';
 })
 export class ApiRegistryListComponent {
     private readonly service = inject(ApiRegistryService);
+    private readonly policy=inject(AuthorizationPolicyService);
+    private readonly revocation=inject(AuthorizationRevocationService);
+    private readonly destroyRef=inject(DestroyRef);
+    private readonly operations=inject(PageOperationService);
+    protected readonly canManage=this.policy.actionAllowed('api-registry.manage');
+    protected readonly canSync=this.policy.actionAllowed('api-registry.synchronize');
+    protected readonly mutation=new MutationState();
+    protected readonly error=signal<string|null>(null);
 
     protected readonly syncing = signal(false);
     protected readonly syncReport = signal<ApiRegistrySyncReportDto | null>(null);
@@ -32,6 +41,11 @@ export class ApiRegistryListComponent {
     private editingId: number | null = null;
 
     private readonly tabsRef = viewChild<DynamicTabComponent>('tabsRef');
+
+    constructor() {
+        const editor=this.revocation.watch(this.canManage,()=>this.closeEditor());
+        this.destroyRef.onDestroy(()=>editor.destroy());
+    }
 
     protected readonly loadRegistered: DynamicListLoader<ApiRegistryDto> = (params) =>
         this.service.list().pipe(
@@ -107,18 +121,21 @@ export class ApiRegistryListComponent {
     ];
 
     protected sync(): void {
+        if(!this.canSync() || !this.mutation.begin()) return;
         this.syncing.set(true);
         this.service.sync().subscribe({
             next: (report) => {
                 this.syncing.set(false);
+                this.mutation.succeed();
                 this.syncReport.set(report);
                 this.tabsRef()?.reloadTab('registered');
             },
-            error: () => this.syncing.set(false)
+            error: error => { this.syncing.set(false); this.fail(error,'API registry synchronization failed.'); }
         });
     }
 
     protected openEditor(row: ApiRegistryDto | null): void {
+        if(!this.canManage()) return;
         this.editingId = row?.id ?? null;
         this.editorInitialValue.set(apiRegistryInitialValue(row));
         this.editorOpen.set(true);
@@ -129,6 +146,7 @@ export class ApiRegistryListComponent {
     }
 
     protected saveEditor(value: Record<string, unknown>): void {
+        if(!this.canManage() || !this.mutation.begin()) return;
         const request: ApiRegistryRequestDto = {
             id: this.editingId,
             apiCode: value['apiCode'] as string,
@@ -147,9 +165,13 @@ export class ApiRegistryListComponent {
             publicApi: !!value['publicApi'],
             active: !!value['active']
         };
-        this.service.save(request).subscribe(() => {
+        this.service.save(request).subscribe({next:() => {
+            this.mutation.succeed();
             this.editorOpen.set(false);
             this.tabsRef()?.reloadTab('registered');
-        });
+        },error:error=>this.fail(error,'API registry save was rejected.')});
     }
+
+    private fail(error:unknown,fallback:string):void { const failure=this.operations.failure(error,fallback);
+        this.mutation.failStructured(failure.message,failure.code,failure.traceId); this.error.set(this.operations.display(failure)); }
 }

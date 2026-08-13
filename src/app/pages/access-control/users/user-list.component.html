@@ -1,6 +1,10 @@
 <div class="page-header"><h2>User Administration</h2>@if (canManage()) { <app-button label="New User" icon="plus" variant="ghost" (clicked)="openEditor(null)" /> }</div>
 @if (error()) { <p class="error-message" role="alert">{{ error() }}</p> }
+@if (listState.status() === 'denied') { <app-access-feedback kind="access-denied" [message]="listState.error() ?? ''" [traceId]="listState.traceId() ?? undefined" /> }
+@else if (listState.status() === 'failed') { <app-access-feedback kind="configuration-error" [message]="listState.error() ?? ''" [traceId]="listState.traceId() ?? undefined" [retryable]="true" (retry)="reload()" /> }
+@else {
 <app-dynamic-tab #tabs [tabs]="tabConfig()" />
+}
 <app-dynamic-modal [open]="editorOpen()" title="User" [width]="640" [fields]="editorFields()" [initialValue]="editorValue()"
     [columns]="2" (closed)="closeEditor()" (submitted)="saveEditor($event)" />
 <app-modal [open]="roleModalOpen()" title="Replace User Roles" [width]="640" (closed)="closeRoles()">

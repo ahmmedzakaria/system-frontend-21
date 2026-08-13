@@ -1,21 +1,27 @@
-import { Component, inject, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { map } from 'rxjs/operators';
-import { AuthorizedUiDirective } from '@nexacore/platform';
-import { ButtonComponent, DynamicListComponent, DynamicListLoader, ListColumnConfig } from '@nexacore/shared';
+import { AuthorizationPolicyService } from '@nexacore/platform';
+import { ButtonComponent, DynamicListComponent, DynamicListLoader, ListColumnConfig, MutationState } from '@nexacore/shared';
 import { BackupService } from '../../core/services/backup.service';
 import { BackupJobDto, BackupStatus, formatBytes, formatDateTime } from './backup.model';
+import { PageOperationService } from '../../core/authorization/page-operation.service';
 
 @Component({
     selector: 'app-backup-list',
     standalone: true,
-    imports: [ButtonComponent, DynamicListComponent, AuthorizedUiDirective],
+    imports: [ButtonComponent, DynamicListComponent],
     templateUrl: './backup-list.component.html',
     styleUrl: './backup-list.component.scss'
 })
 export class BackupListComponent {
     private readonly service = inject(BackupService);
     private readonly listRef = viewChild<DynamicListComponent<BackupJobDto>>('backupList');
-    protected readonly running = signal(false);
+    private readonly policy=inject(AuthorizationPolicyService);
+    private readonly operations=inject(PageOperationService);
+    protected readonly canExecute=this.policy.actionAllowed('backup.execute');
+    protected readonly canDownload=this.policy.actionAllowed('backup.download');
+    protected readonly runState=new MutationState();
+    protected readonly downloadState=new MutationState();
     protected readonly message = signal<string | null>(null);
 
     protected readonly loadBackups: DynamicListLoader<BackupJobDto> = params =>
@@ -23,7 +29,7 @@ export class BackupListComponent {
             map(result => ({ items: result.items, total: result.total }))
         );
 
-    protected readonly columns: ListColumnConfig<BackupJobDto>[] = [
+    protected readonly columns=computed<ListColumnConfig<BackupJobDto>[]>(() => [
         { key: 'id', header: 'Backup ID', format: row => row.id.slice(0, 8) },
         { key: 'trigger', header: 'Trigger' },
         { key: 'status', header: 'Status', type: 'badge', label: row => row.status, status: row => this.statusTone(row.status) },
@@ -31,27 +37,29 @@ export class BackupListComponent {
         { key: 'requestedAt', header: 'Requested', format: row => formatDateTime(row.requestedAt) },
         { key: 'completedAt', header: 'Completed', format: row => formatDateTime(row.completedAt) },
         { key: 'artifactSizeBytes', header: 'Encrypted Size', align: 'end', format: row => formatBytes(row.artifactSizeBytes) },
-        {
+        ...(this.canDownload() ? [{
             key: 'actions', header: '', align: 'end', type: 'actions',
-            actions: [{ icon: 'download', label: 'Download encrypted backup', permissionKey: 'backup.download', onClick: row => this.download(row) }]
-        }
-    ];
+            actions: [{ icon: 'download', label: 'Download encrypted backup', onClick: (row: BackupJobDto) => this.download(row) }]
+        } as ListColumnConfig<BackupJobDto>] : [])
+    ]);
 
     protected runBackup(): void {
-        this.running.set(true);
+        if (!this.canExecute() || !this.runState.begin()) return;
         this.message.set(null);
         this.service.run().subscribe({
             next: job => {
-                this.running.set(false);
+                this.runState.succeed();
                 this.message.set(`Backup ${job.id.slice(0, 8)} was queued.`);
                 this.listRef()?.reload();
             },
-            error: (error: Error) => { this.running.set(false); this.message.set(error.message); }
+            error: error => this.recordFailure(this.runState,error,'The backup could not be queued.')
         });
     }
 
     private download(row: BackupJobDto): void {
+        if (!this.canDownload() || !this.downloadState.begin()) return;
         if (row.status !== 'COMPLETED' && row.status !== 'PARTIAL') {
+            this.downloadState.fail('This backup does not have a downloadable encrypted artifact.');
             this.message.set('This backup does not have a downloadable encrypted artifact.');
             return;
         }
@@ -63,9 +71,16 @@ export class BackupListComponent {
                 anchor.download = filename;
                 anchor.click();
                 URL.revokeObjectURL(url);
+                this.downloadState.succeed();
             },
-            error: (error: Error) => this.message.set(error.message)
+            error: error => this.recordFailure(this.downloadState,error,'The encrypted backup could not be downloaded.')
         });
+    }
+
+    private recordFailure(state: MutationState,error:unknown,fallback:string):void {
+        const failure=this.operations.failure(error,fallback);
+        state.failStructured(failure.message,failure.code,failure.traceId);
+        this.message.set(this.operations.display(failure));
     }
 
     private statusTone(status: BackupStatus): 'verified' | 'pending' | 'draft' | 'rejected' {

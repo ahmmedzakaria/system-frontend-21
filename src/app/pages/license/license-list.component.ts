@@ -16,7 +16,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { LicenseService } from '../../core/services/license.service';
 import { ClientApplicationService } from '../../core/services/client-application.service';
-import { AuthorizedUiDirective } from '@nexacore/platform';
+import { AuthorizedUiDirective, AuthorizationPolicyService } from '@nexacore/platform';
 import { AuthorizedScopeService } from '../../core/services/authorized-scope.service';
 import {
     ENTITLEMENT_FIELDS,
@@ -57,6 +57,8 @@ export class LicenseListComponent {
     private readonly service = inject(LicenseService);
     private readonly clientAppService = inject(ClientApplicationService);
     private readonly authorizedScopes=inject(AuthorizedScopeService);
+    private readonly policy=inject(AuthorizationPolicyService);
+    protected readonly canViewClients=this.policy.privilegeAllowed('11020100101');
 
     private readonly tabsRef = viewChild<DynamicTabComponent>('tabsRef');
     protected readonly activeTabIndex = signal(0);
@@ -76,7 +78,7 @@ export class LicenseListComponent {
     constructor() {
         this.reloadPlans();
         this.reloadSubscriptions();
-        this.clientAppService.list().subscribe((clients) => {
+        if (this.canViewClients()) this.clientAppService.list().subscribe((clients) => {
             this.clientOptions.set(clients.map((client) => ({ label: `${client.clientName} (${client.clientCode})`, value: client.id })));
         });
     }

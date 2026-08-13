@@ -1,8 +1,8 @@
-import { Component, inject, signal, viewChild } from '@angular/core';
-import { AuthorizationPolicyService } from '@nexacore/platform';
+import { Component, DestroyRef, computed, inject, signal, viewChild } from '@angular/core';
+import { AuthorizationPolicyService, AuthorizationRevocationService } from '@nexacore/platform';
 import {
     ButtonComponent, ConfirmDialogComponent, DynamicListComponent, DynamicListLoader,
-    DynamicModalComponent, ListColumnConfig
+    DynamicModalComponent, ListColumnConfig, MutationState
 } from '@nexacore/shared';
 import { map } from 'rxjs/operators';
 import { TenantAdministrationService } from '../../core/services/tenant-administration.service';
@@ -10,6 +10,7 @@ import {
     TENANT_REGISTRATION_FIELDS, TenantDomainType, TenantDto,
     TenantRegistrationRequest, TenantStatus
 } from './tenant.model';
+import { PageOperationService } from '../../core/authorization/page-operation.service';
 
 type LifecycleAction = 'activate' | 'suspend' | 'reactivate' | 'cancel';
 
@@ -23,11 +24,14 @@ type LifecycleAction = 'activate' | 'suspend' | 'reactivate' | 'cancel';
 export class TenantAdministrationComponent {
     private readonly service = inject(TenantAdministrationService);
     private readonly policy = inject(AuthorizationPolicyService);
+    private readonly revocation = inject(AuthorizationRevocationService);
+    private readonly operations = inject(PageOperationService);
+    private readonly destroyRef = inject(DestroyRef);
     private readonly listRef = viewChild<DynamicListComponent<TenantDto>>('tenantList');
 
-    protected readonly canRegister = this.policy.isActionAllowed('tenants.register');
-    protected readonly canVerify = this.policy.isActionAllowed('tenants.verify-domain');
-    protected readonly canManage = this.policy.isActionAllowed('tenants.manage-lifecycle');
+    protected readonly canRegister = this.policy.actionAllowed('tenants.register');
+    protected readonly canVerify = this.policy.actionAllowed('tenants.verify-domain');
+    protected readonly canManage = this.policy.actionAllowed('tenants.manage-lifecycle');
     protected readonly registrationFields = TENANT_REGISTRATION_FIELDS;
     protected readonly registrationOpen = signal(false);
     protected readonly registrationInitial = { domainType: 'CUSTOM', defaultLocale: 'en', defaultTimeZone: 'Asia/Dhaka' };
@@ -35,6 +39,7 @@ export class TenantAdministrationComponent {
     protected readonly pendingTenant = signal<TenantDto | null>(null);
     protected readonly reason = signal('');
     protected readonly actionLoading = signal(false);
+    protected readonly mutation = new MutationState();
     protected readonly message = signal<string | null>(null);
 
     protected readonly loadTenants: DynamicListLoader<TenantDto> = (params) => this.service.list().pipe(map(rows => {
@@ -44,15 +49,15 @@ export class TenantAdministrationComponent {
         return { items: filtered.slice(start, start + params.pageSize), total: filtered.length };
     }));
 
-    protected readonly columns: ListColumnConfig<TenantDto>[] = [
+    protected readonly columns = computed<ListColumnConfig<TenantDto>[]>(() => [
         { key: 'tenantCode', header: 'Tenant Code' },
         { key: 'displayName', header: 'Name' },
         { key: 'hostname', header: 'Primary Domain', format: row => row.hostname ?? '—' },
         { key: 'status', header: 'Status', type: 'badge', label: row => row.status, status: row => this.statusTone(row.status) },
         {
             key: 'actions', header: '', align: 'end', type: 'actions', actions: [
-                ...(this.canVerify ? [{ icon: 'check', label: 'Verify domain', onClick: (row: TenantDto) => this.verify(row) }] : []),
-                ...(this.canManage ? [
+                ...(this.canVerify() ? [{ icon: 'check', label: 'Verify domain', onClick: (row: TenantDto) => this.verify(row) }] : []),
+                ...(this.canManage() ? [
                     { icon: 'play', label: 'Activate', onClick: (row: TenantDto) => { if (row.status === 'PENDING') this.openAction('activate', row); } },
                     { icon: 'pause', label: 'Suspend', onClick: (row: TenantDto) => { if (row.status === 'ACTIVE') this.openAction('suspend', row); } },
                     { icon: 'rotate-right', label: 'Reactivate', onClick: (row: TenantDto) => { if (row.status === 'SUSPENDED') this.openAction('reactivate', row); } },
@@ -60,9 +65,16 @@ export class TenantAdministrationComponent {
                 ] : [])
             ]
         }
-    ];
+    ]);
+
+    constructor() {
+        const registration = this.revocation.watch(this.canRegister, () => this.registrationOpen.set(false));
+        const lifecycle = this.revocation.watch(this.canManage, () => this.closeAction());
+        this.destroyRef.onDestroy(() => { registration.destroy(); lifecycle.destroy(); });
+    }
 
     protected saveRegistration(value: Record<string, unknown>): void {
+        if (!this.canRegister() || !this.mutation.begin()) return;
         const request: TenantRegistrationRequest = {
             tenantCode: value['tenantCode'] as string,
             displayName: value['displayName'] as string,
@@ -74,12 +86,14 @@ export class TenantAdministrationComponent {
             defaultLocale: (value['defaultLocale'] as string) || null,
             defaultTimeZone: (value['defaultTimeZone'] as string) || null
         };
-        this.service.register(request).subscribe(() => { this.registrationOpen.set(false); this.reload(); });
+        this.service.register(request).subscribe({ next: () => { this.mutation.succeed(); this.registrationOpen.set(false); this.reload(); },
+            error: error => this.recordFailure(error, 'Tenant registration was rejected.') });
     }
 
     protected verify(row: TenantDto): void {
-        if (row.primaryDomainId == null) return;
-        this.service.verifyDomain(row.primaryDomainId).subscribe({ next: () => this.reload(), error: error => this.message.set(error.message) });
+        if (row.primaryDomainId == null || !this.canVerify() || !this.mutation.begin()) return;
+        this.service.verifyDomain(row.primaryDomainId).subscribe({ next: () => { this.mutation.succeed(); this.reload(); },
+            error: error => this.recordFailure(error, 'Domain verification was rejected.') });
     }
 
     protected openAction(action: LifecycleAction, tenant: TenantDto): void {
@@ -93,12 +107,18 @@ export class TenantAdministrationComponent {
 
     protected confirmAction(): void {
         const action = this.pendingAction(); const tenant = this.pendingTenant();
-        if (!action || !tenant || (this.requiresReason() && !this.reason().trim())) return;
+        if (!action || !tenant || !this.canManage() || (this.requiresReason() && !this.reason().trim()) || !this.mutation.begin()) return;
         this.actionLoading.set(true);
         this.service.transition(action, tenant.id, this.reason().trim() || null).subscribe({
-            next: () => { this.actionLoading.set(false); this.closeAction(); this.reload(); },
-            error: error => { this.actionLoading.set(false); this.message.set(error.message); }
+            next: () => { this.mutation.succeed(); this.actionLoading.set(false); this.closeAction(); this.reload(); },
+            error: error => { this.actionLoading.set(false); this.recordFailure(error, 'Tenant lifecycle change was rejected.'); }
         });
+    }
+
+    private recordFailure(error: unknown, fallback: string): void {
+        const failure=this.operations.failure(error,fallback);
+        this.mutation.failStructured(failure.message,failure.code,failure.traceId);
+        this.message.set(this.operations.display(failure));
     }
 
     private reload(): void { this.listRef()?.reload(); }
