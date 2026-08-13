@@ -4,6 +4,22 @@
 export type ClientApplicationType = 'WEB' | 'MOBILE' | 'POS' | 'ERP' | 'PARTNER_PORTAL' | 'INTERNAL_SERVICE';
 export type ClientApplicationStatus = 'ACTIVE' | 'DISABLED' | 'SUSPENDED' | 'EXPIRED';
 
+export const CLIENT_TYPE_OPTIONS: { label: string; value: ClientApplicationType }[] = [
+    { label: 'Web', value: 'WEB' },
+    { label: 'Mobile', value: 'MOBILE' },
+    { label: 'POS', value: 'POS' },
+    { label: 'ERP', value: 'ERP' },
+    { label: 'Partner Portal', value: 'PARTNER_PORTAL' },
+    { label: 'Internal Service', value: 'INTERNAL_SERVICE' }
+];
+
+export const CLIENT_STATUS_OPTIONS: { label: string; value: ClientApplicationStatus }[] = [
+    { label: 'Active', value: 'ACTIVE' },
+    { label: 'Disabled', value: 'DISABLED' },
+    { label: 'Suspended', value: 'SUSPENDED' },
+    { label: 'Expired', value: 'EXPIRED' }
+];
+
 export interface ClientApplicationDto {
     id: number;
     clientCode: string;

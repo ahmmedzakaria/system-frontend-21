@@ -2,23 +2,13 @@ import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DynamicWizardComponent, DynamicWizardStepConfig } from '@nexacore/shared';
 import { ClientApplicationService } from '../../../core/services/client-application.service';
-import { ClientApplicationRequestDto, ClientApplicationStatus, ClientApplicationType } from '../access-control.model';
-
-const CLIENT_TYPE_OPTIONS: { label: string; value: ClientApplicationType }[] = [
-    { label: 'Web', value: 'WEB' },
-    { label: 'Mobile', value: 'MOBILE' },
-    { label: 'POS', value: 'POS' },
-    { label: 'ERP', value: 'ERP' },
-    { label: 'Partner Portal', value: 'PARTNER_PORTAL' },
-    { label: 'Internal Service', value: 'INTERNAL_SERVICE' }
-];
-
-const STATUS_OPTIONS: { label: string; value: ClientApplicationStatus }[] = [
-    { label: 'Active', value: 'ACTIVE' },
-    { label: 'Disabled', value: 'DISABLED' },
-    { label: 'Suspended', value: 'SUSPENDED' },
-    { label: 'Expired', value: 'EXPIRED' }
-];
+import {
+    CLIENT_STATUS_OPTIONS,
+    CLIENT_TYPE_OPTIONS,
+    ClientApplicationRequestDto,
+    ClientApplicationStatus,
+    ClientApplicationType
+} from '../access-control.model';
 
 @Component({
     selector: 'app-client-application-editor',
@@ -93,7 +83,7 @@ export class ClientApplicationEditorComponent {
                     { type: 'text', key: 'clientCode', label: 'Client Code', required: true, placeholder: 'e.g. SYSTEM_ADMIN_WEB' },
                     { type: 'text', key: 'clientName', label: 'Client Name', required: true },
                     { type: 'dropdown', key: 'clientType', label: 'Client Type', options: CLIENT_TYPE_OPTIONS, required: true },
-                    { type: 'dropdown', key: 'status', label: 'Status', options: STATUS_OPTIONS, required: true },
+                    { type: 'dropdown', key: 'status', label: 'Status', options: CLIENT_STATUS_OPTIONS, required: true },
                     { type: 'textarea', key: 'description', label: 'Description', rows: 3 }
                 ]
             },
