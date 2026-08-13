@@ -1,0 +1,21 @@
+<div class="page-header"><h2>Role Administration</h2><div class="header-actions">
+    @if (canManage()) { <app-button label="New Tenant Role" icon="plus" variant="ghost" (clicked)="openEditor(null)" /> }
+    @if (canManage() && isSystemAdmin) { <app-button label="New Global Template" icon="plus" variant="ghost" (clicked)="openEditor(null, true)" /> }
+</div></div>
+@if (error()) { <p class="error-message" role="alert">{{ error() }}</p> }
+<app-dynamic-tab #tabs [tabs]="tabConfig()" />
+<app-dynamic-modal [open]="editorOpen()" title="Role" [width]="480" [fields]="roleFields" [initialValue]="editorValue()"
+    (closed)="editorOpen.set(false)" (submitted)="saveEditor($event)" />
+<app-modal [open]="assignmentOpen()" title="Replace Role Privileges" [width]="720" (closed)="closePrivileges()">
+    @if (assigningRole(); as role) {
+        <p>Changes replace the complete privilege set for {{ role.name }}.</p>
+        <app-assignment-load-state [status]="privilegeState.status()" [error]="privilegeState.error()" (retry)="openPrivileges(role)" />
+        @if (privilegeState.status() === 'loaded') {
+            <app-assignment-checklist [items]="privileges()" [selectedKeys]="selectedCodes()" [keyOf]="privilegeKey"
+                [labelOf]="privilegeLabel" [detailOf]="privilegeDetail" [groupOf]="privilegeGroup" (selectionChanged)="togglePrivilege($event)" />
+            <app-replacement-summary [summary]="summary()" [version]="privilegeState.version()" [labelOf]="codeLabel" />
+        }
+    }
+    <div class="modal-actions"><app-button label="Cancel" variant="ghost" (clicked)="closePrivileges()" />
+        <app-button label="Confirm Replacement" icon="save" [disabled]="!privilegeState.canSave()" [loading]="privilegeState.status() === 'saving'" (clicked)="savePrivileges()" /></div>
+</app-modal>

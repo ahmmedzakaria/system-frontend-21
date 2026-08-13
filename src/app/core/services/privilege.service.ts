@@ -25,8 +25,8 @@ export class PrivilegeService {
     }
 
     /** Full-replace: the given privilege codes become the role's entire privilege set. */
-    assignToRole(roleId: number, privilegeCodes: string[]): Observable<void> {
-        return this.api.post<void>(ApiEndpoints.PRIVILEGE_ASSIGN_ROLE, { roleId, privilegeCodes });
+    assignToRole(roleId: number, privilegeCodes: string[], version: string): Observable<void> {
+        return this.api.post<void>(ApiEndpoints.PRIVILEGE_ASSIGN_ROLE, { roleId, privilegeCodes, version });
     }
 
     roleCodes(roleId: number): Observable<string[]> {

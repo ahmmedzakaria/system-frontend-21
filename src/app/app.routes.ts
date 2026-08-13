@@ -59,6 +59,14 @@ export const routes: Routes = [
                     import('./pages/access-control/users/user-list.component').then(m => m.UserListComponent),
             },
             {
+                path: 'access-control/roles',
+                loadComponent: () => import('./pages/access-control/roles/role-administration.component').then(m => m.RoleAdministrationComponent),
+            },
+            {
+                path: 'access-control/roles/:id/privileges',
+                loadComponent: () => import('./pages/access-control/roles/role-administration.component').then(m => m.RoleAdministrationComponent),
+            },
+            {
                 path: 'layout/profiles',
                 loadComponent: () =>
                     import('./pages/layout/profiles-policies/profiles-policies-list.component').then(m => m.ProfilesPoliciesListComponent),

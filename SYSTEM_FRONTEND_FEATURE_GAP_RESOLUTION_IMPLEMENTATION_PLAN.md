@@ -164,6 +164,10 @@ Add or extend:
 
 ## 7. Phase 2 — Split User and Role Administration
 
+**Status: Implemented on 2026-08-14.** User and Role Administration now have independent routes, components, live policies, and navigation. Direct user/role and assignment reads are tenant-scoped; user-role and role-privilege replacements carry deterministic version tokens and reject stale writes. Replacement editors use shared fail-closed state/change summaries, load supporting catalogs only after their exact privileges are effective, and close when authorization is revoked. V50 seeds Role routes/navigation, `roles.manage`, and exact client API grants for the four authoritative reads.
+
+Verification baseline: system frontend 7 tests and production build pass; focused backend metadata, versioning, and scoped-object tests pass. The four PostgreSQL migration tests compile but remain skipped locally because Docker is unavailable, so V50 execution must still run in Docker-enabled CI.
+
 ### Routing and UI ownership
 
 Replace the mixed screen with:

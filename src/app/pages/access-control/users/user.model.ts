@@ -54,7 +54,12 @@ export interface UserRequestDto {
 export interface UserRoleAssignmentRequestDto {
     userId: number;
     roleIds: number[];
+    version: string;
 }
+
+export interface VersionedAssignment<T> { version: string; items: T[]; }
+
+export const ROLE_PRIVILEGES = { view: '11020100801', manage: '11020100887' } as const;
 
 export interface UserScopeAssignmentDto {
     tenantId: number;

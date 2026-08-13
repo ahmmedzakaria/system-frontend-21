@@ -22,7 +22,7 @@ removing an endpoint, route, or action, update this contract in the same change.
 
 Backend `SystemAdminWebApiContractTest` verifies that the frontend's required endpoint
 families still exist with reviewed annotations. `SystemDatabaseMigrationTest` verifies
-the upgraded-database V49 lifecycle grants after seeding annotation-discovered API rows.
+the upgraded-database V49 lifecycle and V50 administration-read grants after seeding annotation-discovered API rows.
 `DataSeeder` reconciles `SYSTEM_ADMIN_WEB` route/UI policies at every startup, so a
 previous migration that inserted no link cannot leave the application permanently
 without its policy. Bootstrap privilege rows are migration-seeded before the navigation
@@ -55,6 +55,7 @@ Every module's sidebar entry is seeded by an idempotent Flyway migration under
 | `V28` | Layout Profiles, Navigation Tree | `ACCESS_CONTROL` | `LAYOUT_ADMINISTRATION_VIEW` (`11040100101`) |
 | `V29` | License Administration | `ACCESS_CONTROL` | `LICENSE_ADMINISTRATION_VIEW` (`11030199901`) |
 | `V32` | Database Backup | `ACCESS_CONTROL` | `DATABASE_BACKUP_VIEW` (`11060100101`) |
+| `V50` | Separate Role Administration | `ACCESS_CONTROL` | `ROLE_ADMINISTRATION_VIEW` (`11020100801`) |
 
 A route added to `app.routes.ts` with no matching migration will fail closed when
 opened directly. Phase 4 removed the administrative `data: { public: true }` bypasses;
@@ -126,11 +127,14 @@ backend `@PrivilegeApi` enforcement remains authoritative.
 
 ### Users & Roles
 
-- Route: `access-control/users` (2 tabs: Users, Roles).
-- Component: `users/user-list.component.ts`. Model: `users/user.model.ts`.
-- Backend endpoints: `user/list`, `user/save`, `user/assign-roles`, `user/scope-assignments`,
-  `user/replace-scope-assignments`, `role/list`,
-  `role/save`. These are new — `AuthUser`/`AuthRole` (`auth_users`/`auth_roles`,
+- Routes: `access-control/users`, `access-control/roles`, and
+  `access-control/roles/:id/privileges`, independently guarded by User and Role view privileges.
+- Components: `users/user-list.component.ts` owns users, role assignment, and user scopes;
+  `roles/role-administration.component.ts` owns global/tenant roles and role privileges.
+- Backend endpoints include authoritative `user/detail`, `user/role-assignments`,
+  `role/detail`, and `role/privilege-assignments` reads in addition to list/save/replacement APIs.
+  Assignment reads return `{version, items}`; role and privilege full replacements require
+  that version and reject stale state before deleting anything. `AuthUser`/`AuthRole` (`auth_users`/`auth_roles`,
   linked via `auth_user_roles`) previously had no REST API at all, only
   `DataSeeder`'s hardcoded `CommandLineRunner`. The new `UserController`/
   `RoleController` live in `authmodule.core.controller` (not `systemmodule`) since

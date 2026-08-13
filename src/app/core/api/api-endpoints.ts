@@ -26,11 +26,15 @@ export const ApiEndpoints = {
 
     // Access Control — Users & Roles
     USER_LIST: { apiPath: 'system/user/list', actionType: ActionTypes.SEARCH },
+    USER_DETAIL: { apiPath: 'system/user/detail', actionType: ActionTypes.SEARCH },
+    USER_ROLE_ASSIGNMENTS: { apiPath: 'system/user/role-assignments', actionType: ActionTypes.SEARCH },
     USER_SAVE: { apiPath: 'system/user/save', actionType: ActionTypes.CREATE },
     USER_ASSIGN_ROLES: { apiPath: 'system/user/assign-roles', actionType: ActionTypes.CREATE },
     USER_SCOPE_ASSIGNMENTS: { apiPath: 'system/user/scope-assignments', actionType: ActionTypes.SEARCH },
     USER_REPLACE_SCOPE_ASSIGNMENTS: { apiPath: 'system/user/replace-scope-assignments', actionType: ActionTypes.UPDATE },
     ROLE_LIST: { apiPath: 'system/role/list', actionType: ActionTypes.SEARCH },
+    ROLE_DETAIL: { apiPath: 'system/role/detail', actionType: ActionTypes.SEARCH },
+    ROLE_PRIVILEGE_ASSIGNMENTS: { apiPath: 'system/role/privilege-assignments', actionType: ActionTypes.SEARCH },
     ROLE_SAVE: { apiPath: 'system/role/save', actionType: ActionTypes.CREATE },
     GLOBAL_ROLE_SAVE: { apiPath: 'system/role/global/save', actionType: ActionTypes.CREATE },
 

@@ -48,12 +48,17 @@ export const SYSTEM_FEATURE_CONTRACTS: readonly SystemFeatureContract[] = [
             endpoint('API_REGISTRY_SAVE', '11020100687'), endpoint('API_REGISTRY_SYNC', '11020100680')]
     },
     {
-        feature: 'users-and-roles', routes: { '/access-control/users': '11020100701' },
-        actions: { 'users.manage': '11020100787', 'users.assign': '11020100781' },
+        feature: 'users-and-roles', routes: {
+            '/access-control/users': '11020100701', '/access-control/roles': '11020100801',
+            '/access-control/roles/:id/privileges': '11020100801'
+        },
+        actions: { 'users.manage': '11020100787', 'users.assign': '11020100781', 'roles.manage': '11020100887' },
         endpoints: [
-            endpoint('USER_LIST', '11020100701'), endpoint('USER_SAVE', '11020100787'), endpoint('USER_ASSIGN_ROLES', '11020100781'),
+            endpoint('USER_LIST', '11020100701'), endpoint('USER_DETAIL', '11020100701'), endpoint('USER_ROLE_ASSIGNMENTS', '11020100701'),
+            endpoint('USER_SAVE', '11020100787'), endpoint('USER_ASSIGN_ROLES', '11020100781'),
             endpoint('USER_SCOPE_ASSIGNMENTS', '11020100701'), endpoint('USER_REPLACE_SCOPE_ASSIGNMENTS', '11020100781'),
-            endpoint('ROLE_LIST', '11020100801'), endpoint('ROLE_SAVE', '11020100887'), endpoint('GLOBAL_ROLE_SAVE', '11020100887')
+            endpoint('ROLE_LIST', '11020100801'), endpoint('ROLE_DETAIL', '11020100801'),
+            endpoint('ROLE_PRIVILEGE_ASSIGNMENTS', '11020100801'), endpoint('ROLE_SAVE', '11020100887'), endpoint('GLOBAL_ROLE_SAVE', '11020100887')
         ]
     },
     {

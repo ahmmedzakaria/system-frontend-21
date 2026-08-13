@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from '@nexacore/platform';
 import { ApiEndpoints } from '../api/api-endpoints';
-import { RoleDto, RoleRequestDto } from '../../pages/access-control/users/user.model';
+import { RoleDto, RoleRequestDto, VersionedAssignment } from '../../pages/access-control/users/user.model';
 
 @Injectable({ providedIn: 'root' })
 export class RoleService {
@@ -10,6 +10,10 @@ export class RoleService {
 
     list(): Observable<RoleDto[]> {
         return this.api.post<RoleDto[]>(ApiEndpoints.ROLE_LIST);
+    }
+    detail(id: number): Observable<RoleDto> { return this.api.post<RoleDto>(ApiEndpoints.ROLE_DETAIL, { id }); }
+    privilegeAssignments(id: number): Observable<VersionedAssignment<string>> {
+        return this.api.post<VersionedAssignment<string>>(ApiEndpoints.ROLE_PRIVILEGE_ASSIGNMENTS, { id });
     }
 
     save(request: RoleRequestDto): Observable<RoleDto> {

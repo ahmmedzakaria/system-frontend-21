@@ -1,109 +1,30 @@
-<div class="page-header">
-    <h2>User Administration</h2>
-    <div class="header-actions">
-        @if (activeTabKey() === 'users' && canManageUsers) {
-            <app-button label="New User" icon="plus" variant="ghost" (clicked)="openUserEditor(null)" />
-        } @else if (activeTabKey() === 'tenant-roles') {
-            <app-button label="New Tenant Role" icon="plus" variant="ghost" (clicked)="openRoleEditor(null)" />
-        } @else if (isPlatformAdmin) {
-            <app-button label="New Global Template" icon="plus" variant="ghost" (clicked)="openRoleEditor(null)" />
-        }
-    </div>
-</div>
-
-@if (userError()) {
-    <p class="error-message" role="alert">{{ userError() }}</p>
-}
-
-<app-dynamic-tab #tabsRef [tabs]="tabs()" (tabChange)="activeTabIndex.set($event)" />
-
-<app-dynamic-modal
-        [open]="userEditorOpen()"
-        title="User"
-        [width]="640"
-        [fields]="userFields()"
-        [initialValue]="userEditorInitialValue()"
-        [columns]="2"
-        (closed)="closeUserEditor()"
-        (submitted)="saveUserEditor($event)"
-/>
-@if (userEditorOpen()) {
-    <p class="scope-note">
-        Usernames are unique inside tenant {{ currentTenantId() }}. Canonical person details are captured only when the account is created; edit them through Person Administration afterward.
-    </p>
-}
-
-<app-dynamic-modal
-        [open]="roleEditorOpen()"
-        title="Role"
-        [width]="480"
-        [fields]="roleFields"
-        [initialValue]="roleEditorInitialValue()"
-        [columns]="1"
-        (closed)="closeRoleEditor()"
-        (submitted)="saveRoleEditor($event)"
-/>
-
-<app-modal [open]="assignRolesOpen()" title="Assign Roles" (closed)="closeAssignRoles()">
+<div class="page-header"><h2>User Administration</h2>@if (canManage()) { <app-button label="New User" icon="plus" variant="ghost" (clicked)="openEditor(null)" /> }</div>
+@if (error()) { <p class="error-message" role="alert">{{ error() }}</p> }
+<app-dynamic-tab #tabs [tabs]="tabConfig()" />
+<app-dynamic-modal [open]="editorOpen()" title="User" [width]="640" [fields]="editorFields()" [initialValue]="editorValue()"
+    [columns]="2" (closed)="closeEditor()" (submitted)="saveEditor($event)" />
+<app-modal [open]="roleModalOpen()" title="Replace User Roles" [width]="640" (closed)="closeRoles()">
     @if (assigningUser(); as user) {
-        <p class="panel-hint">Tenant {{ user.tenantId }} account. Saving replaces {{ user.username }}'s entire role set after confirmation.</p>
-        <h4 class="role-group-title">Global templates</h4>
-        <div class="checklist">
-            @for (role of assignableGlobalRoles(); track role.id) {
-                <label class="checklist-item">
-                    <app-checkbox [ngModel]="isRoleSelected(role.id)" (ngModelChange)="toggleRole(role.id, $event)" />
-                    <span>{{ role.name }} <small>{{ role.roleCode }}</small></span>
-                </label>
-            }
-        </div>
-        <h4 class="role-group-title">Tenant custom roles</h4>
-        <div class="checklist">
-            @for (role of assignableTenantRoles(); track role.id) {
-                <label class="checklist-item">
-                    <app-checkbox [ngModel]="isRoleSelected(role.id)" (ngModelChange)="toggleRole(role.id, $event)" />
-                    <span>{{ role.name }} <small>{{ role.roleCode }}</small></span>
-                </label>
-            }
-        </div>
+        <p>Changes replace the complete role set for {{ user.username }}.</p>
+        <app-assignment-load-state [status]="roleState.status()" [error]="roleState.error()" (retry)="openRoles(user)" />
+        @if (roleState.status() === 'loaded') {
+            <app-assignment-checklist [items]="roles()" [selectedKeys]="selectedRoleKeys()" [keyOf]="roleKey" [labelOf]="roleLabel"
+                [detailOf]="roleDetail" [groupOf]="roleGroup" (selectionChanged)="toggleRole($event)" />
+            <app-replacement-summary [summary]="roleState.summary()" [version]="roleState.version()" [labelOf]="roleLabel" />
+        }
     }
-    <div class="modal-actions">
-        <app-button label="Cancel" variant="ghost" (clicked)="closeAssignRoles()" />
-        <app-button label="Save" icon="save" [loading]="savingRoleAssignment()" (clicked)="saveRoleAssignment()" />
-    </div>
+    <div class="modal-actions"><app-button label="Cancel" variant="ghost" (clicked)="closeRoles()" />
+        <app-button label="Confirm Replacement" icon="save" [disabled]="!roleState.canSave()" [loading]="roleState.status() === 'saving'" (clicked)="saveRoles()" /></div>
 </app-modal>
-
-<app-modal [open]="assignScopesOpen()" title="Assign User Scopes" [width]="640" (closed)="closeAssignScopes()">
-    @if (assigningScopesUser(); as user) {
-        <p class="panel-hint">Saving replaces {{ user.username }}'s complete normalized tenant/business/branch scope set.</p>
-        <app-assignment-load-state [status]="scopeState.status()" [error]="scopeState.error()" (retry)="openAssignScopes(user)" />
+<app-modal [open]="scopeModalOpen()" title="Replace User Scopes" [width]="640" (closed)="closeScopes()">
+    @if (scopeUser(); as user) {
+        <p>Changes replace the complete normalized scope set for {{ user.username }}.</p>
+        <app-assignment-load-state [status]="scopeState.status()" [error]="scopeState.error()" (retry)="openScopes(user)" />
         @if (scopeState.status() === 'loaded') {
             <app-assignment-checklist [items]="availableScopes()" [selectedKeys]="selectedScopeKeys()" [keyOf]="scopeKey" [labelOf]="scopeLabel" (selectionChanged)="toggleScope($event)" />
-            <app-replacement-summary [summary]="scopeState.summary()" />
+            <app-replacement-summary [summary]="scopeState.summary()" [labelOf]="scopeLabel" />
         }
     }
-    <div class="modal-actions">
-        <app-button label="Cancel" variant="ghost" (clicked)="closeAssignScopes()" />
-        <app-button label="Replace Scopes" icon="save" [loading]="scopeState.status() === 'saving'" [disabled]="!scopeState.canSave()" (clicked)="saveScopes()" />
-    </div>
-</app-modal>
-
-<app-modal [open]="assignPrivilegesOpen()" title="Assign Privileges" [width]="640" (closed)="closeAssignPrivileges()">
-    @if (assigningPrivilegesRole(); as role) {
-        <p class="panel-hint">Saving replaces role "{{ role.name }}"'s entire privilege set with what's checked below.</p>
-        @for (group of privilegeGroups(); track group.moduleName + group.submoduleName) {
-            <h4 class="role-group-title">{{ group.moduleName }} — {{ group.submoduleName }}</h4>
-            <div class="checklist">
-                @for (privilege of group.items; track privilege.id) {
-                    <label class="checklist-item">
-                        <app-checkbox [ngModel]="isPrivilegeSelected(privilege.privilegeCode)" (ngModelChange)="togglePrivilege(privilege.privilegeCode, $event)" />
-                        <span>{{ privilege.featureName }} — {{ privilege.actionName }} <small>{{ privilege.privilegeCode }}</small></span>
-                    </label>
-                }
-            </div>
-        }
-    }
-    <div class="modal-actions">
-        <app-button label="Cancel" variant="ghost" (clicked)="closeAssignPrivileges()" />
-        <app-button label="Save" icon="save" [loading]="savingPrivilegeAssignment()" (clicked)="saveAssignPrivileges()" />
-    </div>
+    <div class="modal-actions"><app-button label="Cancel" variant="ghost" (clicked)="closeScopes()" />
+        <app-button label="Confirm Replacement" icon="save" [disabled]="!scopeState.canSave()" [loading]="scopeState.status() === 'saving'" (clicked)="saveScopes()" /></div>
 </app-modal>
