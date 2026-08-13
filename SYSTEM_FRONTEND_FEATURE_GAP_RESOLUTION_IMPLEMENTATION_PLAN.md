@@ -234,6 +234,18 @@ Use scoped direct-ID repository predicates. Reject unknown, inactive, cross-tena
 
 ## 8. Phase 3 — Authoritative hierarchical scope administration
 
+Status: **Implemented (2026-08-14)**.
+
+Current implementation:
+
+- System migration `V51__add_authoritative_scope_hierarchy.sql` introduces audited tenant-owned business and branch catalogs with database-enforced tenant/business parent relationships, supporting indexes, and SYSTEM_ADMIN_WEB grants for the three lookup APIs.
+- `AuthorizedScopeLookupService` and the tenant controller expose effective-scope-filtered tenant, business, and branch choices. Tenant authority expands to descendants; business and branch authority remains bounded and sibling access fails closed.
+- Client and user assignment reads return deterministic `AssignmentVersion` values. Replacements require the version at the HTTP boundary, reject stale writes, duplicates, inactive tuples, invalid parents, and unauthorized additions.
+- Existing assignments outside the administrator's effective authority remain in the replacement payload as locked diagnostic rows and cannot be removed through a narrower session.
+- User and Client Administration use the shared `HierarchicalScopeSelectorComponent`; parent changes clear dependent IDs, labels include display names and IDs, and only normalized IDs are submitted.
+- License subscription ownership reuses the same authorized selector at its supported tenant/business depth; branch ownership is deliberately unavailable because it is not part of the license subscription backend contract.
+- `AuthorizedScopeLookupServiceTest`, API-contract checks, and the system migration fixture cover tenant expansion, business/branch restriction, sibling denial, invalid parents, endpoint discovery, and client grants.
+
 ### Backend contracts
 
 Provide authorized lookup endpoints or reuse existing protected tenant control-plane contracts:

@@ -41,6 +41,9 @@ export const ApiEndpoints = {
     // Tenant control plane
     TENANT_REGISTER: { apiPath: 'system/tenants/register', actionType: ActionTypes.CREATE },
     TENANT_LIST: { apiPath: 'system/tenants/list', actionType: ActionTypes.SEARCH },
+    TENANT_AUTHORIZED: { apiPath: 'system/tenants/authorized', actionType: ActionTypes.SEARCH },
+    TENANT_BUSINESSES: { apiPath: 'system/tenants/businesses', actionType: ActionTypes.SEARCH },
+    TENANT_BRANCHES: { apiPath: 'system/tenants/branches', actionType: ActionTypes.SEARCH },
     TENANT_DOMAIN_VERIFY: { apiPath: 'system/tenants/domain/verify', actionType: ActionTypes.UPDATE },
     TENANT_ACTIVATE: { apiPath: 'system/tenants/activate', actionType: ActionTypes.UPDATE },
     TENANT_SUSPEND: { apiPath: 'system/tenants/suspend', actionType: ActionTypes.UPDATE },

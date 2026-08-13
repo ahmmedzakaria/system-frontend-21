@@ -65,6 +65,7 @@ export const SYSTEM_FEATURE_CONTRACTS: readonly SystemFeatureContract[] = [
         feature: 'tenants', routes: { '/access-control/tenants': '11020100901' },
         actions: { 'tenants.register': '11020100910', 'tenants.verify-domain': '11020100980', 'tenants.manage-lifecycle': '11020100987' },
         endpoints: [endpoint('TENANT_REGISTER', '11020100910'), endpoint('TENANT_LIST', '11020100901'),
+            endpoint('TENANT_AUTHORIZED', 'AUTHENTICATED'), endpoint('TENANT_BUSINESSES', 'AUTHENTICATED'), endpoint('TENANT_BRANCHES', 'AUTHENTICATED'),
             endpoint('TENANT_DOMAIN_VERIFY', '11020100980'), endpoint('TENANT_ACTIVATE', '11020100987'),
             endpoint('TENANT_SUSPEND', '11020100987'), endpoint('TENANT_REACTIVATE', '11020100987'), endpoint('TENANT_CANCEL', '11020100987')]
     },

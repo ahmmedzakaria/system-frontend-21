@@ -51,12 +51,14 @@ export interface ClientPermissionAssignmentRequestDto {
     apiRegistryIds?: number[];
     privilegeCodes?: string[];
     scopeAssignments?: ClientScopeAssignmentDto[];
+    version?: string;
 }
 
 export interface ClientScopeAssignmentDto {
     tenantId: number;
     businessId: number | null;
     branchId: number | null;
+    active: true;
 }
 
 export interface ClientAdministrationDetailDto {
@@ -64,6 +66,7 @@ export interface ClientAdministrationDetailDto {
     apiRegistryIds: number[];
     privilegeCodes: string[];
     scopeAssignments: ClientScopeAssignmentDto[];
+    scopeVersion: string;
 }
 
 export interface GeneratedClientCredentialDto {

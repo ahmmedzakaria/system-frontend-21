@@ -212,8 +212,6 @@ export function subscriptionFields(planOptions: DropdownOption<unknown>[], clien
         { type: 'text', key: 'subscriptionCode', label: 'Code', required: true },
         { type: 'dropdown', key: 'planCode', label: 'Plan', options: planOptions, required: true },
         { type: 'dropdown', key: 'clientApplicationId', label: 'Client Application (owner)', options: clientOptions },
-        { type: 'number', key: 'tenantId', label: 'Tenant Id (owner)' },
-        { type: 'number', key: 'businessId', label: 'Business Id (owner)' },
         { type: 'date', key: 'startsAt', label: 'Starts At' },
         { type: 'date', key: 'expiresAt', label: 'Expires At' },
         { type: 'date', key: 'gracePeriodEndsAt', label: 'Grace Period Ends At' },

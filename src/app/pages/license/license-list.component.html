@@ -25,6 +25,13 @@
         (closed)="closePlanEditor()"
         (submitted)="savePlanEditor($event)"
 />
+@if (subscriptionEditorOpen()) {
+    <section class="owner-scope" aria-label="Authorized subscription owner">
+        <h3>Authorized organization owner</h3>
+        <app-hierarchical-scope-selector [ngModel]="subscriptionOwnerScope()" (ngModelChange)="subscriptionOwnerScope.set($event)"
+            [loadTenants]="loadTenants" [loadBusinesses]="loadBusinesses" [loadBranches]="loadBranches" />
+    </section>
+}
 
 <app-dynamic-modal
         [open]="subscriptionEditorOpen()"

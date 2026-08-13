@@ -13,12 +13,13 @@ import {
     ConfirmDialogComponent,
     ModalComponent,
     ReplacementSelectionState,
-    ReplacementSummaryComponent
+    ReplacementSummaryComponent, HierarchicalScopeSelectorComponent, HierarchicalScopeValue
 } from '@nexacore/shared';
+import { FormsModule } from '@angular/forms';
 import { ApiRegistryService } from '../../../core/services/api-registry.service';
 import { ClientApplicationService } from '../../../core/services/client-application.service';
 import { PrivilegeService } from '../../../core/services/privilege.service';
-import { TenantAdministrationService } from '../../../core/services/tenant-administration.service';
+import { AuthorizedScopeService } from '../../../core/services/authorized-scope.service';
 import {
     ApiRegistryDto,
     ClientApplicationDto,
@@ -26,14 +27,14 @@ import {
     GeneratedClientCredentialDto
 } from '../access-control.model';
 import { PrivilegeDto } from '../privileges/privileges.model';
-import { TenantDto } from '../../tenant/tenant.model';
 
 @Component({
     selector: 'app-client-application-detail',
     standalone: true,
     imports: [
         RouterLink, ButtonComponent, ModalComponent, ConfirmDialogComponent, IconComponent,
-        AssignmentChecklistComponent, AssignmentLoadStateComponent, ReplacementSummaryComponent
+        AssignmentChecklistComponent, AssignmentLoadStateComponent, ReplacementSummaryComponent,
+        HierarchicalScopeSelectorComponent, FormsModule
     ],
     templateUrl: './client-application-detail.component.html',
     styleUrl: './client-application-detail.component.scss'
@@ -42,7 +43,7 @@ export class ClientApplicationDetailComponent {
     private readonly clientApps = inject(ClientApplicationService);
     private readonly apiRegistry = inject(ApiRegistryService);
     private readonly privilegesService = inject(PrivilegeService);
-    private readonly tenantsService = inject(TenantAdministrationService);
+    private readonly authorizedScopes = inject(AuthorizedScopeService);
     private readonly context = inject(ApplicationContextService);
     private readonly policy = inject(AuthorizationPolicyService);
     private readonly id = Number(inject(ActivatedRoute).snapshot.paramMap.get('id'));
@@ -51,7 +52,6 @@ export class ClientApplicationDetailComponent {
     protected readonly loading = signal(true);
     protected readonly apiOptions = signal<ApiRegistryDto[]>([]);
     protected readonly privilegeOptions = signal<PrivilegeDto[]>([]);
-    protected readonly tenants = signal<TenantDto[]>([]);
     protected readonly apiState = new ReplacementSelectionState<ApiRegistryDto, number>({ keyOf: item => item.id });
     protected readonly featureState = new ReplacementSelectionState<PrivilegeDto, string>({ keyOf: item => item.privilegeCode });
     protected readonly scopeState = new ReplacementSelectionState<ClientScopeAssignmentDto, string>({ keyOf: scopeKey });
@@ -59,14 +59,10 @@ export class ClientApplicationDetailComponent {
     protected readonly apiSelectedKeys = computed(() => new Set(this.apiState.selected().map(item => item.id)));
     protected readonly featureSelectedKeys = computed(() => new Set(this.featureState.selected().map(item => item.privilegeCode)));
     protected readonly scopeSelectedKeys = computed(() => new Set(this.scopeState.selected().map(scopeKey)));
-    protected readonly scopeOptions = computed(() => {
-        const byKey = new Map<string, ClientScopeAssignmentDto>();
-        this.tenants().forEach(tenant => byKey.set(scopeKey({ tenantId: tenant.id, businessId: null, branchId: null }), {
-            tenantId: tenant.id, businessId: null, branchId: null
-        }));
-        this.scopeState.original().forEach(scope => byKey.set(scopeKey(scope), scope));
-        return [...byKey.values()];
-    });
+    protected readonly scopeDraft = signal<HierarchicalScopeValue|null>(null);
+    protected readonly loadTenants=this.authorizedScopes.tenants;
+    protected readonly loadBusinesses=this.authorizedScopes.businesses;
+    protected readonly loadBranches=this.authorizedScopes.branches;
 
     protected readonly canEdit = computed(() => this.policy.isActionAllowed('client-applications.edit'));
     protected readonly canRotate = computed(() => this.policy.isActionAllowed('client-applications.rotate'));
@@ -88,17 +84,15 @@ export class ClientApplicationDetailComponent {
         forkJoin({
             detail: this.clientApps.detail(this.id),
             apis: this.apiRegistry.list(),
-            privileges: this.privilegesService.list(),
-            tenants: this.tenantsService.list()
+            privileges: this.privilegesService.list()
         }).subscribe({
-            next: ({ detail, apis, privileges, tenants }) => {
+            next: ({ detail, apis, privileges }) => {
                 this.client.set(detail.client);
                 this.apiOptions.set(apis.filter(item => item.active));
                 this.privilegeOptions.set(privileges.filter(item => item.active));
-                this.tenants.set(tenants.filter(item => item.status !== 'CANCELLED'));
                 this.apiState.loadSucceeded(apis.filter(item => detail.apiRegistryIds.includes(item.id)));
                 this.featureState.loadSucceeded(privileges.filter(item => detail.privilegeCodes.includes(item.privilegeCode)));
-                this.scopeState.loadSucceeded(detail.scopeAssignments);
+                this.scopeState.loadSucceeded(detail.scopeAssignments,detail.scopeVersion);
                 this.loading.set(false);
             },
             error: () => {
@@ -114,6 +108,13 @@ export class ClientApplicationDetailComponent {
     protected toggleApi(change: { item: ApiRegistryDto; selected: boolean }): void { this.apiState.toggle(change.item, change.selected); }
     protected toggleFeature(change: { item: PrivilegeDto; selected: boolean }): void { this.featureState.toggle(change.item, change.selected); }
     protected toggleScope(change: { item: ClientScopeAssignmentDto; selected: boolean }): void { this.scopeState.toggle(change.item, change.selected); }
+    protected addScope():void { const value=this.scopeDraft(); if(!value || this.scopeState.selected().some(scope=>scopeKey(scope)===scopeKey(value))) return;
+        this.scopeState.setSelection([...this.scopeState.selected(),{...value,active:true}]); this.scopeDraft.set(null); }
+    protected removeScope(scope:ClientScopeAssignmentDto):void { if(!this.scopeEditable(scope)) return;
+        this.scopeState.setSelection(this.scopeState.selected().filter(item=>scopeKey(item)!==scopeKey(scope))); }
+    protected scopeEditable(scope:ClientScopeAssignmentDto):boolean { return (this.context.effectiveTenant()?.scopeAssignments??[]).some(authority=>
+        authority.tenantId===scope.tenantId && (authority.businessId==null || authority.businessId===scope.businessId)
+        && (authority.branchId==null || authority.branchId===scope.branchId)); }
 
     protected saveApis(): void {
         if (!this.apiState.beginSave()) return;
@@ -126,8 +127,8 @@ export class ClientApplicationDetailComponent {
     }
 
     protected saveScopes(): void {
-        if (!this.scopeState.beginSave()) return;
-        this.clientApps.assignScopes(this.id, [...this.scopeState.selected()]).subscribe(this.saveObserver(this.scopeState));
+        const version=this.scopeState.version(); if (!version || !this.scopeState.beginSave()) return;
+        this.clientApps.assignScopes(this.id, [...this.scopeState.selected()],version).subscribe(this.saveObserver(this.scopeState));
     }
 
     protected confirmRotate(): void {
@@ -152,8 +153,7 @@ export class ClientApplicationDetailComponent {
     protected readonly privilegeDetail = (item: PrivilegeDto) => item.privilegeCode;
     protected readonly scopeKey = scopeKey;
     protected readonly scopeLabel = (scope: ClientScopeAssignmentDto) => {
-        const tenant = this.tenants().find(item => item.id === scope.tenantId);
-        return `${tenant?.displayName ?? `Tenant ${scope.tenantId}`}${scope.businessId ? ` / Business ${scope.businessId}` : ''}${scope.branchId ? ` / Branch ${scope.branchId}` : ''}`;
+        return `Tenant ${scope.tenantId}${scope.businessId ? ` / Business ${scope.businessId}` : ''}${scope.branchId ? ` / Branch ${scope.branchId}` : ''}`;
     };
 
     private saveObserver<T, K>(state: ReplacementSelectionState<T, K>) {
@@ -167,6 +167,6 @@ export class ClientApplicationDetailComponent {
     }
 }
 
-function scopeKey(scope: ClientScopeAssignmentDto): string {
+function scopeKey(scope: Pick<ClientScopeAssignmentDto,'tenantId'|'businessId'|'branchId'>): string {
     return `${scope.tenantId}:${scope.businessId ?? ''}:${scope.branchId ?? ''}`;
 }

@@ -48,8 +48,13 @@
             <h3>Tenant, business, and branch scopes</h3>
             <app-assignment-load-state [status]="scopeState.status()" [error]="scopeState.error()" (retry)="load()" />
             @if (scopeState.status() === 'loaded') {
-                <app-assignment-checklist [items]="scopeOptions()" [selectedKeys]="scopeSelectedKeys()" [keyOf]="scopeKey" [labelOf]="scopeLabel" (selectionChanged)="toggleScope($event)" />
-                <app-replacement-summary [summary]="scopeState.summary()" />
+                <app-hierarchical-scope-selector [ngModel]="scopeDraft()" (ngModelChange)="scopeDraft.set($event)" [loadTenants]="loadTenants" [loadBusinesses]="loadBusinesses" [loadBranches]="loadBranches" />
+                <app-button label="Add scope" icon="plus" [disabled]="!scopeDraft()" (clicked)="addScope()" />
+                <div class="assignment-list">@for (scope of scopeState.selected(); track scopeKey(scope)) {
+                    <div><span>{{ scopeLabel(scope) }} @if (!scopeEditable(scope)) { <small>Outside current authority — locked</small> }</span>
+                        <app-button label="Remove" variant="ghost" [disabled]="!scopeEditable(scope)" (clicked)="removeScope(scope)" /></div>
+                }</div>
+                <app-replacement-summary [summary]="scopeState.summary()" [version]="scopeState.version()" [labelOf]="scopeLabel" />
                 <app-button label="Replace scope assignments" icon="save" [disabled]="!scopeState.canSave()" (clicked)="saveScopes()" />
             }
         </div>

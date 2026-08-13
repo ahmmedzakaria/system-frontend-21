@@ -3,21 +3,25 @@ import { of } from 'rxjs';
 import { ApplicationContextService, AuthorizationPolicyService, AuthorizationRevocationService } from '@nexacore/platform';
 import { AssignmentChecklistComponent, AssignmentLoadStateComponent, ButtonComponent, DynamicListLoader,
     DynamicModalComponent, DynamicTabComponent, DynamicTabConfig, ListColumnConfig, ModalComponent,
-    ReplacementSelectionState, ReplacementSummaryComponent } from '@nexacore/shared';
+    ReplacementSelectionState, ReplacementSummaryComponent, HierarchicalScopeSelectorComponent, HierarchicalScopeValue } from '@nexacore/shared';
+import { FormsModule } from '@angular/forms';
 import { UserService } from '../../../core/services/user.service';
 import { RoleService } from '../../../core/services/role.service';
+import { AuthorizedScopeService } from '../../../core/services/authorized-scope.service';
 import { ROLE_PRIVILEGES, RoleDto, USER_CREATE_FIELDS, USER_EDIT_FIELDS, UserDto, UserRequestDto,
     UserScopeAssignmentDto, formatDateTime, rolesLabel, userInitialValue } from './user.model';
 
 @Component({
     selector: 'app-user-list', standalone: true,
     imports: [ButtonComponent, DynamicModalComponent, DynamicTabComponent, ModalComponent,
-        AssignmentChecklistComponent, AssignmentLoadStateComponent, ReplacementSummaryComponent],
+        AssignmentChecklistComponent, AssignmentLoadStateComponent, ReplacementSummaryComponent,
+        HierarchicalScopeSelectorComponent, FormsModule],
     templateUrl: './user-list.component.html', styleUrl: './user-list.component.scss'
 })
 export class UserListComponent {
     private readonly usersApi = inject(UserService);
     private readonly rolesApi = inject(RoleService);
+    private readonly authorizedScopes = inject(AuthorizedScopeService);
     private readonly context = inject(ApplicationContextService);
     private readonly policy = inject(AuthorizationPolicyService);
     private readonly revocation = inject(AuthorizationRevocationService);
@@ -55,6 +59,10 @@ export class UserListComponent {
     protected readonly selectedScopeKeys = computed(() => new Set(this.scopeState.selected().map(scopeKey)));
     protected readonly scopeKey = scopeKey;
     protected readonly scopeLabel = (scope: UserScopeAssignmentDto) => `Tenant ${scope.tenantId}${scope.businessId ? ` / Business ${scope.businessId}` : ''}${scope.branchId ? ` / Branch ${scope.branchId}` : ''}`;
+    protected readonly scopeDraft = signal<HierarchicalScopeValue | null>(null);
+    protected readonly loadTenants = this.authorizedScopes.tenants;
+    protected readonly loadBusinesses = this.authorizedScopes.businesses;
+    protected readonly loadBranches = this.authorizedScopes.branches;
 
     protected readonly columns = computed<ListColumnConfig<UserDto>[]>(() => [
         { key: 'username', header: 'Username' }, { key: 'tenantId', header: 'Tenant' },
@@ -117,12 +125,19 @@ export class UserListComponent {
             error: () => this.roleState.saveFailed('Role replacement was rejected. Reload before retrying.') });
     }
     protected openScopes(user: UserDto): void { if (!this.canAssign()) return; this.scopeUser.set(user); this.scopeState.beginLoad(); this.scopeModalOpen.set(true);
-        this.usersApi.scopeAssignments(user.id).subscribe({ next: scopes => this.scopeState.loadSucceeded(scopes.filter(scope => scope.active)),
+        this.usersApi.scopeAssignments(user.id).subscribe({ next: result => this.scopeState.loadSucceeded(result.items.filter(scope => scope.active),result.version),
             error: () => this.scopeState.loadFailed('Current scopes could not be loaded. Saving is disabled.') }); }
     protected toggleScope(change: { item: UserScopeAssignmentDto; selected: boolean }): void { this.scopeState.toggle(change.item, change.selected); }
+    protected addScope(): void { const value=this.scopeDraft(); if(!value || this.scopeState.selected().some(scope=>scopeKey(scope)===scopeKey(value))) return;
+        this.scopeState.setSelection([...this.scopeState.selected(),{...value,active:true}]); this.scopeDraft.set(null); }
+    protected removeScope(scope:UserScopeAssignmentDto):void { if(!this.scopeEditable(scope)) return;
+        this.scopeState.setSelection(this.scopeState.selected().filter(item=>scopeKey(item)!==scopeKey(scope))); }
+    protected scopeEditable(scope:UserScopeAssignmentDto):boolean { return (this.context.effectiveTenant()?.scopeAssignments??[]).some(authority=>
+        authority.tenantId===scope.tenantId && (authority.businessId==null || authority.businessId===scope.businessId)
+        && (authority.branchId==null || authority.branchId===scope.branchId)); }
     protected closeScopes(): void { this.scopeModalOpen.set(false); this.scopeState.reset(); }
-    protected saveScopes(): void { const user = this.scopeUser(); if (!user || !this.scopeState.beginSave()) return;
-        this.usersApi.replaceScopeAssignments(user.id, [...this.scopeState.selected()]).subscribe({ next: () => { this.scopeState.saveSucceeded(); this.closeScopes(); },
+    protected saveScopes(): void { const user = this.scopeUser(); const version=this.scopeState.version(); if (!user || !version || !this.scopeState.beginSave()) return;
+        this.usersApi.replaceScopeAssignments(user.id, [...this.scopeState.selected()],version).subscribe({ next: () => { this.scopeState.saveSucceeded(); this.closeScopes(); },
             error: () => this.scopeState.saveFailed('Scope replacement was rejected. Reload before retrying.') }); }
 }
 

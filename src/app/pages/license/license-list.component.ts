@@ -11,10 +11,13 @@ import {
     DynamicTabConfig,
     ListColumnConfig,
     ModalComponent
+    ,HierarchicalScopeSelectorComponent, HierarchicalScopeValue
 } from '@nexacore/shared';
+import { FormsModule } from '@angular/forms';
 import { LicenseService } from '../../core/services/license.service';
 import { ClientApplicationService } from '../../core/services/client-application.service';
 import { AuthorizedUiDirective } from '@nexacore/platform';
+import { AuthorizedScopeService } from '../../core/services/authorized-scope.service';
 import {
     ENTITLEMENT_FIELDS,
     EntitlementOwnerType,
@@ -45,13 +48,15 @@ type SubscriptionAction = 'suspend' | 'reactivate' | 'cancel';
 @Component({
     selector: 'app-license-list',
     standalone: true,
-    imports: [ButtonComponent, ConfirmDialogComponent, DynamicModalComponent, DynamicTabComponent, ModalComponent, AuthorizedUiDirective],
+    imports: [ButtonComponent, ConfirmDialogComponent, DynamicModalComponent, DynamicTabComponent, ModalComponent, AuthorizedUiDirective,
+        HierarchicalScopeSelectorComponent, FormsModule],
     templateUrl: './license-list.component.html',
     styleUrl: './license-list.component.scss'
 })
 export class LicenseListComponent {
     private readonly service = inject(LicenseService);
     private readonly clientAppService = inject(ClientApplicationService);
+    private readonly authorizedScopes=inject(AuthorizedScopeService);
 
     private readonly tabsRef = viewChild<DynamicTabComponent>('tabsRef');
     protected readonly activeTabIndex = signal(0);
@@ -153,6 +158,11 @@ export class LicenseListComponent {
     protected readonly subscriptionEditorInitialValue = signal<Record<string, unknown>>({});
     private editingSubscriptionId: number | null = null;
     private editingSubscriptionStatus: LicenseStatus | null = null;
+    protected readonly subscriptionOwnerScope=signal<HierarchicalScopeValue|null>(null);
+    protected readonly loadTenants=this.authorizedScopes.tenants;
+    protected readonly loadBusinesses=this.authorizedScopes.businesses;
+    // License ownership is currently tenant/business scoped; branch ownership is not part of its backend contract.
+    protected readonly loadBranches=() => of([]);
 
     protected readonly loadSubscriptions = this.makeLoader(this.subscriptions, (row) => `${row.subscriptionCode} ${row.planCode}`);
 
@@ -177,6 +187,7 @@ export class LicenseListComponent {
         this.editingSubscriptionId = row?.id ?? null;
         this.editingSubscriptionStatus = row?.status ?? null;
         this.subscriptionEditorInitialValue.set(subscriptionInitialValue(row));
+        this.subscriptionOwnerScope.set(row?.tenantId ? {tenantId:row.tenantId,businessId:row.businessId,branchId:null}:null);
         this.subscriptionEditorOpen.set(true);
     }
     protected closeSubscriptionEditor(): void {
@@ -187,8 +198,8 @@ export class LicenseListComponent {
             id: this.editingSubscriptionId,
             subscriptionCode: (value['subscriptionCode'] as string) || '',
             planCode: value['planCode'] as string,
-            tenantId: (value['tenantId'] as number) ?? null,
-            businessId: (value['businessId'] as number) ?? null,
+            tenantId: this.subscriptionOwnerScope()?.tenantId ?? null,
+            businessId: this.subscriptionOwnerScope()?.businessId ?? null,
             clientApplicationId: (value['clientApplicationId'] as number) ?? null,
             // Never sourced from the form — this page has no free-form status field (status
             // changes only via Suspend/Reactivate/Cancel below). Passing the row's current

@@ -21,7 +21,12 @@
         <p>Changes replace the complete normalized scope set for {{ user.username }}.</p>
         <app-assignment-load-state [status]="scopeState.status()" [error]="scopeState.error()" (retry)="openScopes(user)" />
         @if (scopeState.status() === 'loaded') {
-            <app-assignment-checklist [items]="availableScopes()" [selectedKeys]="selectedScopeKeys()" [keyOf]="scopeKey" [labelOf]="scopeLabel" (selectionChanged)="toggleScope($event)" />
+            <app-hierarchical-scope-selector [ngModel]="scopeDraft()" (ngModelChange)="scopeDraft.set($event)" [loadTenants]="loadTenants" [loadBusinesses]="loadBusinesses" [loadBranches]="loadBranches" />
+            <app-button label="Add scope" icon="plus" [disabled]="!scopeDraft()" (clicked)="addScope()" />
+            <div class="checklist">@for (scope of scopeState.selected(); track scopeKey(scope)) {
+                <div class="checklist-item"><span>{{ scopeLabel(scope) }} @if (!scopeEditable(scope)) { <small>Outside current authority — locked</small> }</span>
+                    <app-button label="Remove" variant="ghost" [disabled]="!scopeEditable(scope)" (clicked)="removeScope(scope)" /></div>
+            }</div>
             <app-replacement-summary [summary]="scopeState.summary()" [labelOf]="scopeLabel" />
         }
     }

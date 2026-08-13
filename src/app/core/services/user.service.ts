@@ -26,12 +26,12 @@ export class UserService {
         return this.api.post<void>(ApiEndpoints.USER_ASSIGN_ROLES, request);
     }
 
-    scopeAssignments(userId: number): Observable<UserScopeAssignmentDto[]> {
-        return this.api.post<UserScopeAssignmentDto[]>(ApiEndpoints.USER_SCOPE_ASSIGNMENTS, { userId });
+    scopeAssignments(userId: number): Observable<VersionedAssignment<UserScopeAssignmentDto>> {
+        return this.api.post<VersionedAssignment<UserScopeAssignmentDto>>(ApiEndpoints.USER_SCOPE_ASSIGNMENTS, { userId });
     }
 
-    replaceScopeAssignments(userId: number, scopeAssignments: UserScopeAssignmentDto[]): Observable<void> {
-        const request: UserScopeAssignmentRequestDto = { userId, scopeAssignments };
+    replaceScopeAssignments(userId: number, scopeAssignments: UserScopeAssignmentDto[], version:string): Observable<void> {
+        const request: UserScopeAssignmentRequestDto = { userId, scopeAssignments, version };
         return this.api.post<void>(ApiEndpoints.USER_REPLACE_SCOPE_ASSIGNMENTS, request);
     }
 }

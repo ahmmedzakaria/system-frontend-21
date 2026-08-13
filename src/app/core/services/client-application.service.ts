@@ -44,8 +44,8 @@ export class ClientApplicationService {
     }
 
     /** Full-replace: normalized tuples become the client's entire scope. */
-    assignScopes(clientApplicationId: number, scopeAssignments: ClientScopeAssignmentDto[]): Observable<void> {
-        const request: ClientPermissionAssignmentRequestDto = { clientApplicationId, scopeAssignments };
+    assignScopes(clientApplicationId: number, scopeAssignments: ClientScopeAssignmentDto[], version:string): Observable<void> {
+        const request: ClientPermissionAssignmentRequestDto = { clientApplicationId, scopeAssignments, version };
         return this.api.post<void>(ApiEndpoints.CLIENT_APP_ASSIGN_TENANTS, request);
     }
 }

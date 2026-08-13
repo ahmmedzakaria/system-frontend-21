@@ -8,7 +8,7 @@ export interface RoleDto {
     tenantId: number | null;
     roleCode: string;
     description: string | null;
-    active: boolean;
+    active: true;
     globalTemplate: boolean;
     createdBy: number;
     updatedBy: number;
@@ -71,6 +71,7 @@ export interface UserScopeAssignmentDto {
 export interface UserScopeAssignmentRequestDto {
     userId: number;
     scopeAssignments: UserScopeAssignmentDto[];
+    version: string;
 }
 
 export const USER_PRIVILEGES = {
