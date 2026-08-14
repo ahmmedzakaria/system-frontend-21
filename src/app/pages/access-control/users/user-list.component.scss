@@ -20,7 +20,12 @@
 
 .header-actions {
   display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: var(--layout-space-2);
+
+  label { font-size: var(--layout-font-size-sm); font-weight: var(--layout-font-weight-semibold); }
+  select { min-height: 2.5rem; min-width: 15rem; padding: 0 var(--layout-space-2); border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); color: var(--text); }
 }
 
 .panel-hint {

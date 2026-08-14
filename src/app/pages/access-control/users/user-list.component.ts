@@ -12,6 +12,8 @@ import { AuthorizedScopeService } from '../../../core/services/authorized-scope.
 import { ROLE_PRIVILEGES, RoleDto, USER_CREATE_FIELDS, USER_EDIT_FIELDS, UserDto, UserRequestDto,
     UserScopeAssignmentDto, USER_PRIVILEGES, formatDateTime, rolesLabel, userInitialValue } from './user.model';
 import { PageOperationService } from '../../../core/authorization/page-operation.service';
+import { TenantAdministrationService } from '../../../core/services/tenant-administration.service';
+import { FieldConfig } from '@nexacore/shared';
 
 @Component({
     selector: 'app-user-list', standalone: true,
@@ -29,6 +31,7 @@ export class UserListComponent {
     private readonly revocation = inject(AuthorizationRevocationService);
     private readonly destroyRef = inject(DestroyRef);
     private readonly operations = inject(PageOperationService);
+    private readonly tenantsApi = inject(TenantAdministrationService);
     private readonly tabs = viewChild<DynamicTabComponent>('tabs');
 
     protected readonly canManage = this.policy.actionAllowed('users.manage');
@@ -43,7 +46,18 @@ export class UserListComponent {
 
     protected readonly editorOpen = signal(false);
     protected readonly editingId = signal<number | null>(null);
-    protected readonly editorFields = computed(() => this.editingId() == null ? USER_CREATE_FIELDS : USER_EDIT_FIELDS);
+    protected readonly canSelectCreationTenant = this.policy.privilegeAllowed('11020100901');
+    protected readonly tenantOptions = signal<{ label: string; value: number }[]>([]);
+    protected readonly selectedListTenantId = signal<number | null>(this.context.effectiveTenant()?.tenantId ?? null);
+    protected readonly editorFields = computed<FieldConfig[]>(() => {
+        if (this.editingId() != null) return [
+            { type: 'text', key: 'tenantName', label: 'Tenant', readonly: true },
+            ...USER_EDIT_FIELDS
+        ];
+        const tenantField: FieldConfig[] = this.canSelectCreationTenant() ? [{ type: 'dropdown', key: 'tenantId',
+            label: 'Tenant', required: true, options: this.tenantOptions() }] : [];
+        return [...tenantField, ...USER_CREATE_FIELDS];
+    });
     protected readonly editorValue = signal<Record<string, unknown>>({});
 
     protected readonly roleModalOpen = signal(false);
@@ -70,8 +84,10 @@ export class UserListComponent {
     protected readonly loadBusinesses = this.authorizedScopes.businesses;
     protected readonly loadBranches = this.authorizedScopes.branches;
 
-    protected readonly columns = computed<ListColumnConfig<UserDto>[]>(() => [
-        { key: 'username', header: 'Username' }, { key: 'tenantId', header: 'Tenant' },
+    protected readonly columns = computed<ListColumnConfig<UserDto>[]>(() => {
+        const tenantNames = new Map(this.tenantOptions().map(option => [option.value, option.label]));
+        return [
+        { key: 'username', header: 'Username' }, { key: 'tenantId', header: 'Tenant', format: row => tenantNames.get(row.tenantId) ?? `Tenant #${row.tenantId}` },
         { key: 'personName', header: 'Canonical Person', format: row => row.personName ?? `Person #${row.personId}` },
         { key: 'roles', header: 'Roles', format: row => rolesLabel(row.roles) },
         { key: 'enabled', header: 'Status', type: 'badge', status: row => row.enabled ? 'verified' : 'draft' },
@@ -83,7 +99,8 @@ export class UserListComponent {
                 ...(this.canAssign() ? [{ icon: 'shield-check', label: 'Assign Scopes', onClick: (row: UserDto) => this.openScopes(row) }] : [])
             ]
         } as ListColumnConfig<UserDto>] : [])
-    ]);
+    ];
+    });
     private readonly loader: DynamicListLoader<UserDto> = params => {
         const query = params.query.trim().toLowerCase();
         const rows = query ? this.users().filter(row => `${row.username} ${row.personName ?? ''}`.toLowerCase().includes(query)) : this.users();
@@ -95,20 +112,30 @@ export class UserListComponent {
 
     constructor() {
         if (this.canView()) this.reload(); else this.listState.deny('User viewing is not allowed by the effective authorization context.');
+        if (this.canSelectCreationTenant()) this.tenantsApi.list().subscribe({ next: tenants => {
+            this.tenantOptions.set(tenants.filter(tenant => tenant.status === 'ACTIVE')
+                .map(tenant => ({ label: `${tenant.displayName} (${tenant.tenantCode})`, value: tenant.id })));
+            if (!this.selectedListTenantId() && this.tenantOptions().length) this.selectedListTenantId.set(this.tenantOptions()[0].value);
+            this.reload();
+        } });
         const registration = this.revocation.watch(this.canManage, () => this.editorOpen.set(false));
         const assignmentRegistration = this.revocation.watch(this.canAssign, () => { this.closeRoles(); this.closeScopes(); });
         this.destroyRef.onDestroy(() => { registration.destroy(); assignmentRegistration.destroy(); });
     }
 
-    protected reload(): void { if (!this.canView()) return; this.listState.begin(); this.usersApi.list().subscribe({ next: rows => {
+    protected reload(): void { if (!this.canView()) return; this.listState.begin(); this.usersApi.list(this.selectedListTenantId()).subscribe({ next: rows => {
         this.users.set(rows); this.listState.succeed(rows,rows.length===0); this.tabs()?.reloadTab('users'); },
         error: error => { const failure=this.operations.failure(error,'Users could not be loaded.');
             failure.denied ? this.listState.deny(this.operations.display(failure),failure.traceId) : this.listState.fail(this.operations.display(failure),failure.traceId); } }); }
-    protected openEditor(row: UserDto | null): void { if (!this.canManage()) return; this.editingId.set(row?.id ?? null); this.editorValue.set(userInitialValue(row)); this.editorOpen.set(true); }
+    protected openEditor(row: UserDto | null): void { if (!this.canManage()) return; this.editingId.set(row?.id ?? null);
+        const initial = userInitialValue(row); if (!row) initial['tenantId'] = this.context.effectiveTenant()?.tenantId ?? this.tenantOptions()[0]?.value;
+        else { initial['tenantId'] = row.tenantId; initial['tenantName'] = this.tenantOptions().find(option => option.value === row.tenantId)?.label ?? `Tenant #${row.tenantId}`; }
+        this.editorValue.set(initial); this.editorOpen.set(true); }
     protected closeEditor(): void { this.editorOpen.set(false); }
     protected saveEditor(value: Record<string, unknown>): void {
         if (!this.canManage() || !this.editorMutation.begin()) return;
-        const tenantId = this.context.effectiveTenant()?.tenantId;
+        const tenantId = this.editingId() == null && this.canSelectCreationTenant()
+            ? Number(value['tenantId']) : Number(this.editorValue()['tenantId'] ?? this.context.effectiveTenant()?.tenantId);
         if (!tenantId) { this.error.set('Effective tenant is unavailable.'); return; }
         const request: UserRequestDto = { id: this.editingId(), tenantId, username: String(value['username']), password: String(value['password'] || '') || null,
             email: String(value['email'] || '') || null, mobile: String(value['mobile'] || '') || null,
@@ -148,6 +175,7 @@ export class UserListComponent {
         authority.tenantId===scope.tenantId && (authority.businessId==null || authority.businessId===scope.businessId)
         && (authority.branchId==null || authority.branchId===scope.branchId)); }
     protected closeScopes(): void { this.scopeModalOpen.set(false); this.scopeState.reset(); }
+    protected listTenantChanged(value: number): void { this.selectedListTenantId.set(Number(value)); this.reload(); }
     protected saveScopes(): void { const user = this.scopeUser(); const version=this.scopeState.version(); if (!user || !version || !this.scopeState.beginSave()) return;
         this.usersApi.replaceScopeAssignments(user.id, [...this.scopeState.selected()],version).subscribe({ next: () => { this.scopeState.saveSucceeded(); this.closeScopes(); },
             error: error => this.replacementSaveFailure(this.scopeState,error,'Scope replacement was rejected. Reload before retrying.') }); }

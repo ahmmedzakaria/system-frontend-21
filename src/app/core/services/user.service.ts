@@ -8,8 +8,8 @@ import { RoleDto, UserDto, UserRequestDto, UserRoleAssignmentRequestDto, UserSco
 export class UserService {
     private readonly api = inject(ApiService);
 
-    list(): Observable<UserDto[]> {
-        return this.api.post<UserDto[]>(ApiEndpoints.USER_LIST);
+    list(tenantId?: number | null): Observable<UserDto[]> {
+        return this.api.post<UserDto[]>(ApiEndpoints.USER_LIST, tenantId ? { tenantId } : {});
     }
     detail(id: number): Observable<UserDto> { return this.api.post<UserDto>(ApiEndpoints.USER_DETAIL, { id }); }
     roleAssignments(id: number): Observable<VersionedAssignment<RoleDto>> {

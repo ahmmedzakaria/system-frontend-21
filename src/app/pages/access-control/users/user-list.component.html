@@ -1,4 +1,12 @@
-<div class="page-header"><h2>User Administration</h2>@if (canManage()) { <app-button label="New User" icon="plus" variant="ghost" (clicked)="openEditor(null)" /> }</div>
+<div class="page-header"><h2>User Administration</h2><div class="header-actions">
+    @if (canSelectCreationTenant() && tenantOptions().length) {
+        <label for="user-list-tenant">Tenant</label>
+        <select id="user-list-tenant" [ngModel]="selectedListTenantId()" (ngModelChange)="listTenantChanged($event)">
+            @for (tenant of tenantOptions(); track tenant.value) { <option [ngValue]="tenant.value">{{ tenant.label }}</option> }
+        </select>
+    }
+    @if (canManage()) { <app-button label="New User" icon="plus" variant="ghost" (clicked)="openEditor(null)" /> }
+</div></div>
 @if (error()) { <p class="error-message" role="alert">{{ error() }}</p> }
 @if (listState.status() === 'denied') { <app-access-feedback kind="access-denied" [message]="listState.error() ?? ''" [traceId]="listState.traceId() ?? undefined" /> }
 @else if (listState.status() === 'failed') { <app-access-feedback kind="configuration-error" [message]="listState.error() ?? ''" [traceId]="listState.traceId() ?? undefined" [retryable]="true" (retry)="reload()" /> }
