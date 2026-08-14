@@ -623,26 +623,190 @@ The dashboard makes one aggregate request, reveals no unauthorized module existe
 
 ## 16. Phase 11 — Audit and user-session administration
 
+**Status:** Planned. Existing log-query and logout-token primitives are not sufficient for this phase: audit queries do not yet force effective tenant scope into their repository predicates, and login state is held in process-local account/tenant maps rather than persistent, individually addressable sessions.
+
+### Security and ownership decisions
+
+- `logmodule` owns technical/API/authorization audit search and redaction. Domain histories such as license and tenant lifecycle events remain owned by their domain modules.
+- `authmodule` owns user sessions, refresh-token families, account lock state, and local credential operations.
+- `systemmodule` supplies the validated client, user, privilege, and effective tenant/scope context. Cross-database calls use module gateways; no module directly joins another module's datasource.
+- Every audit and session read, count, export, revoke, lock, unlock, or password-reset predicate includes the server-resolved tenant. A request DTO, route parameter, username, JWT-decoded frontend value, or caller-controlled header never establishes tenant authority.
+- A session belongs to exactly one auth account and tenant. Account-wide revocation means all sessions for that `(accountId, tenantId)` only; it must not revoke an account with the same username or person in another tenant.
+- Session identifiers returned to the browser are opaque random identifiers. Access tokens, refresh tokens, token hashes, API keys, cookies, authorization headers, request/response bodies, stack traces, and raw identity-provider assertions are never returned.
+- `PASSWORD_RESET`, `LOCK`, `UNLOCK`, `SESSION_REVOKE`, `SESSION_REVOKE_ALL`, and audit export are high-impact operations. They require exact privileges, step-up authentication where specified, a reason, duplicate-submit prevention, and an append-only audit result.
+- External SSO identities do not expose local password controls. Mixed/federated accounts expose only operations supported by the account's server-resolved credential ownership.
+
+### Backend foundation: persistent session registry
+
+Replace `LogoutSessionService` and `RefreshTokenSessionService` as authoritative process-local maps with a persistent Auth-owned session registry. In-memory state may remain only as a bounded cache whose entries are invalidated by a shared revocation version/event.
+
+Add the next immutable Auth Flyway migration with an `auth_user_sessions` table containing at least:
+
+```text
+id                    uuid or opaque varchar primary key
+tenant_id             bigint not null
+account_id            bigint not null
+user_id               bigint not null
+client_code           varchar(100) not null
+auth_method           varchar(30) not null
+refresh_token_hash    varchar(128) null
+refresh_token_family  uuid null
+issued_at              timestamp not null
+last_seen_at           timestamp not null
+expires_at             timestamp not null
+revoked_at             timestamp null
+revoked_by             bigint null
+revocation_reason      varchar(500) null
+ip_address_masked      varchar(100) null
+user_agent_summary     varchar(255) null
+created_by             bigint not null
+updated_by             bigint not null
+created_at             timestamp not null
+updated_at             timestamp not null
+```
+
+Indexes must support `(tenant_id, account_id, revoked_at, expires_at)`, opaque session-ID lookup, refresh-token-family lookup, and bounded expiry cleanup. Store only a one-way refresh-token hash. Normalize or mask network/device information before persistence.
+
+JWT access tokens must carry an opaque `sessionId`. `JwtAuthenticationFilter` must verify that the session matches token account, tenant, and client and is active. Revocation therefore takes effect on the next authenticated request on every application instance. Refresh rotation updates the same token family atomically and rejects replay of a replaced token. A scheduled cleanup may remove expired sessions only after the configured audit/retention window.
+
+Migration must not invent active sessions from the current maps. Deploying the persistent registry invalidates legacy process-local sessions and requires reauthentication, or uses an explicitly time-boxed compatibility verifier until their existing access tokens expire. Document the chosen rollout behavior.
+
 ### Backend contracts
 
-- paged authorization/platform audit events with scoped filters;
-- active user sessions by tenant/account;
-- revoke one session and revoke all sessions for an account;
-- forced password-reset/lock/unlock contracts if consistent with the selected local/SSO authentication mode;
-- step-up authentication for session/account security changes.
+Add typed, server-paged contracts:
+
+```text
+POST /api/v1/system/audit/search
+POST /api/v1/system/audit/export
+POST /api/v1/system/user/security-detail
+POST /api/v1/system/user/session/search
+POST /api/v1/system/user/session/revoke
+POST /api/v1/system/user/session/revoke-all
+POST /api/v1/system/user/account/lock
+POST /api/v1/system/user/account/unlock
+POST /api/v1/system/user/password/reset-required
+```
+
+`audit/search` accepts bounded page, page size, date range, event category, outcome, actor, target type/reference, client code, and trace ID. The service always adds effective tenant/scope predicates before executing the Log-database query. Reject unsupported sort fields and cap page size. `details` is a safe structured projection or redacted summary, not an arbitrary persisted payload.
+
+`audit/export` is a separate privilege and asynchronous/bounded export contract. It applies exactly the same scoped predicate and redaction projection as on-screen search, records requested filters and result count, and never exports inaccessible columns. Prefer a short-lived authenticated download reference rather than returning large files inline.
+
+`user/security-detail` resolves the target with a tenant-scoped direct-ID Auth repository predicate and returns:
+
+```text
+userId, accountId, username/display label
+account enabled/locked state
+credential ownership: LOCAL | EXTERNAL | HYBRID
+last successful authentication time
+last failed authentication time (when safe)
+active session count
+availableActions[] calculated by the backend
+```
+
+Do not return password hashes, reset tokens, provider subject identifiers, full IP addresses, or existence information for cross-tenant IDs.
+
+`user/session/search` requires a target user/account ID, never username alone. It returns active, non-expired tenant/account sessions with opaque ID, client label, authentication method, issued/last-seen/expiry timestamps, masked network/device summary, and `currentSession`. The current administrator session is identified server-side.
+
+Session revocation requests contain opaque session ID, nonblank reason, step-up proof/reference, and an idempotency key. `revoke-all` contains target user/account ID, reason, step-up proof/reference, idempotency key, and an explicit `includeCurrentSession` decision. Both mutations lock/recheck the target session rows, remain idempotent, revoke refresh-token families, publish cache invalidation, and append success/failure audit events.
+
+Account lock/unlock and reset-required operations are conditional on server-resolved `availableActions`. Locking an account revokes all of its tenant-bound sessions in the same Auth transaction. `reset-required` never returns or assigns an administrator-chosen password; it marks a local credential for a secure reset flow. External-only accounts return `ACCOUNT_CREDENTIAL_EXTERNALLY_MANAGED`.
+
+Introduce exact privilege/action policies rather than sharing general user edit authority:
+
+```text
+audit.view
+audit.export
+user-security.view
+user-sessions.view
+user-sessions.revoke
+user-account.lock
+user-account.unlock
+user-password.reset-required
+```
+
+Register all endpoints in API metadata, grant only required APIs/features to `SYSTEM_ADMIN_WEB`, seed route/UI policies, and add the next System migration without editing prior migrations.
+
+### Step-up authentication
+
+- Use a short-lived, single-purpose server-issued step-up grant bound to administrator user/account, tenant, client, action, target, authentication method, and expiry.
+- Require recent password reauthentication for locally managed administrators and an IdP `auth_time`/`acr` flow for SSO administrators. Do not accept a boolean header as proof.
+- Consume or replay-protect the grant for the mutation and reject target/action mismatch.
+- Never log the proof/token. Audit only the proof type, assurance level, grant identifier hash/reference, and outcome.
+- Return `STEP_UP_REQUIRED` with safe challenge metadata when assurance is absent or stale.
+
+### Audit redaction and retention
+
+- Add tenant ID to every applicable Log repository predicate, including direct trace/entity searches and export.
+- Treat absent tenant ownership on legacy log rows as inaccessible until reconciled; never infer it from username or client code.
+- Apply a field allowlist to audit DTOs. Redact secrets and sensitive personal data before persistence where possible and again at projection/export boundaries.
+- Viewing/exporting audit data is itself audited without recursively logging response contents.
+- Define retention separately for security audit, access logs, and session records. Cleanup uses a system actor and records aggregate evidence, not deleted sensitive contents.
 
 ### Frontend
 
-- audit-event viewer with trace correlation;
-- user detail security panel;
-- active-session list and revocation confirmation;
-- authentication-mode-aware controls (do not offer local password actions for externally managed SSO identities).
+- Add `/audit` as a lazy route protected by the server-delivered audit route policy. Add navigation only when `audit.view` is effective.
+- Implement a typed `AuditAdministrationService`; do not reuse raw log entities or call Log endpoints directly from components.
+- Render a server-paged audit table with date/category/outcome/actor/target/client/trace filters. Debounce text filters, cancel stale searches, reset to page one when filters change, and distinguish loading, empty, denied, rate-limited, and failed states.
+- Make trace IDs copyable and linkable to a same-scope correlation view. Details open in an accessible modal using redacted labeled fields; never render arbitrary JSON as HTML.
+- Show Export only for `audit.export`. Confirm the effective filter/date range and explain redaction before starting an export. Prevent duplicate export submissions and display traceable asynchronous status.
+- Extend User Administration with a lazy-loaded Security panel. Load it only after `user-security.view` becomes effective and close it immediately if authorization is revoked.
+- Load the active-session tab independently under `user-sessions.view`. Clearly mark the current administrator session, session client/auth method, masked device/network summary, last activity, and expiry.
+- Revoke-one and revoke-all use the shared confirmation/change-summary workflow, require a reason and completed step-up challenge, and disable duplicate submission. Revoking the administrator's current session warns that the UI will return to login.
+- Render lock, unlock, and reset-required controls only from the intersection of live UI policy and backend `availableActions`. Never infer local credential ownership from the configured application login method.
+- After a successful security mutation, reload security detail and sessions. If the current session was revoked, clear local authentication state and navigate to login without replaying API calls.
+- Add typed stable-code handling for `STEP_UP_REQUIRED`, `SESSION_ALREADY_REVOKED`, `ACCOUNT_CREDENTIAL_EXTERNALLY_MANAGED`, `AUTHORIZATION_VERSION_STALE`, and generic non-enumerating target denial.
+
+### Delivery sequence
+
+1. Add tenant predicates and redaction tests to existing audit queries before exposing a frontend route.
+2. Add persistent Auth session schema, registry, JWT session binding, refresh rotation, and cleanup.
+3. Add module-gateway DTOs for tenant-scoped user security/session administration.
+4. Add exact privileges, controllers, API metadata, System grants, route/UI policies, and navigation migration.
+5. Add step-up grant issuance/validation for high-impact mutations.
+6. Add the audit route/viewer and User Security panel.
+7. Enable export only after scoped search/redaction equivalence tests pass.
+8. Remove process-local session state after the compatibility window and validate multi-instance revocation.
+
+### Automated verification
+
+Backend tests must prove:
+
+- audit list and export always include effective tenant/scope predicates;
+- cross-tenant target IDs, session IDs, trace IDs, and export filters return no data and cannot mutate state;
+- legacy audit rows with null ownership remain inaccessible;
+- sensitive values are absent from list, detail, export, logs, and audit mutation events;
+- multiple sessions for one account are independently listed and revocable;
+- revoke-one leaves sibling sessions active and revoke-all affects only the target tenant/account;
+- revoked access and refresh tokens fail on the next request across two application instances/cache views;
+- refresh-token replay fails after rotation;
+- current-session revocation and account lock invalidate access immediately;
+- external-only identities reject local-password actions;
+- step-up grants expire, are action/target bound, and cannot be replayed;
+- mutation idempotency prevents duplicate revocation/audit events;
+- `SYSTEM_ADMIN_WEB` has exactly the required API/feature grants under `ENFORCE`;
+- fresh-install and upgrade migrations preserve constraints, indexes, and audit actors.
+
+Frontend tests must prove:
+
+- audit and security APIs are not called without their exact live privileges;
+- paging/filter serialization and stale-request cancellation are correct;
+- denied, empty, failed, rate-limited, and loading states remain distinct;
+- revocation closes an open security editor when privilege is removed;
+- externally managed identities show no local password action;
+- confirmations require reason and step-up completion;
+- duplicate mutations are blocked;
+- current-session revocation clears authentication and redirects to login;
+- keyboard focus returns correctly after detail, confirmation, and step-up dialogs.
 
 ### Gate
 
-- Session revocation is effective on the next request.
-- Cross-tenant sessions are never listed or mutable.
-- Sensitive audit fields are redacted and export is privilege-gated.
+- Audit list and export are server-paged, tenant/scope constrained in database predicates, redacted through the same projection, and independently privilege-gated.
+- Persistent sessions support multiple devices/clients, refresh-token rotation, individual and tenant/account-wide revocation, and multi-instance invalidation.
+- Session revocation and account lock are effective on the next request; no access-token TTL grace period remains.
+- Cross-tenant audit events, users, and sessions are never listed, counted, exported, or mutable, including by direct opaque ID.
+- High-impact mutations require exact privilege, reason, valid target-bound step-up grant, idempotency, and append-only audit outcome.
+- Authentication-mode-aware controls come from backend credential ownership and available actions, not frontend inference.
+- Focused backend, frontend, authenticated browser, migration, and multi-instance revocation tests pass under `ENFORCE`.
 
 ## 17. Phase 12 — Scalability, accessibility, and operational polish
 
