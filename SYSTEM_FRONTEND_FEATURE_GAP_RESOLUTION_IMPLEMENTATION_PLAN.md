@@ -810,18 +810,177 @@ Frontend tests must prove:
 
 ## 17. Phase 12 — Scalability, accessibility, and operational polish
 
-- Convert large collections to server paging/filtering/sorting.
-- Virtualize large API/privilege assignment lists where needed.
-- Add focus trap/return tests for every modal and confirmation.
-- Ensure keyboard-only selection and reordering.
-- Announce errors, pending operations, and successful saves accessibly.
-- Replace raw IDs with resolved labels while retaining IDs for support context.
-- Add translations for all new stable UI text.
-- Enforce bundle and component-style budgets rather than accepting indefinite growth.
+**Status:** Planned. The application already has reusable paging, list-state, focus-ring, translation-loader, and CDK overlay foundations, but scalability and accessibility are inconsistent across feature pages. Several loaders fetch complete collections and slice them in the browser, the shared modal does not yet establish a focus trap or restore trigger focus, and the production build currently tolerates the recurring initial-bundle warning.
+
+### Quality targets and non-functional budgets
+
+- Target WCAG 2.2 AA for authenticated administration workflows, including keyboard, screen-reader, zoom/reflow, contrast, focus visibility, pointer target, status-message, and error-identification requirements.
+- Define representative data volumes before optimization: at least 100,000 users/audit events/API records, 10,000 privileges, 5,000 clients/tenants, and 1,000 selectable assignments in a single authorized scope.
+- List/search interaction should acknowledge input immediately, cancel stale requests, and render a normal server page without blocking the main thread. Record environment-specific p75 targets rather than embedding unreliable absolute timings in unit tests.
+- No list endpoint may return an unbounded administrative collection. Default page size is 20, allowed page sizes are centrally defined, and the backend enforces a maximum of 100 unless a narrower domain limit applies.
+- Initial JavaScript and component-style budgets are release gates. Establish a measured baseline, assign lazy-chunk budgets to major routes, then reduce the existing initial warning threshold in controlled steps rather than increasing it to hide growth.
+- Accessibility, performance, and localization changes must preserve authorization behavior: hidden/inaccessible data is not fetched for label resolution, preloading, counts, exports, or virtualized buffers.
+
+### Server paging, filtering, and sorting
+
+Standardize application-owned list contracts:
+
+```ts
+interface AdminPageRequest {
+  page: number;             // zero based over the wire
+  pageSize: number;
+  query?: string;
+  filters?: Record<string, string | number | boolean | null>;
+  sort?: Array<{ field: string; direction: 'ASC' | 'DESC' }>;
+}
+
+interface AdminPage<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  hasNext: boolean;
+}
+```
+
+- Convert user, role, tenant, client, layout, license, assignment, audit, and session lists that currently load all rows and slice locally to backend paging.
+- Apply tenant/business/branch scope in database predicates before paging and counting. Never page a cross-scope result and filter it in memory.
+- Allowlist filter and sort fields per endpoint. Reject unknown fields and stable-code invalid date/range/filter combinations.
+- Use deterministic sorting with a unique tie-breaker such as `id`; page boundaries must not duplicate or omit rows when primary sort values match.
+- Normalize query text and use indexed predicates appropriate to the database. Add indexes only from measured query plans for supported filter/sort combinations.
+- Debounce search input, cancel superseded HTTP requests with `switchMap`, reset to page zero on filter/sort/page-size change, and retain the last successful page only when it cannot leak revoked data.
+- On authorization/scope-version change, clear cached pages and selections before reloading. Do not show stale rows while a narrower context is being resolved.
+- Export, dashboard counts, and assignment catalogs use their own bounded/scoped contracts; they do not reconstruct full datasets by walking every UI page.
+
+### Large assignment and hierarchy workflows
+
+- Use server-searchable, grouped assignment sources for privileges, APIs, features, roles, tenants, businesses, and branches. Load current assignments separately and authoritatively before enabling replacement.
+- Preserve selected items that are outside the current search page in an ID-keyed selection model. Confirmation summaries resolve labels through a scoped bulk-label endpoint, not one request per ID.
+- Virtualize only genuinely large rendered option collections using Angular CDK virtual scrolling. Server paging remains authoritative; virtualization is not a substitute for bounded APIs.
+- Virtualized rows must have stable IDs/keys, correct accessible position/set-size semantics where feasible, predictable row height, and keyboard focus that survives recycling and filtering.
+- Hierarchical selectors load children on demand, communicate expanded/loading/empty states, and prevent branch/business selection from widening the effective scope.
+- Reordering uses keyboard-accessible Move Up/Down and first/last controls in addition to pointer drag-and-drop. Announce the moved item and new position, and persist an optimistic concurrency/version token.
+
+### Shared modal, confirmation, and focus contract
+
+Upgrade the shared `ModalComponent` once so every consuming page inherits:
+
+- CDK focus trap activated after overlay attachment;
+- initial focus on an explicitly designated safe control, otherwise the first interactive control or dialog heading;
+- restoration to the actual trigger element on every close path, including Escape, backdrop, successful save, authorization revocation, navigation, and component destruction;
+- unique heading ID referenced by `aria-labelledby`, optional description ID through `aria-describedby`, and `role="alertdialog"` only for urgent confirmations;
+- configurable backdrop/Escape closing, disabled while an irreversible mutation is pending where interruption would be unsafe;
+- nested-overlay focus handling for dropdowns, date pickers, and step-up dialogs;
+- scroll containment, 200%/400% zoom reflow, viewport-safe width, and mobile keyboard behavior.
+
+Destructive confirmations must place initial focus on the least destructive action. Focus order must follow visual/DOM order, and no hidden or unauthorized action may remain tabbable.
+
+### Keyboard and assistive-technology behavior
+
+- Every action is reachable and operable without a pointer. Do not make a clickable table row the only path to view or edit a record; provide a semantic link/button with an accessible name.
+- Data tables expose caption/accessible name, sortable-column state, row headers where useful, and labeled pagination. Loading placeholders are not announced as data rows.
+- Tabs follow the chosen manual or automatic activation pattern consistently, maintain `aria-selected`/`tabindex`, and support documented arrow/Home/End keys.
+- Tree/navigation editors expose level, expanded, selected, and disabled states. Keyboard reordering is always available.
+- Forms associate labels, instructions, required state, and field errors programmatically. On invalid submit, focus the error summary or first invalid field and link the summary to fields.
+- Icon-only buttons have localized accessible names. Status must not rely on color, icon, position, or tooltip alone.
+- Support browser zoom to 400%, text spacing overrides, forced-colors/high-contrast mode, reduced motion, and RTL without clipping or loss of operation.
+- Minimum pointer targets and spacing follow WCAG 2.2 AA; exceptions for dense inline targets require an equivalent adequately spaced control.
+
+### Status announcements and mutation feedback
+
+Add one shared announcement service backed by CDK `LiveAnnouncer` or equivalent live regions:
+
+- polite: page loaded, search result count, save success, filter cleared, reordered position;
+- assertive: authorization revoked while editing, session revoked, mutation failure requiring action;
+- normally visual only: routine loading start and every keystroke.
+
+Announcements must be concise, localized, deduplicated, and emitted once per state transition. Do not announce raw stable codes, stack details, trace IDs, or repeatedly changing progress values. Visual feedback still retains stable error code and trace ID for support.
+
+Long-running operations expose meaningful pending state, prevent duplicate submission, allow safe cancellation only when the backend supports it, and finish with a persistent result rather than a transient toast alone.
+
+### Labels, formatting, and support context
+
+- Replace raw tenant, business, branch, user, client, role, privilege, subscription, and job IDs with server-authorized labels in normal UI.
+- Retain IDs in an expandable/copyable Support details area when the user has access to the parent record. Never perform an unrestricted lookup merely to resolve an inaccessible ID.
+- Use shared locale-aware date/time, number, byte, duration, and status formatters. Display the applicable timezone where operational interpretation matters and preserve an exact machine timestamp in support detail.
+- Unknown/deleted references render a localized safe placeholder plus permitted ID, not a failed page or cross-tenant discovery request.
+- Copy actions announce success and use plain text free of hidden secrets.
+
+### Localization and RTL
+
+- Move all stable visible strings, accessible names, empty/error states, validation messages, confirmation summaries, column headings, filter labels, and announcements into Transloco resources.
+- Use stable semantic translation keys grouped by shared component and system feature. Do not use English text as the key.
+- Backend stable codes map to localized frontend messages; server-provided English remains diagnostic fallback and is never injected as HTML.
+- Add English and Bengali coverage for all Phase 0–12 system frontend routes. CI fails on missing production keys and detects orphaned/high-risk duplicate keys.
+- Use logical CSS properties (`inline-start`, `inline-end`) and direction-aware icons/order. Test representative tables, forms, rail navigation, dialogs, and hierarchy editors in RTL even if the first supported languages are LTR.
+- Format dates/numbers with the active locale while keeping API payloads locale-neutral.
+
+### Bundle, rendering, and network performance
+
+- Keep every administration feature lazy-loaded and prevent feature components/services from entering the initial chunk through barrel side effects or eager route imports.
+- Inspect production bundle output before setting budgets. Track initial, shared platform/shared-library, and major route chunks in CI with an approved-baseline file.
+- Replace broad imports with public secondary entry points only when they materially improve tree shaking without breaking library boundaries.
+- Defer heavy export, visualization, syntax/detail rendering, and virtual-scroll code until the authorized workflow opens. Do not preload privilege-inaccessible routes.
+- Use `OnPush`/signals consistently, stable row tracking, computed view models, and bounded subscriptions. Avoid repeated label formatting or authorization lookups per change-detection pass.
+- Optimize images/icons/fonts with explicit dimensions and caching. Do not add remote font/script dependencies that weaken CSP or introduce login-time availability risk.
+- Define request cancellation and timeout behavior for searches and long-running diagnostics. Never automatically retry mutations.
+- Treat memory growth as a release issue: overlays, timers, polling, object URLs, and subscriptions must be torn down on close/navigation/destruction.
+
+Current production budgets (`500kB` initial warning, `1.2MB` initial error, `4kB/8kB` component style) are a baseline input, not permanent acceptance values. Phase 12 records the measured build, removes the known warning through lazy loading/tree shaking, then lowers error ceilings to a reviewed margin above the clean baseline. Budget increases require an explicit artifact comparison and approval.
+
+### Operational resilience and observability
+
+- Standardize loading, empty, denied, rate-limited, unavailable, stale-version, partial, and failed presentations across pages.
+- Preserve and expose trace ID, stable code, retry-after, and safe retry actions. Never expose exception text or request/response bodies.
+- Add frontend error and performance telemetry only through an approved redacting adapter. Exclude tokens, headers, credentials, form values, usernames, raw URLs containing identifiers, and audit/session detail.
+- Correlate frontend failures with backend trace IDs and feature/route semantic keys. Telemetry failure must never block user workflows.
+- Detect offline/network-unavailable separately from authorization denial. Do not queue or replay administrative mutations after reconnect.
+- Add route-level error boundaries/fallbacks so a failed lazy chunk or feature initialization does not destroy the authenticated shell.
+- Provide safe refresh/recovery behavior after authorization-version changes, deployment chunk mismatch, and expired/revoked sessions.
+
+### Delivery sequence
+
+1. Capture accessibility, bundle, API-volume, query-plan, and representative-rendering baselines.
+2. Fix shared modal focus trap/restore/naming and shared announcement/error-state primitives.
+3. Standardize paged request/response, filter/sort allowlists, deterministic ordering, and cancellation.
+4. Convert every client-sliced large collection to a scoped server-paged endpoint, one vertical feature at a time.
+5. Add searchable/virtualized assignment and hierarchy behavior with keyboard alternatives.
+6. Replace raw operational IDs and inconsistent formatters with authorized label/support projections.
+7. Complete translation extraction, English/Bengali resources, missing-key CI, and RTL checks.
+8. Remove the initial bundle warning, establish reviewed chunk/style budgets, and enforce them in CI.
+9. Add large-dataset, accessibility, memory/teardown, and degraded-network browser coverage.
+10. Record measured outcomes and update the gap analysis, module documentation, and completion checklist.
+
+### Automated verification
+
+Shared-library component tests must cover focus trap/restore for all close paths, accessible dialog naming, Escape/backdrop policy, nested overlays, live-announcement deduplication, table/pagination semantics, keyboard selection/reordering, reduced motion, and teardown.
+
+System frontend tests must cover request paging/filter/sort serialization, stale-request cancellation, page reset rules, selection across search pages, revocation cache clearing, localized states, safe label fallback, duplicate-mutation prevention, and unauthorized-route non-preloading.
+
+Backend tests must cover maximum page sizes, allowlisted sorting, deterministic tie-breakers, tenant/scope predicates in data and count queries, cross-tenant direct-ID denial, indexed representative queries, bounded bulk-label resolution, and export equivalence.
+
+Authenticated Playwright coverage must include:
+
+- keyboard-only completion of every administration workflow;
+- focus location after open, validation failure, nested overlay, save, cancel, Escape, revocation, and navigation;
+- automated accessibility scans plus manual assertions for complex table/tree/dialog behavior;
+- 200% and 400% zoom, narrow viewport, forced colors, reduced motion, and representative RTL rendering;
+- 100k-row server datasets and 1k-option assignments without full collection transfer or unbounded DOM growth;
+- slow, failed, cancelled, rate-limited, and out-of-order search requests;
+- heap/DOM/timer stability after repeated dialog, polling, route, and download cycles;
+- initial/lazy chunk and component-style budget assertions against the approved baseline.
 
 ### Gate
 
-Accessibility checks, production build budgets, and representative large-dataset tests pass.
+- No administrative list or assignment endpoint used by this application returns an unbounded large collection or performs cross-scope in-memory filtering.
+- Representative large datasets meet reviewed query, payload, rendering, DOM-size, and interaction targets without stale-result races.
+- All shared dialogs and confirmations trap focus, have programmatic names, restore focus on every close path, reflow at 400%, and pass keyboard/screen-reader behavior tests.
+- Every workflow is keyboard-operable; pointer drag-and-drop and row click are never the only mechanisms.
+- Errors, authorization revocation, pending mutations, saves, and reordering have deduplicated accessible feedback while retaining safe trace support.
+- Stable UI and accessibility text is translated with complete English/Bengali catalogs and representative RTL verification.
+- Normal UI uses authorized labels; support IDs remain available without introducing cross-tenant lookup or data disclosure.
+- Production build completes with no budget warning. Initial, lazy-chunk, and component-style error budgets are enforced from a reviewed clean baseline and cannot be raised silently.
+- Accessibility automation, manual complex-widget checks, large-dataset tests, memory/teardown tests, and authenticated degraded-network tests pass in CI.
 
 ## 18. Automated verification strategy
 
