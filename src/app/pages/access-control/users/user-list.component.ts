@@ -1,5 +1,5 @@
 import { Component, DestroyRef, computed, inject, signal, viewChild } from '@angular/core';
-import { of } from 'rxjs';
+import { of, tap } from 'rxjs';
 import { ApplicationContextService, AuthorizationPolicyService, AuthorizationRevocationService } from '@nexacore/platform';
 import { AssignmentChecklistComponent, AssignmentLoadStateComponent, ButtonComponent, DynamicListLoader,
     DynamicModalComponent, DynamicTabComponent, DynamicTabConfig, ListColumnConfig, ModalComponent,
@@ -78,11 +78,30 @@ export class UserListComponent {
     });
     protected readonly selectedScopeKeys = computed(() => new Set(this.scopeState.selected().map(scopeKey)));
     protected readonly scopeKey = scopeKey;
-    protected readonly scopeLabel = (scope: UserScopeAssignmentDto) => `Tenant ${scope.tenantId}${scope.businessId ? ` / Business ${scope.businessId}` : ''}${scope.branchId ? ` / Branch ${scope.branchId}` : ''}`;
+    private readonly scopeTenantNames = signal(new Map<number, string>());
+    private readonly scopeBusinessNames = signal(new Map<string, string>());
+    private readonly scopeBranchNames = signal(new Map<string, string>());
+    protected readonly scopeLabel = (scope: UserScopeAssignmentDto) => {
+        const tenant = this.scopeTenantNames().get(scope.tenantId)
+            ?? this.tenantOptions().find(option => option.value === scope.tenantId)?.label
+            ?? `Tenant #${scope.tenantId}`;
+        const business = scope.businessId == null ? '' : ` / ${this.scopeBusinessNames().get(`${scope.tenantId}:${scope.businessId}`) ?? `Business #${scope.businessId}`}`;
+        const branch = scope.branchId == null ? '' : ` / ${this.scopeBranchNames().get(`${scope.tenantId}:${scope.businessId}:${scope.branchId}`) ?? `Branch #${scope.branchId}`}`;
+        return `${tenant}${business}${branch}`;
+    };
     protected readonly scopeDraft = signal<HierarchicalScopeValue | null>(null);
-    protected readonly loadTenants = this.authorizedScopes.tenants;
-    protected readonly loadBusinesses = this.authorizedScopes.businesses;
-    protected readonly loadBranches = this.authorizedScopes.branches;
+    protected readonly loadTenants = () => this.authorizedScopes.tenants().pipe(tap(options =>
+        this.scopeTenantNames.set(new Map(options.map(option => [option.id, option.label])))));
+    protected readonly loadBusinesses = (tenantId: number) => this.authorizedScopes.businesses(tenantId).pipe(tap(options => {
+        const names = new Map(this.scopeBusinessNames());
+        options.forEach(option => names.set(`${tenantId}:${option.id}`, option.label));
+        this.scopeBusinessNames.set(names);
+    }));
+    protected readonly loadBranches = (tenantId: number, businessId: number) => this.authorizedScopes.branches(tenantId, businessId).pipe(tap(options => {
+        const names = new Map(this.scopeBranchNames());
+        options.forEach(option => names.set(`${tenantId}:${businessId}:${option.id}`, option.label));
+        this.scopeBranchNames.set(names);
+    }));
 
     protected readonly columns = computed<ListColumnConfig<UserDto>[]>(() => {
         const tenantNames = new Map(this.tenantOptions().map(option => [option.value, option.label]));
@@ -171,7 +190,7 @@ export class UserListComponent {
         this.scopeState.setSelection([...this.scopeState.selected(),{...value,active:true}]); this.scopeDraft.set(null); }
     protected removeScope(scope:UserScopeAssignmentDto):void { if(!this.scopeEditable(scope)) return;
         this.scopeState.setSelection(this.scopeState.selected().filter(item=>scopeKey(item)!==scopeKey(scope))); }
-    protected scopeEditable(scope:UserScopeAssignmentDto):boolean { return (this.context.effectiveTenant()?.scopeAssignments??[]).some(authority=>
+    protected scopeEditable(scope:UserScopeAssignmentDto):boolean { return this.canSelectCreationTenant() || (this.context.effectiveTenant()?.scopeAssignments??[]).some(authority=>
         authority.tenantId===scope.tenantId && (authority.businessId==null || authority.businessId===scope.businessId)
         && (authority.branchId==null || authority.branchId===scope.branchId)); }
     protected closeScopes(): void { this.scopeModalOpen.set(false); this.scopeState.reset(); }
