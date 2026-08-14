@@ -111,4 +111,9 @@ export const ApiEndpoints = {
     BACKUP_LIST: { apiPath: 'system/backup/list', actionType: ActionTypes.SEARCH },
     BACKUP_DETAIL: { apiPath: 'system/backup/detail', actionType: ActionTypes.SEARCH },
     BACKUP_DOWNLOAD: { apiPath: 'system/backup/download', actionType: ActionTypes.UPDATE },
+    BACKUP_DELIVERY_RETRY: { apiPath: 'system/backup/delivery/retry', actionType: ActionTypes.UPDATE },
+    BACKUP_DELIVERY_HISTORY: { apiPath: 'system/backup/delivery/history', actionType: ActionTypes.SEARCH },
+    BACKUP_CONFIGURATION: { apiPath: 'system/backup/configuration', actionType: ActionTypes.SEARCH },
+    BACKUP_READINESS: { apiPath: 'system/backup/readiness', actionType: ActionTypes.SEARCH },
+    BACKUP_RESTORE_VERIFICATION_LIST: { apiPath: 'system/backup/restore-verification/list', actionType: ActionTypes.SEARCH },
 } satisfies Record<string, ApiEndpoint>;

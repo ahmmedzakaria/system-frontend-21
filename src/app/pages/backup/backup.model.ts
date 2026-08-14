@@ -35,6 +35,10 @@ export interface BackupPageDto {
     page: number;
     pageSize: number;
 }
+export interface BackupDeliveryAttemptDto { id:number; channel:string; status:'DELIVERED'|'FAILED'|'DISABLED'; attemptedBy:string; attemptedAt:string; failureCode:string|null; failureMessage:string|null; }
+export interface BackupConfigurationDto { enabled:boolean; schedule:string; zone:string; retentionDays:number; minimumSuccessful:number; timeoutSeconds:number; storageType:string; encryptionConfigured:boolean; encryptionKeyId:string; deliveryEnabled:boolean; recipientCount:number; attachmentEnabled:boolean; attachmentMaxBytes:number; }
+export interface BackupReadinessDto { backupEnabled:boolean; encryptionConfigured:boolean; latestSuccessfulBackupId:string|null; latestSuccessfulAt:string|null; latestChecksum:string|null; restoreVerificationStatus:string; restoreVerifiedAt:string|null; offsiteReplicationStatus:string; ready:boolean; warningCode:string|null; }
+export interface BackupRestoreVerificationDto { id:number; backupId:string; status:string; artifactSha256:string; verifiedAt:string; verifierId:string; failureMessage:string|null; offsiteReplicationStatus:string; offsiteReference:string|null; }
 
 export function formatBytes(value: number | null): string {
     if (value == null) return '—';

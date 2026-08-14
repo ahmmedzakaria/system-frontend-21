@@ -114,7 +114,10 @@ export const SYSTEM_FEATURE_CONTRACTS: readonly SystemFeatureContract[] = [
         feature: 'backup', routes: { '/backup': 'backup.view' },
         actions: { 'backup.execute': 'backup.execute', 'backup.download': 'backup.download', 'backup.deliver': 'backup.deliver', 'backup.manage': 'backup.manage' },
         endpoints: [endpoint('BACKUP_RUN', 'backup.execute'), endpoint('BACKUP_LIST', 'backup.view'),
-            endpoint('BACKUP_DETAIL', 'backup.view'), endpoint('BACKUP_DOWNLOAD', 'backup.download')]
+            endpoint('BACKUP_DETAIL', 'backup.view'), endpoint('BACKUP_DOWNLOAD', 'backup.download'),
+            endpoint('BACKUP_DELIVERY_RETRY', 'backup.deliver'), endpoint('BACKUP_DELIVERY_HISTORY', 'backup.deliver'),
+            endpoint('BACKUP_CONFIGURATION', 'backup.manage'), endpoint('BACKUP_READINESS', 'backup.manage'),
+            endpoint('BACKUP_RESTORE_VERIFICATION_LIST', 'backup.manage')]
     }
 ] as const;
 

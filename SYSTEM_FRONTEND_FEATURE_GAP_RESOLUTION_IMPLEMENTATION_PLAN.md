@@ -528,6 +528,8 @@ Activation and validation stay outside the administration console except for rea
 
 ## 14. Phase 9 — Backup operations and recovery evidence
 
+**Status:** Implemented (2026-08-14)
+
 ### Backend additions
 
 - expose safe job detail and sanitized failure diagnostics;
@@ -554,6 +556,25 @@ Do not expose a general browser-triggered production restore. Any future restore
 - Polling stops after terminal state or component destruction.
 - Download and delivery denials preserve stable code and trace ID.
 - Recovery evidence is read-only and cannot be forged by browser input.
+
+### Current implementation
+
+- The existing server-paged backup list and detail contract now drive an operational detail modal containing aggregate state, sanitized job and per-database failure diagnostics, artifact/database checksums, retention expiry, and encrypted artifact size.
+- Detail polling is bounded to 60 two-second requests. It starts only for `QUEUED`/`RUNNING` jobs and terminates on the first terminal state, modal close, component destruction, request failure, or the request limit.
+- Delivery retry and delivery-history endpoints require `backup.deliver`. Each attempt persists channel, outcome, actor, time, and sanitized failure information. Disabled delivery or invalid job state is distinguishable from a failed provider attempt.
+- The `backup.manage` contract exposes a safe configuration projection and recovery-readiness aggregate. It includes schedule, retention, storage type, timeout, encryption-key identifier/configured state, and delivery counts without exposing filesystem paths, recipient addresses, encryption material, or database credentials.
+- Restore-verification evidence is persisted separately with the artifact checksum, isolated verifier identity, verification status/time, and off-site replication status/reference. The browser has a read-only list endpoint; no restore or verification-write endpoint exists.
+- The frontend shows privilege-gated configuration, readiness, restore verification, delivery history, and retry operations. `PARTIAL`, `FAILED`, configuration-disabled, unverified-restore, and unverified-off-site states remain distinct.
+- Binary download uses a tested helper that creates a blob URL, triggers the filename-preserving download, and revokes the URL after the browser consumes the click. Missing artifacts retain `DATABASE_BACKUP_ARTIFACT_MISSING`; structured API failures continue to display stable code and trace ID.
+- V58 creates append-only delivery-attempt and restore-verification evidence tables, indexes their operational lookup paths, and conditionally grants the new APIs to the system frontend. Runtime API synchronization covers the `/api/v1/system/backup` controller family.
+
+### Verification completed
+
+- Backend compilation and test compilation completed successfully.
+- Backup encryption, disabled-configuration, and missing-artifact tests: 4 tests passed.
+- System frontend Vitest suite, including blob lifecycle and bounded polling/teardown tests: 16 tests passed.
+- System frontend production build completed successfully; the existing initial-bundle budget warning remains.
+- V58 executed successfully against the local `system_db` in a rollback-only transaction.
 
 ## 15. Phase 10 — Privilege-aware dashboard and diagnostics
 

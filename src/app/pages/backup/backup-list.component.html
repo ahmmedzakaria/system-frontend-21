@@ -12,6 +12,31 @@
     Downloads are AES-GCM encrypted. The decryption key is managed outside this application and is never included in the download or email.
 </div>
 
+@if (canManage() && readiness(); as state) {
+<section class="operations-grid">
+    <article><h3>Recovery readiness</h3><strong>{{ state.ready ? 'Ready' : 'Attention required' }}</strong>
+        @if (state.warningCode) { <p>{{ state.warningCode }}</p> }
+        <dl><dt>Latest successful</dt><dd>{{ formatDateTime(state.latestSuccessfulAt) }}</dd><dt>Restore verification</dt><dd>{{ state.restoreVerificationStatus }}</dd><dt>Off-site replication</dt><dd>{{ state.offsiteReplicationStatus }}</dd></dl>
+    </article>
+    @if (configuration(); as config) { <article><h3>Configuration</h3><dl><dt>Enabled</dt><dd>{{ config.enabled ? 'Yes':'No' }}</dd><dt>Schedule</dt><dd>{{ config.schedule }} ({{ config.zone }})</dd><dt>Retention</dt><dd>{{ config.retentionDays }} days / minimum {{ config.minimumSuccessful }}</dd><dt>Storage</dt><dd>{{ config.storageType }}</dd><dt>Encryption</dt><dd>{{ config.encryptionConfigured ? config.encryptionKeyId : 'Not configured' }}</dd><dt>Delivery</dt><dd>{{ config.deliveryEnabled ? config.recipientCount + ' recipient(s)' : 'Disabled' }}</dd></dl></article> }
+    <article><h3>Restore verification evidence</h3>
+        @if (verifications().length === 0) { <p>No isolated restore verification has been recorded.</p> }
+        @for (item of verifications(); track item.id) { <div class="evidence"><strong>{{ item.status }}</strong> · {{ formatDateTime(item.verifiedAt) }}<br><code>{{ item.artifactSha256 }}</code><br>Replication: {{ item.offsiteReplicationStatus }}</div> }
+    </article>
+</section>
+}
+
 <app-dynamic-list #backupList [columns]="columns()" [loadItems]="loadBackups" [pageSize]="20"
         searchPlaceholder="Backup history is server-paginated" emptyTitle="No backups yet"
         emptyMessage="Run the first backup after backend storage and encryption are configured." />
+
+<app-modal [open]="!!detail()" title="Backup operation detail" [width]="900" (closed)="closeDetail()">
+@if (detail(); as job) {
+    <div class="detail-summary"><span><strong>ID</strong> {{ job.id }}</span><span><strong>Status</strong> {{ job.status }}</span><span><strong>Requested</strong> {{ formatDateTime(job.requestedAt) }}</span><span><strong>Completed</strong> {{ formatDateTime(job.completedAt) }}</span><span><strong>Encrypted size</strong> {{ formatBytes(job.artifactSizeBytes) }}</span><span><strong>Expires</strong> {{ formatDateTime(job.expiresAt) }}</span></div>
+    @if (job.artifactSha256) { <p><strong>Artifact SHA-256</strong><br><code>{{ job.artifactSha256 }}</code></p> }
+    @if (job.failureCode) { <div class="failure"><strong>{{ job.failureCode }}</strong><p>{{ job.failureMessage }}</p></div> }
+    <h3>Database results</h3>
+    <div class="result-list">@for (database of job.databases; track database.logicalDatabase) { <article><strong>{{ database.logicalDatabase }}</strong> — {{ database.status }}<span>{{ database.databaseName }} · {{ formatBytes(database.sizeBytes) }}</span>@if(database.sha256){<code>{{ database.sha256 }}</code>}@if(database.failureCode){<span class="failure">{{ database.failureCode }}: {{ database.failureMessage }}</span>}</article> }</div>
+    @if (canDeliver()) { <div class="delivery"><div class="section-heading"><h3>Delivery history</h3><app-button label="Retry delivery" icon="paper-plane" [loading]="deliveryState.pending()" [disabled]="deliveryState.pending() || (job.status !== 'COMPLETED' && job.status !== 'PARTIAL')" (clicked)="retryDelivery()" /></div>@if(deliveryHistory().length===0){<p>No delivery attempts recorded.</p>}@for(attempt of deliveryHistory();track attempt.id){<p><strong>{{ attempt.status }}</strong> · {{ formatDateTime(attempt.attemptedAt) }} · {{ attempt.attemptedBy }} @if(attempt.failureCode){ — {{ attempt.failureCode }}}</p>}</div> }
+}
+</app-modal>

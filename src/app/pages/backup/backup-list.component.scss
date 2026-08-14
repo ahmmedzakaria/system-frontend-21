@@ -27,3 +27,9 @@
   background: var(--card);
   color: var(--text);
 }
+.operations-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:var(--layout-space-3); margin-bottom:var(--layout-space-4); article{padding:var(--layout-space-3);border:1px solid var(--border);border-radius:var(--layout-radius-sm);background:var(--card)} h3{margin-top:0} dl{display:grid;grid-template-columns:auto 1fr;gap:.4rem 1rem} dd{margin:0;text-align:right}.evidence{padding:.6rem 0;border-top:1px solid var(--border)} }
+.detail-summary { display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--layout-space-2);margin-bottom:var(--layout-space-3);span{display:flex;flex-direction:column} }
+.result-list article { display:flex;flex-direction:column;gap:.25rem;padding:var(--layout-space-2);border-top:1px solid var(--border); }
+.failure { color:var(--danger,#b42318); }
+.section-heading { display:flex;align-items:center;justify-content:space-between;gap:var(--layout-space-2); }
+code { overflow-wrap:anywhere; }
