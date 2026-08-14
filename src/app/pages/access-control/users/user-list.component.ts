@@ -80,7 +80,7 @@ export class UserListComponent {
             key: 'actions', header: '', type: 'actions', align: 'end', actions: [
                 ...(this.canManage() ? [{ icon: 'edit', label: 'Edit', onClick: (row: UserDto) => this.openEditor(row) }] : []),
                 ...(this.canAssign() && this.canViewRoles() ? [{ icon: 'user-shield', label: 'Assign Roles', onClick: (row: UserDto) => this.openRoles(row) }] : []),
-                ...(this.canAssign() ? [{ icon: 'layers', label: 'Assign Scopes', onClick: (row: UserDto) => this.openScopes(row) }] : [])
+                ...(this.canAssign() ? [{ icon: 'shield-check', label: 'Assign Scopes', onClick: (row: UserDto) => this.openScopes(row) }] : [])
             ]
         } as ListColumnConfig<UserDto>] : [])
     ]);
