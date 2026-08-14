@@ -18,6 +18,7 @@ export interface RoleDto {
 
 export interface RoleRequestDto {
     id: number | null;
+    tenantId: number | null;
     name: string;
     roleCode: string;
     description: string | null;

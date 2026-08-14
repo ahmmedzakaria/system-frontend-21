@@ -8,8 +8,8 @@ import { RoleDto, RoleRequestDto, VersionedAssignment } from '../../pages/access
 export class RoleService {
     private readonly api = inject(ApiService);
 
-    list(): Observable<RoleDto[]> {
-        return this.api.post<RoleDto[]>(ApiEndpoints.ROLE_LIST);
+    list(tenantId?: number | null): Observable<RoleDto[]> {
+        return this.api.post<RoleDto[]>(ApiEndpoints.ROLE_LIST, tenantId ? { tenantId } : {});
     }
     detail(id: number): Observable<RoleDto> { return this.api.post<RoleDto>(ApiEndpoints.ROLE_DETAIL, { id }); }
     privilegeAssignments(id: number): Observable<VersionedAssignment<string>> {

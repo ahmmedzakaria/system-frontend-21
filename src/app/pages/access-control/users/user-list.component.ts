@@ -14,6 +14,7 @@ import { ROLE_PRIVILEGES, RoleDto, USER_CREATE_FIELDS, USER_EDIT_FIELDS, UserDto
 import { PageOperationService } from '../../../core/authorization/page-operation.service';
 import { TenantAdministrationService } from '../../../core/services/tenant-administration.service';
 import { FieldConfig } from '@nexacore/shared';
+import { TENANT_PRIVILEGES } from '../../tenant/tenant.model';
 
 @Component({
     selector: 'app-user-list', standalone: true,
@@ -46,7 +47,7 @@ export class UserListComponent {
 
     protected readonly editorOpen = signal(false);
     protected readonly editingId = signal<number | null>(null);
-    protected readonly canSelectCreationTenant = this.policy.privilegeAllowed('11020100901');
+    protected readonly canSelectCreationTenant = this.policy.privilegeAllowed(TENANT_PRIVILEGES.view);
     protected readonly tenantOptions = signal<{ label: string; value: number }[]>([]);
     protected readonly selectedListTenantId = signal<number | null>(this.context.effectiveTenant()?.tenantId ?? null);
     protected readonly editorFields = computed<FieldConfig[]>(() => {

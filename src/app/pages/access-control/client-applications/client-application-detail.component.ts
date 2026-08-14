@@ -27,6 +27,7 @@ import {
     GeneratedClientCredentialDto
 } from '../access-control.model';
 import { PrivilegeDto } from '../privileges/privileges.model';
+import { TENANT_PRIVILEGES } from '../../tenant/tenant.model';
 
 @Component({
     selector: 'app-client-application-detail',
@@ -79,11 +80,18 @@ export class ClientApplicationDetailComponent {
     protected readonly canAssignApi = computed(() => this.policy.isActionAllowed('client-applications.assign-api'));
     protected readonly canAssignFeature = computed(() => this.policy.isActionAllowed('client-applications.assign-feature'));
     protected readonly canAssignScope = computed(() => this.policy.isActionAllowed('client-applications.assign-scope'));
+    protected readonly canAdministerTenants = this.policy.privilegeAllowed(TENANT_PRIVILEGES.view);
 
     protected readonly rotateConfirmOpen = signal(false);
     protected readonly scopeReplacementConfirmOpen = signal(false);
+    protected readonly submittedScopes = computed(()=>{
+        const scopes=new Map(this.scopeState.selected().map(scope=>[scopeKey(scope),scope]));
+        this.scopeState.original().filter(scope=>!this.scopeEditable(scope))
+            .forEach(scope=>scopes.set(scopeKey(scope),scope));
+        return [...scopes.values()];
+    });
     protected readonly removedScopes = computed(()=>{
-        const selected=new Set(this.scopeState.selected().map(scopeKey));
+        const selected=new Set(this.submittedScopes().map(scopeKey));
         return this.scopeState.original().filter(scope=>!selected.has(scopeKey(scope)));
     });
     protected readonly scopeReplacementMessage = computed(()=>{
@@ -134,7 +142,7 @@ export class ClientApplicationDetailComponent {
         this.scopeState.setSelection([...this.scopeState.selected(),{...value,active:true}]); this.scopeDraft.set(null); }
     protected removeScope(scope:ClientScopeAssignmentDto):void { if(!this.scopeEditable(scope)) return;
         this.scopeState.setSelection(this.scopeState.selected().filter(item=>scopeKey(item)!==scopeKey(scope))); }
-    protected scopeEditable(scope:ClientScopeAssignmentDto):boolean { return (this.context.effectiveTenant()?.scopeAssignments??[]).some(authority=>
+    protected scopeEditable(scope:ClientScopeAssignmentDto):boolean { return this.canAdministerTenants() || (this.context.effectiveTenant()?.scopeAssignments??[]).some(authority=>
         authority.tenantId===scope.tenantId && (authority.businessId==null || authority.businessId===scope.businessId)
         && (authority.branchId==null || authority.branchId===scope.branchId)); }
 
@@ -152,7 +160,7 @@ export class ClientApplicationDetailComponent {
 
     protected saveScopes(): void {
         const version=this.scopeState.version(); if (!version || !this.scopeState.beginSave()) return;
-        this.clientApps.assignScopes(this.id, [...this.scopeState.selected()],version).subscribe({
+        this.clientApps.assignScopes(this.id, this.submittedScopes(),version).subscribe({
             next:()=>{ this.scopeReplacementConfirmOpen.set(false); this.scopeState.saveSucceeded(); this.load();
                 this.context.refresh().subscribe({error:()=>undefined}); },
             error:()=>{ this.scopeReplacementConfirmOpen.set(false);

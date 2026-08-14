@@ -1,10 +1,16 @@
 <div class="page-header"><h2>Role Administration</h2><div class="header-actions">
+    @if (canAdministerTenants() && tenantOptions().length) {
+        <label for="role-list-tenant">Tenant</label>
+        <select id="role-list-tenant" [ngModel]="selectedTenantId()" (ngModelChange)="tenantChanged($event)">
+            @for (tenant of tenantOptions(); track tenant.value) { <option [ngValue]="tenant.value">{{ tenant.label }}</option> }
+        </select>
+    }
     @if (canManage()) { <app-button label="New Tenant Role" icon="plus" variant="ghost" (clicked)="openEditor(null)" /> }
-    @if (canManage() && isSystemAdmin) { <app-button label="New Global Template" icon="plus" variant="ghost" (clicked)="openEditor(null, true)" /> }
+    @if (canManage() && canAdministerTenants()) { <app-button label="New Global Template" icon="plus" variant="ghost" (clicked)="openEditor(null, true)" /> }
 </div></div>
 @if (error()) { <p class="error-message" role="alert">{{ error() }}</p> }
 <app-dynamic-tab #tabs [tabs]="tabConfig()" />
-<app-dynamic-modal [open]="editorOpen()" title="Role" [width]="480" [fields]="roleFields" [initialValue]="editorValue()"
+<app-dynamic-modal [open]="editorOpen()" title="Role" [width]="480" [fields]="roleFields()" [initialValue]="editorValue()"
     (closed)="editorOpen.set(false)" (submitted)="saveEditor($event)" />
 <app-modal [open]="assignmentOpen()" title="Replace Role Privileges" [width]="720" (closed)="closePrivileges()">
     @if (assigningRole(); as role) {
