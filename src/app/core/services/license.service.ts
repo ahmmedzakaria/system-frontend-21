@@ -12,6 +12,7 @@ import {
     LicensePlanRequestDto,
     LicenseSubscriptionDto,
     LicenseSubscriptionRequestDto
+    , LicenseUsageSnapshotDto, LicenseAuditEventDto, LicenseRenewalSummaryDto
 } from '../../pages/license/license.model';
 
 @Injectable({ providedIn: 'root' })
@@ -68,5 +69,17 @@ export class LicenseService {
 
     keyGenerate(request: LicenseKeyRequestDto): Observable<GeneratedLicenseKeyDto> {
         return this.api.post<GeneratedLicenseKeyDto>(ApiEndpoints.LICENSE_KEY_GENERATE, request);
+    }
+    keyRevoke(keyId: number, reason: string): Observable<LicenseKeySummaryDto> {
+        return this.api.post<LicenseKeySummaryDto>(ApiEndpoints.LICENSE_KEY_REVOKE, { keyId, reason });
+    }
+    usageList(subscriptionCode: string): Observable<LicenseUsageSnapshotDto[]> {
+        return this.api.post<LicenseUsageSnapshotDto[]>(ApiEndpoints.LICENSE_USAGE_LIST, { subscriptionCode });
+    }
+    auditList(subscriptionCode: string): Observable<LicenseAuditEventDto[]> {
+        return this.api.post<LicenseAuditEventDto[]>(ApiEndpoints.LICENSE_AUDIT_LIST, { subscriptionCode });
+    }
+    renewalSummary(subscriptionCode: string): Observable<LicenseRenewalSummaryDto> {
+        return this.api.post<LicenseRenewalSummaryDto>(ApiEndpoints.LICENSE_RENEWAL_SUMMARY, { subscriptionCode });
     }
 }

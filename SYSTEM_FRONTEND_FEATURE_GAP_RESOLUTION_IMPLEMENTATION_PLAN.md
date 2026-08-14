@@ -480,6 +480,8 @@ Verification on 2026-08-14:
 
 ## 13. Phase 8 — License administration completion
 
+**Status:** Implemented (2026-08-14)
+
 ### Backend additions
 
 - versioned entitlement detail/update/deactivate contracts;
@@ -504,6 +506,25 @@ Activation and validation stay outside the administration console except for rea
 - Invalid target combinations are rejected client- and server-side.
 - Raw license keys are never returned after initial generation.
 - Revocation is immediate, audited, and covered by decision-service tests.
+
+### Current implementation
+
+- Subscription and plan/subscription entitlement DTOs carry optimistic versions. Updates reject missing or stale versions, and V57 adds the corresponding non-null version columns.
+- Entitlements support edit and deactivate operations. A shared backend validator rejects null types, multiple targets, incompatible type/target pairs, missing limit values, and negative limits. The frontend mirrors this validation, clears stale hidden targets when the type changes, and conditionally renders only the compatible target control.
+- Entitlement deactivation includes an explicit dependency-impact warning. The existing license decision service remains the authority for the immediate effective result.
+- License keys remain write-only credentials: the raw value is returned only from generation and list/renewal/usage/audit responses contain summaries only. Active keys have a state-aware revoke action requiring a reason; revocation sets `active=false` and `revokedAt` in the same transaction and writes a tenant-scoped license audit event with actor and safe reason context.
+- Tenant-scoped administration endpoints now expose usage snapshots, the latest 100 license audit events, and expiry/grace/auto-renew/day-remaining summaries. The frontend adds Usage & Renewal and Audit tabs driven by an authorized subscription selector.
+- Plan, subscription, entitlement, key, usage, and audit views use the shared paginated list presentation. Existing list contracts are retained for compatibility; page slicing currently occurs in the frontend after the backend applies tenant scope.
+- License activation and validation remain absent from the administration UI. Existing authenticated runtime endpoints are retained for integration diagnostics and license consumers.
+- V57 adds optimistic-version columns, usage/audit lookup indexes, and conditional system-frontend API grants. Runtime API synchronization registers concrete controller endpoints before the conditional grants can take effect on new installations.
+
+### Verification completed
+
+- Backend test compilation completed successfully.
+- Entitlement validation, key generation/revocation, and license decision tests: 7 tests passed.
+- System frontend Vitest suite: 13 tests passed.
+- Shared Angular library and system frontend production builds completed successfully; the existing initial-bundle budget warning remains.
+- V57 executed successfully against the local `system_db` in a rollback-only transaction.
 
 ## 14. Phase 9 — Backup operations and recovery evidence
 

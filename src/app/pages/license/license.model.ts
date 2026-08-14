@@ -33,6 +33,7 @@ export interface LicensePlanRequestDto {
 
 export interface LicenseSubscriptionDto {
     id: number;
+    version: number;
     subscriptionCode: string;
     planCode: string;
     tenantId: number | null;
@@ -47,6 +48,7 @@ export interface LicenseSubscriptionDto {
 
 export interface LicenseSubscriptionRequestDto {
     id: number | null;
+    version: number | null;
     subscriptionCode: string;
     planCode: string;
     tenantId: number | null;
@@ -62,6 +64,7 @@ export interface LicenseSubscriptionRequestDto {
 
 export interface LicenseEntitlementDto {
     id: number;
+    version: number;
     ownerCode: string;
     entitlementType: LicenseEntitlementType;
     moduleId: number | null;
@@ -76,6 +79,8 @@ export interface LicenseEntitlementDto {
 }
 
 export interface LicenseEntitlementRequestDto {
+    id: number | null;
+    version: number | null;
     planCode: string | null;
     subscriptionCode: string | null;
     entitlementType: LicenseEntitlementType;
@@ -116,6 +121,10 @@ export interface GeneratedLicenseKeyDto {
     keyPrefix: string;
     expiresAt: string | null;
 }
+
+export interface LicenseUsageSnapshotDto { id: number; subscriptionCode: string; usagePeriod: string; usageCode: string; usageValue: number; measuredAt: string; }
+export interface LicenseAuditEventDto { id: number; subscriptionCode: string; eventType: string; eventMessageCode: string; actorUserId: number | null; safeContextJson: string | null; createdAt: string; }
+export interface LicenseRenewalSummaryDto { subscriptionCode: string; status: LicenseStatus; expiresAt: string | null; gracePeriodEndsAt: string | null; autoRenew: boolean; daysRemaining: number; }
 
 // ---- Date <-> ISO string helpers ----
 // DynamicForm's `date` field (DatePickerComponent) both emits and expects a
@@ -235,19 +244,40 @@ export function subscriptionInitialValue(row: LicenseSubscriptionDto | null): Re
 
 export const ENTITLEMENT_FIELDS: FieldConfig[] = [
     { type: 'dropdown', key: 'entitlementType', label: 'Entitlement Type', options: ENTITLEMENT_TYPE_OPTIONS, required: true },
-    { type: 'number', key: 'moduleId', label: 'Module Id (if type=Module)' },
-    { type: 'number', key: 'submoduleId', label: 'Submodule Id (if type=Submodule)' },
-    { type: 'number', key: 'featureId', label: 'Feature Id (if type=Feature)' },
-    { type: 'number', key: 'privilegeId', label: 'Privilege Id (if type=Action)' },
-    { type: 'number', key: 'apiRegistryId', label: 'API Registry Id (if type=API)' },
-    { type: 'text', key: 'limitCode', label: 'Limit Code (if type=Limit)' },
-    { type: 'number', key: 'limitValue', label: 'Limit Value (if type=Limit)' },
+    { type: 'number', key: 'moduleId', label: 'Module Id', visibleWhen: v => v['entitlementType'] === 'MODULE' },
+    { type: 'number', key: 'submoduleId', label: 'Submodule Id', visibleWhen: v => v['entitlementType'] === 'SUBMODULE' },
+    { type: 'number', key: 'featureId', label: 'Feature / Add-On Id', visibleWhen: v => v['entitlementType'] === 'FEATURE' || v['entitlementType'] === 'ADD_ON' },
+    { type: 'number', key: 'privilegeId', label: 'Privilege Id', visibleWhen: v => v['entitlementType'] === 'ACTION' },
+    { type: 'number', key: 'apiRegistryId', label: 'API Registry Id', visibleWhen: v => v['entitlementType'] === 'API' },
+    { type: 'text', key: 'limitCode', label: 'Limit Code', visibleWhen: v => v['entitlementType'] === 'LIMIT' },
+    { type: 'number', key: 'limitValue', label: 'Limit Value', visibleWhen: v => v['entitlementType'] === 'LIMIT' },
     { type: 'dropdown', key: 'overrideMode', label: 'Override Mode (subscription overrides only)', options: OVERRIDE_MODE_OPTIONS },
     { type: 'checkbox', key: 'active', label: 'Active' }
 ];
 
-export function entitlementInitialValue(): Record<string, unknown> {
-    return { entitlementType: 'FEATURE', overrideMode: 'ALLOW', active: true };
+export function entitlementInitialValue(row: LicenseEntitlementDto | null = null): Record<string, unknown> {
+    return row ? { ...row } : { entitlementType: 'FEATURE', overrideMode: 'ALLOW', active: true };
+}
+
+export function validateEntitlementTarget(value: Record<string, unknown>): string | null {
+    const type = value['entitlementType'] as LicenseEntitlementType;
+    const fields = ['moduleId', 'submoduleId', 'featureId', 'privilegeId', 'apiRegistryId', 'limitCode'];
+    const populated = fields.filter((key) => value[key] !== null && value[key] !== undefined && value[key] !== '');
+    const expected: Record<LicenseEntitlementType, string> = { MODULE: 'moduleId', SUBMODULE: 'submoduleId', FEATURE: 'featureId',
+        ADD_ON: 'featureId', ACTION: 'privilegeId', API: 'apiRegistryId', LIMIT: 'limitCode' };
+    if (populated.length !== 1 || populated[0] !== expected[type]) return `Exactly one ${type.toLowerCase()} target is required.`;
+    if (type === 'LIMIT' && (value['limitValue'] === null || value['limitValue'] === undefined || Number(value['limitValue']) < 0)) return 'A non-negative limit value is required.';
+    return null;
+}
+
+export function normalizeEntitlementTarget(value: Record<string, unknown>): Record<string, unknown> {
+    const type = value['entitlementType'] as LicenseEntitlementType;
+    const expected: Record<LicenseEntitlementType, string> = { MODULE: 'moduleId', SUBMODULE: 'submoduleId', FEATURE: 'featureId',
+        ADD_ON: 'featureId', ACTION: 'privilegeId', API: 'apiRegistryId', LIMIT: 'limitCode' };
+    const result = { ...value };
+    for (const key of ['moduleId', 'submoduleId', 'featureId', 'privilegeId', 'apiRegistryId', 'limitCode']) if (key !== expected[type]) result[key] = null;
+    if (type !== 'LIMIT') result['limitValue'] = null;
+    return result;
 }
 
 export function entitlementTargetLabel(row: LicenseEntitlementDto): string {

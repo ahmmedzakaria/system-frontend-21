@@ -41,6 +41,7 @@ import {
     subscriptionFields,
     subscriptionInitialValue,
     toIsoOrNull
+    ,validateEntitlementTarget, normalizeEntitlementTarget, LicenseUsageSnapshotDto, LicenseAuditEventDto, LicenseRenewalSummaryDto
 } from './license.model';
 
 type SubscriptionAction = 'suspend' | 'reactivate' | 'cancel';
@@ -54,6 +55,7 @@ type SubscriptionAction = 'suspend' | 'reactivate' | 'cancel';
     styleUrl: './license-list.component.scss'
 })
 export class LicenseListComponent {
+    protected readonly formatDateTime = formatDateTime;
     private readonly service = inject(LicenseService);
     private readonly clientAppService = inject(ClientApplicationService);
     private readonly authorizedScopes=inject(AuthorizedScopeService);
@@ -159,6 +161,7 @@ export class LicenseListComponent {
     protected readonly subscriptionEditorOpen = signal(false);
     protected readonly subscriptionEditorInitialValue = signal<Record<string, unknown>>({});
     private editingSubscriptionId: number | null = null;
+    private editingSubscriptionVersion: number | null = null;
     private editingSubscriptionStatus: LicenseStatus | null = null;
     protected readonly subscriptionOwnerScope=signal<HierarchicalScopeValue|null>(null);
     protected readonly loadTenants=this.authorizedScopes.tenants;
@@ -178,15 +181,16 @@ export class LicenseListComponent {
             key: 'actions', header: '', align: 'end', type: 'actions',
             actions: [
                 { icon: 'edit', label: 'Edit', permissionKey: 'license.manage', onClick: (row) => this.openSubscriptionEditor(row) },
-                { icon: 'hourglass-half', label: 'Suspend', permissionKey: 'license.manage', onClick: (row) => this.openSubscriptionAction('suspend', row) },
-                { icon: 'check', label: 'Reactivate', permissionKey: 'license.manage', onClick: (row) => this.openSubscriptionAction('reactivate', row) },
-                { icon: 'ban', label: 'Cancel', permissionKey: 'license.manage', onClick: (row) => this.openSubscriptionAction('cancel', row), danger: true }
+                { icon: 'hourglass-half', label: 'Suspend', permissionKey: 'license.manage', hidden: row => !['ACTIVE','TRIAL','GRACE_PERIOD'].includes(row.status), onClick: (row) => this.openSubscriptionAction('suspend', row) },
+                { icon: 'check', label: 'Reactivate', permissionKey: 'license.manage', hidden: row => row.status !== 'SUSPENDED', onClick: (row) => this.openSubscriptionAction('reactivate', row) },
+                { icon: 'ban', label: 'Cancel', permissionKey: 'license.manage', hidden: row => ['CANCELLED','REVOKED','EXPIRED'].includes(row.status), onClick: (row) => this.openSubscriptionAction('cancel', row), danger: true }
             ]
         }
     ];
 
     protected openSubscriptionEditor(row: LicenseSubscriptionDto | null): void {
         this.editingSubscriptionId = row?.id ?? null;
+        this.editingSubscriptionVersion = row?.version ?? null;
         this.editingSubscriptionStatus = row?.status ?? null;
         this.subscriptionEditorInitialValue.set(subscriptionInitialValue(row));
         this.subscriptionOwnerScope.set(row?.tenantId ? {tenantId:row.tenantId,businessId:row.businessId,branchId:null}:null);
@@ -198,6 +202,7 @@ export class LicenseListComponent {
     protected saveSubscriptionEditor(value: Record<string, unknown>): void {
         const request: LicenseSubscriptionRequestDto = {
             id: this.editingSubscriptionId,
+            version: this.editingSubscriptionVersion,
             subscriptionCode: (value['subscriptionCode'] as string) || '',
             planCode: value['planCode'] as string,
             tenantId: this.subscriptionOwnerScope()?.tenantId ?? null,
@@ -276,6 +281,8 @@ export class LicenseListComponent {
     protected readonly entitlementFields = ENTITLEMENT_FIELDS;
     protected readonly entitlementEditorOpen = signal(false);
     protected readonly entitlementEditorInitialValue = signal<Record<string, unknown>>({});
+    protected readonly entitlementError = signal<string | null>(null);
+    private editingEntitlement: LicenseEntitlementDto | null = null;
 
     protected setEntitlementOwnerType(type: EntitlementOwnerType): void {
         this.entitlementOwnerType.set(type);
@@ -308,20 +315,31 @@ export class LicenseListComponent {
         { key: 'target', header: 'Target', format: (row) => entitlementTargetLabel(row) },
         { key: 'limitCode', header: 'Limit Code', format: (row) => row.limitCode ?? '—' },
         { key: 'limitValue', header: 'Limit Value', format: (row) => row.limitValue?.toString() ?? '—' },
-        { key: 'active', header: 'Status', type: 'badge', status: (row) => (row.active ? 'verified' : 'draft') }
+        { key: 'active', header: 'Status', type: 'badge', status: (row) => (row.active ? 'verified' : 'draft') },
+        { key: 'actions', header: '', type: 'actions', align: 'end', actions: [
+            { icon: 'edit', label: 'Edit', permissionKey: 'license.manage', onClick: (row) => this.openEntitlementEditor(row) },
+            { icon: 'ban', label: 'Deactivate', permissionKey: 'license.manage', danger: true, hidden: (row) => !row.active, onClick: (row) => this.deactivateEntitlement(row) }
+        ] }
     ];
 
-    protected openEntitlementEditor(): void {
-        this.entitlementEditorInitialValue.set(entitlementInitialValue());
+    protected openEntitlementEditor(row: LicenseEntitlementDto | null = null): void {
+        this.editingEntitlement = row;
+        this.entitlementError.set(null);
+        this.entitlementEditorInitialValue.set(entitlementInitialValue(row));
         this.entitlementEditorOpen.set(true);
     }
     protected closeEntitlementEditor(): void {
         this.entitlementEditorOpen.set(false);
     }
     protected saveEntitlementEditor(value: Record<string, unknown>): void {
+        value = normalizeEntitlementTarget(value);
+        const validation = validateEntitlementTarget(value);
+        if (validation) { this.entitlementError.set(validation); return; }
         const ownerType = this.entitlementOwnerType();
         const code = this.entitlementOwnerCode();
         const request: LicenseEntitlementRequestDto = {
+            id: this.editingEntitlement?.id ?? null,
+            version: this.editingEntitlement?.version ?? null,
             planCode: ownerType === 'PLAN' ? code : null,
             subscriptionCode: ownerType === 'SUBSCRIPTION' ? code : null,
             entitlementType: value['entitlementType'] as LicenseEntitlementRequestDto['entitlementType'],
@@ -342,6 +360,13 @@ export class LicenseListComponent {
             this.entitlementEditorOpen.set(false);
             this.tabsRef()?.reloadTab('entitlements');
         });
+    }
+    protected deactivateEntitlement(row: LicenseEntitlementDto): void {
+        if (!confirm(`Deactivate ${entitlementTargetLabel(row)}? Decisions depending on this entitlement may be denied immediately.`)) return;
+        const request: LicenseEntitlementRequestDto = { ...row, planCode: this.entitlementOwnerType() === 'PLAN' ? row.ownerCode : null,
+            subscriptionCode: this.entitlementOwnerType() === 'SUBSCRIPTION' ? row.ownerCode : null, active: false };
+        const call = this.entitlementOwnerType() === 'PLAN' ? this.service.planEntitlementSave(request) : this.service.subscriptionEntitlementSave(request);
+        call.subscribe(() => this.tabsRef()?.reloadTab('entitlements'));
     }
 
     // ---- Keys ----
@@ -375,8 +400,24 @@ export class LicenseListComponent {
         { key: 'issuedAt', header: 'Issued At', format: (row) => formatDateTime(row.issuedAt) },
         { key: 'activatedAt', header: 'Activated At', format: (row) => formatDateTime(row.activatedAt) },
         { key: 'expiresAt', header: 'Expires At', format: (row) => formatDateTime(row.expiresAt) },
-        { key: 'active', header: 'Status', type: 'badge', status: (row) => (row.active ? 'verified' : 'draft') }
+        { key: 'active', header: 'Status', type: 'badge', status: (row) => (row.active ? 'verified' : 'draft') },
+        { key: 'actions', header: '', type: 'actions', align: 'end', actions: [
+            { icon: 'ban', label: 'Revoke', danger: true, permissionKey: 'license.manage', hidden: (row) => !row.active, onClick: (row) => this.revokeKey(row) }
+        ] }
     ];
+    protected revokeKey(row: LicenseKeySummaryDto): void {
+        const reason = prompt(`Reason for revoking key ${row.keyPrefix}`);
+        if (!reason?.trim()) return;
+        this.service.keyRevoke(row.id, reason.trim()).subscribe(() => this.tabsRef()?.reloadTab('keys'));
+    }
+
+    protected readonly diagnosticSubscriptionCode = signal('');
+    protected readonly renewal = signal<LicenseRenewalSummaryDto | null>(null);
+    protected setDiagnosticSubscriptionCode(code: string): void { this.diagnosticSubscriptionCode.set(code); this.renewal.set(null); if (code) this.service.renewalSummary(code).subscribe(x => this.renewal.set(x)); this.tabsRef()?.reloadTab('usage'); this.tabsRef()?.reloadTab('audit'); }
+    protected readonly loadUsage: DynamicListLoader<LicenseUsageSnapshotDto> = (params) => this.diagnosticSubscriptionCode() ? this.service.usageList(this.diagnosticSubscriptionCode()).pipe(map(rows => ({items: rows.slice((params.page-1)*params.pageSize, params.page*params.pageSize), total: rows.length}))) : of({items:[],total:0});
+    protected readonly loadAudit: DynamicListLoader<LicenseAuditEventDto> = (params) => this.diagnosticSubscriptionCode() ? this.service.auditList(this.diagnosticSubscriptionCode()).pipe(map(rows => ({items: rows.slice((params.page-1)*params.pageSize, params.page*params.pageSize), total: rows.length}))) : of({items:[],total:0});
+    protected readonly usageColumns: ListColumnConfig<LicenseUsageSnapshotDto>[] = [{key:'usagePeriod',header:'Period'},{key:'usageCode',header:'Limit / Usage'},{key:'usageValue',header:'Consumed'},{key:'measuredAt',header:'Measured',format:r=>formatDateTime(r.measuredAt)}];
+    protected readonly auditColumns: ListColumnConfig<LicenseAuditEventDto>[] = [{key:'eventType',header:'Event'},{key:'actorUserId',header:'Actor',format:r=>r.actorUserId?.toString() ?? 'System'},{key:'createdAt',header:'Occurred',format:r=>formatDateTime(r.createdAt)}];
 
     protected openKeyEditor(): void {
         this.keyEditorInitialValue.set({});
@@ -464,6 +505,9 @@ export class LicenseListComponent {
             searchPlaceholder: 'Search…',
             emptyTitle: 'No license keys yet',
             emptyMessage: 'Generate the first key for this subscription.'
+        },
+        { key:'usage', label:'Usage & Renewal', filters:[{key:'subscription',label:'Subscription',options:this.subscriptionOptions(),value:this.diagnosticSubscriptionCode()||null,onChange:v=>this.setDiagnosticSubscriptionCode(v as string)}], ready:!!this.diagnosticSubscriptionCode(), emptyFilterHint:'Select a subscription to inspect usage and renewal.', columns:this.usageColumns as ListColumnConfig<unknown>[], loadItems:this.loadUsage as DynamicListLoader<unknown>, emptyTitle:'No usage snapshots', emptyMessage:'No measured consumption has been recorded.' },
+        { key:'audit', label:'Audit', filters:[{key:'subscription',label:'Subscription',options:this.subscriptionOptions(),value:this.diagnosticSubscriptionCode()||null,onChange:v=>this.setDiagnosticSubscriptionCode(v as string)}], ready:!!this.diagnosticSubscriptionCode(), emptyFilterHint:'Select a subscription to inspect audit history.', columns:this.auditColumns as ListColumnConfig<unknown>[], loadItems:this.loadAudit as DynamicListLoader<unknown>, emptyTitle:'No audit events', emptyMessage:'No license administration events have been recorded.'
         }
     ]);
 }

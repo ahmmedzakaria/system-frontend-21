@@ -106,7 +106,9 @@ export const SYSTEM_FEATURE_CONTRACTS: readonly SystemFeatureContract[] = [
             endpoint('LICENSE_SUBSCRIPTION_SUSPEND', 'license.manage'), endpoint('LICENSE_SUBSCRIPTION_REACTIVATE', 'license.manage'),
             endpoint('LICENSE_SUBSCRIPTION_CANCEL', 'license.manage'), endpoint('LICENSE_SUBSCRIPTION_ENTITLEMENT_LIST', 'license.view'),
             endpoint('LICENSE_SUBSCRIPTION_ENTITLEMENT_SAVE', 'license.manage'), endpoint('LICENSE_KEY_LIST', 'license.view'),
-            endpoint('LICENSE_KEY_GENERATE', 'license.manage')]
+            endpoint('LICENSE_KEY_GENERATE', 'license.manage'), endpoint('LICENSE_KEY_REVOKE', 'license.manage'),
+            endpoint('LICENSE_USAGE_LIST', 'license.view'), endpoint('LICENSE_AUDIT_LIST', 'license.view'),
+            endpoint('LICENSE_RENEWAL_SUMMARY', 'license.view')]
     },
     {
         feature: 'backup', routes: { '/backup': 'backup.view' },

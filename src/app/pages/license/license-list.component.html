@@ -7,13 +7,23 @@
             <app-button *appAuthorizedUi="'license.manage'" label="New Subscription" icon="plus" variant="ghost" (clicked)="openSubscriptionEditor(null)" />
         } @else if (activeTabKey() === 'entitlements') {
             <app-button *appAuthorizedUi="'license.manage'" label="New Entitlement" icon="plus" variant="ghost" [disabled]="!entitlementOwnerCode()" (clicked)="openEntitlementEditor()" />
-        } @else {
+        } @else if (activeTabKey() === 'keys') {
             <app-button *appAuthorizedUi="'license.manage'" label="New Key" icon="plus" variant="ghost" [disabled]="!keyFilterSubscriptionCode()" (clicked)="openKeyEditor()" />
         }
     </div>
 </div>
 
 <app-dynamic-tab #tabsRef [tabs]="tabs()" (tabChange)="activeTabIndex.set($event)" />
+
+@if (activeTabKey() === 'usage' && renewal(); as summary) {
+    <section class="renewal-summary" aria-label="Expiry and renewal summary">
+        <strong>{{ summary.subscriptionCode }}</strong>
+        <span>Status: {{ summary.status }}</span>
+        <span>Expires: {{ summary.expiresAt ? formatDateTime(summary.expiresAt) : 'No expiry' }}</span>
+        <span>Auto renew: {{ summary.autoRenew ? 'Yes' : 'No' }}</span>
+        @if (summary.expiresAt) { <span>Days remaining: {{ summary.daysRemaining }}</span> }
+    </section>
+}
 
 <app-dynamic-modal
         [open]="planEditorOpen()"
@@ -25,6 +35,7 @@
         (closed)="closePlanEditor()"
         (submitted)="savePlanEditor($event)"
 />
+@if (entitlementEditorOpen() && entitlementError()) { <p class="form-error" role="alert">{{ entitlementError() }}</p> }
 @if (subscriptionEditorOpen()) {
     <section class="owner-scope" aria-label="Authorized subscription owner">
         <h3>Authorized organization owner</h3>

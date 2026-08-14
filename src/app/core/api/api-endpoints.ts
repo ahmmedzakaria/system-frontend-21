@@ -101,6 +101,10 @@ export const ApiEndpoints = {
     LICENSE_SUBSCRIPTION_ENTITLEMENT_SAVE: { apiPath: 'system/license/subscription/entitlement/save', actionType: ActionTypes.CREATE },
     LICENSE_KEY_LIST: { apiPath: 'system/license/key/list', actionType: ActionTypes.SEARCH },
     LICENSE_KEY_GENERATE: { apiPath: 'system/license/key/generate', actionType: ActionTypes.CREATE },
+    LICENSE_KEY_REVOKE: { apiPath: 'system/license/key/revoke', actionType: ActionTypes.UPDATE },
+    LICENSE_USAGE_LIST: { apiPath: 'system/license/usage/list', actionType: ActionTypes.SEARCH },
+    LICENSE_AUDIT_LIST: { apiPath: 'system/license/audit/list', actionType: ActionTypes.SEARCH },
+    LICENSE_RENEWAL_SUMMARY: { apiPath: 'system/license/renewal/summary', actionType: ActionTypes.SEARCH },
 
     // Database Backup Administration
     BACKUP_RUN: { apiPath: 'system/backup/run', actionType: ActionTypes.CREATE },
