@@ -1,6 +1,7 @@
 :host {
   display: block;
 }
+header { margin-bottom:var(--layout-space-4); h2{margin:0;color:var(--text)} p{color:var(--text-muted)} }
 
 .stat-grid {
   display: grid;
@@ -19,7 +20,15 @@
   border-radius: var(--layout-radius-lg);
   box-shadow: var(--shadow);
   padding: var(--layout-space-4);
+  text-decoration:none;
+  transition:transform .15s ease,border-color .15s ease;
+  &:hover,&:focus-visible{transform:translateY(-2px);border-color:var(--accent);outline:none}
+  &.warning{border-color:#d97706}&.critical{border-color:var(--danger,#b42318)}
 }
+.warning-code{font-size:var(--layout-font-size-sm);color:var(--text-muted)}
+.dashboard-state,.diagnostics{padding:var(--layout-space-4);background:var(--card);border:1px solid var(--border);border-radius:var(--layout-radius-lg)}
+.dashboard-state.error{color:var(--danger,#b42318)}
+.diagnostics{margin-top:var(--layout-space-4);h3{margin-top:0}dl{display:grid;grid-template-columns:auto 1fr;gap:.5rem 1rem}dd{margin:0;text-align:right}}
 
 .stat-icon {
   color: var(--accent);

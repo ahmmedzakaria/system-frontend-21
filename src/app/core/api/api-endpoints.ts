@@ -6,6 +6,7 @@ import { ActionTypes, ApiEndpoint } from '@nexacore/platform';
 // own pages (Access Control, Privilege, Layout, License), added module by
 // module as each phase is implemented.
 export const ApiEndpoints = {
+    SYSTEM_DASHBOARD_AGGREGATE: { apiPath: 'system/dashboard/aggregate', actionType: ActionTypes.SEARCH },
     // Access Control — Client Applications
     CLIENT_APP_SAVE: { apiPath: 'system/client-app/save', actionType: ActionTypes.CREATE },
     CLIENT_APP_LIST: { apiPath: 'system/client-app/list', actionType: ActionTypes.SEARCH },

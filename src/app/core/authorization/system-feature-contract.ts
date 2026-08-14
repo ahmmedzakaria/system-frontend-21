@@ -25,6 +25,7 @@ const endpoint = (endpointKey: SystemApiEndpointKey, policy: SystemEndpointContr
 SystemEndpointContract => ({ endpoint: endpointKey, policy, dataScope });
 
 export const SYSTEM_FEATURE_CONTRACTS: readonly SystemFeatureContract[] = [
+    { feature: 'dashboard', routes: {}, actions: {}, endpoints: [endpoint('SYSTEM_DASHBOARD_AGGREGATE', AUTHENTICATED_POLICY)] },
     {
         feature: 'client-applications',
         routes: {

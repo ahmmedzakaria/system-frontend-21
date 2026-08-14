@@ -578,6 +578,8 @@ Do not expose a general browser-triggered production restore. Any future restore
 
 ## 15. Phase 10 — Privilege-aware dashboard and diagnostics
 
+**Status:** Implemented (2026-08-14)
+
 ### Backend
 
 Add a single scoped aggregate endpoint instead of loading every administration list. Include only authorized metrics such as:
@@ -599,6 +601,25 @@ Add a single scoped aggregate endpoint instead of loading every administration l
 ### Gate
 
 The dashboard makes one aggregate request, reveals no unauthorized module existence/counts, and never becomes an authorization source.
+
+### Current implementation
+
+- `/api/v1/system/dashboard/aggregate` is an authenticated, client-registered endpoint and is the dashboard's only data request. It returns a generated timestamp, a sparse metric map, and optional safe diagnostics.
+- Each metric is independently guarded with the same backend privilege authorizer used by administration endpoints. Unauthorized metric keys are omitted entirely and their repositories/services are not queried; they are never represented as zero, null, disabled cards, or frontend-only hiding.
+- The aggregate includes active platform clients, pending tenant onboarding, tenant-scoped licenses expiring within 30 days, queued/running backups, failed/partial backups, and current annotation/API metadata conflicts when the matching view privilege is effective.
+- Enforcement mode, access-control enabled state, and latest persisted API-registry synchronization time are returned only with API Registry view privilege. Configuration secrets, registry contents, and inaccessible module names/counts are not returned.
+- Metrics carry backend-provided warning severity, stable warning code, and an authorized destination route. The aggregate remains informational: neither frontend nor downstream backend authorization consumes its values.
+- The dashboard renders only returned metrics. Every card is a semantic router link with keyboard focus styling; warning and critical cards link to the relevant authorized administration page.
+- Loading and structured error states replace placeholder counts. A failed aggregate request exposes no partial or cached inaccessible counts.
+- `V59__grant_system_dashboard_aggregate_api.sql` conditionally grants the endpoint to `SYSTEM_ADMIN_WEB`; runtime synchronization includes the dashboard controller family for fresh installations.
+
+### Verification completed
+
+- Backend compilation and test compilation completed successfully.
+- Dashboard omission/query-isolation tests: 2 tests passed.
+- System frontend authorization-contract, single-request service, and component test suite: 17 tests passed.
+- V59 executed successfully against the local `system_db` in a rollback-only transaction.
+- System frontend production build completed successfully; the existing initial-bundle budget warning remains.
 
 ## 16. Phase 11 — Audit and user-session administration
 

@@ -1,11 +1,20 @@
 <div class="dashboard">
+    <header><h2>System administration</h2><p>Metrics shown here are limited to your current privileges and tenant scope.</p></header>
+    @if (loading()) { <div class="dashboard-state" role="status">Loading authorized dashboard…</div> }
+    @else if (error()) { <div class="dashboard-state error" role="alert">{{ error() }}</div> }
+    @else {
     <div class="stat-grid">
-        @for (stat of stats; track stat.title) {
-            <div class="stat-card">
+        @for (stat of cards(); track stat.key) {
+            <a class="stat-card" [class.warning]="stat.severity === 'WARNING'" [class.critical]="stat.severity === 'CRITICAL'" [routerLink]="stat.route">
                 <app-icon [name]="stat.icon" [size]="28" class="stat-icon" />
                 <h5 class="stat-title">{{ stat.title }}</h5>
                 <h3 class="stat-value">{{ stat.value }}</h3>
-            </div>
+                @if (stat.warningCode) { <span class="warning-code">{{ stat.warningCode }}</span> }
+            </a>
         }
     </div>
+    @if (aggregate()?.diagnostics; as diagnostics) {
+      <section class="diagnostics"><h3>Access-control diagnostics</h3><dl><dt>Enforcement mode</dt><dd>{{ diagnostics.enforcementMode }}</dd><dt>Enabled</dt><dd>{{ diagnostics.accessControlEnabled ? 'Yes':'No' }}</dd><dt>Registry last synchronized</dt><dd>{{ diagnostics.registryLastSynchronizedAt ? (diagnostics.registryLastSynchronizedAt | date:'medium') : 'Never recorded' }}</dd></dl></section>
+    }
+    }
 </div>
