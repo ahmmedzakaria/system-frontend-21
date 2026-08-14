@@ -55,13 +55,16 @@
                         <app-button label="Remove" variant="ghost" [disabled]="!scopeEditable(scope)" (clicked)="removeScope(scope)" /></div>
                 }</div>
                 <app-replacement-summary [summary]="scopeState.summary()" [version]="scopeState.version()" [labelOf]="scopeLabel" />
-                <app-button label="Replace scope assignments" icon="save" [disabled]="!scopeState.canSave()" (clicked)="saveScopes()" />
+                <app-button label="Review scope replacement" icon="save" [disabled]="!scopeState.canSave()" (clicked)="requestSaveScopes()" />
             }
         </div>
     }
 }
 
 <app-confirm-dialog [open]="rotateConfirmOpen()" title="Rotate API Key" message="This immediately deactivates the current credential. Continue?" confirmLabel="Rotate" [danger]="true" [loading]="rotating()" (confirmed)="confirmRotate()" (cancelled)="rotateConfirmOpen.set(false)" />
+<app-confirm-dialog [open]="scopeReplacementConfirmOpen()" title="Confirm Scope Replacement" [message]="scopeReplacementMessage()"
+    confirmLabel="Replace scopes" [danger]="removedScopes().length > 0" [loading]="scopeState.status() === 'saving'"
+    (confirmed)="saveScopes()" (cancelled)="scopeReplacementConfirmOpen.set(false)" />
 <app-modal [open]="!!generatedCredential()" title="New Client Credential" (closed)="generatedCredential.set(null)">
     @if (generatedCredential(); as credential) {
         <p class="panel-hint warning">This key cannot be retrieved again.</p>

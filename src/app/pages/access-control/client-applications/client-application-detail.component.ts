@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { forkJoin, tap } from 'rxjs';
 import {
     ApplicationContextService,
     AuthorizationPolicyService,
@@ -60,9 +60,19 @@ export class ClientApplicationDetailComponent {
     protected readonly featureSelectedKeys = computed(() => new Set(this.featureState.selected().map(item => item.privilegeCode)));
     protected readonly scopeSelectedKeys = computed(() => new Set(this.scopeState.selected().map(scopeKey)));
     protected readonly scopeDraft = signal<HierarchicalScopeValue|null>(null);
-    protected readonly loadTenants=this.authorizedScopes.tenants;
-    protected readonly loadBusinesses=this.authorizedScopes.businesses;
-    protected readonly loadBranches=this.authorizedScopes.branches;
+    private readonly scopeTenantNames = signal(new Map<number,string>());
+    private readonly scopeBusinessNames = signal(new Map<string,string>());
+    private readonly scopeBranchNames = signal(new Map<string,string>());
+    protected readonly loadTenants=()=>this.authorizedScopes.tenants().pipe(tap(options=>
+        this.scopeTenantNames.set(new Map(options.map(option=>[option.id,option.label])))));
+    protected readonly loadBusinesses=(tenantId:number)=>this.authorizedScopes.businesses(tenantId).pipe(tap(options=>{
+        const names=new Map(this.scopeBusinessNames()); options.forEach(option=>names.set(`${tenantId}:${option.id}`,option.label));
+        this.scopeBusinessNames.set(names);
+    }));
+    protected readonly loadBranches=(tenantId:number,businessId:number)=>this.authorizedScopes.branches(tenantId,businessId).pipe(tap(options=>{
+        const names=new Map(this.scopeBranchNames()); options.forEach(option=>names.set(`${tenantId}:${businessId}:${option.id}`,option.label));
+        this.scopeBranchNames.set(names);
+    }));
 
     protected readonly canEdit = computed(() => this.policy.isActionAllowed('client-applications.edit'));
     protected readonly canRotate = computed(() => this.policy.isActionAllowed('client-applications.rotate'));
@@ -71,6 +81,18 @@ export class ClientApplicationDetailComponent {
     protected readonly canAssignScope = computed(() => this.policy.isActionAllowed('client-applications.assign-scope'));
 
     protected readonly rotateConfirmOpen = signal(false);
+    protected readonly scopeReplacementConfirmOpen = signal(false);
+    protected readonly removedScopes = computed(()=>{
+        const selected=new Set(this.scopeState.selected().map(scopeKey));
+        return this.scopeState.original().filter(scope=>!selected.has(scopeKey(scope)));
+    });
+    protected readonly scopeReplacementMessage = computed(()=>{
+        const removed=this.removedScopes();
+        if(!removed.length) return 'This replaces the complete client scope set. Existing assignments will be retained and the added scopes will be applied.';
+        const labels=removed.slice(0,3).map(scope=>this.scopeLabel(scope)).join(', ');
+        const remaining=removed.length>3 ? ` and ${removed.length-3} more` : '';
+        return `This full replacement will remove ${removed.length} existing scope assignment${removed.length===1?'':'s'}: ${labels}${remaining}. Continue?`;
+    });
     protected readonly rotating = signal(false);
     protected readonly generatedCredential = signal<GeneratedClientCredentialDto | null>(null);
 
@@ -126,9 +148,16 @@ export class ClientApplicationDetailComponent {
         this.clientApps.assignFeaturePermissions(this.id, this.featureState.selected().map(item => item.privilegeCode)).subscribe(this.saveObserver(this.featureState));
     }
 
+    protected requestSaveScopes():void { if(this.scopeState.canSave()) this.scopeReplacementConfirmOpen.set(true); }
+
     protected saveScopes(): void {
         const version=this.scopeState.version(); if (!version || !this.scopeState.beginSave()) return;
-        this.clientApps.assignScopes(this.id, [...this.scopeState.selected()],version).subscribe(this.saveObserver(this.scopeState));
+        this.clientApps.assignScopes(this.id, [...this.scopeState.selected()],version).subscribe({
+            next:()=>{ this.scopeReplacementConfirmOpen.set(false); this.scopeState.saveSucceeded(); this.load();
+                this.context.refresh().subscribe({error:()=>undefined}); },
+            error:()=>{ this.scopeReplacementConfirmOpen.set(false);
+                this.scopeState.saveFailed('The replacement was rejected. Current selections were retained.'); }
+        });
     }
 
     protected confirmRotate(): void {
@@ -153,7 +182,10 @@ export class ClientApplicationDetailComponent {
     protected readonly privilegeDetail = (item: PrivilegeDto) => item.privilegeCode;
     protected readonly scopeKey = scopeKey;
     protected readonly scopeLabel = (scope: ClientScopeAssignmentDto) => {
-        return `Tenant ${scope.tenantId}${scope.businessId ? ` / Business ${scope.businessId}` : ''}${scope.branchId ? ` / Branch ${scope.branchId}` : ''}`;
+        const tenant=this.scopeTenantNames().get(scope.tenantId)??`Tenant #${scope.tenantId}`;
+        const business=scope.businessId==null?'':` / ${this.scopeBusinessNames().get(`${scope.tenantId}:${scope.businessId}`)??`Business #${scope.businessId}`}`;
+        const branch=scope.branchId==null?'':` / ${this.scopeBranchNames().get(`${scope.tenantId}:${scope.businessId}:${scope.branchId}`)??`Branch #${scope.branchId}`}`;
+        return `${tenant}${business}${branch}`;
     };
 
     private saveObserver<T, K>(state: ReplacementSelectionState<T, K>) {
