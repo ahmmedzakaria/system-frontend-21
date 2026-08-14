@@ -44,6 +44,9 @@ export class ClientApplicationEditorComponent {
                                 status: match.status,
                                 description: match.description ?? '',
                                 allowedOrigins: match.allowedOrigins ?? '',
+                                oauthClientId: match.oauthClientId ?? '',
+                                allowedRedirectUris: match.allowedRedirectUris ?? '',
+                                allowedLogoutRedirectUris: match.allowedLogoutRedirectUris ?? '',
                                 allowedIps: match.allowedIps ?? '',
                                 rateLimitPerMinute: match.rateLimitPerMinute ?? null
                             })
@@ -65,6 +68,9 @@ export class ClientApplicationEditorComponent {
             status: value['status'] as ClientApplicationStatus,
             description: (value['description'] as string) || null,
             allowedOrigins: (value['allowedOrigins'] as string) || null,
+            oauthClientId: (value['oauthClientId'] as string) || null,
+            allowedRedirectUris: (value['allowedRedirectUris'] as string) || null,
+            allowedLogoutRedirectUris: (value['allowedLogoutRedirectUris'] as string) || null,
             allowedIps: (value['allowedIps'] as string) || null,
             rateLimitPerMinute: (value['rateLimitPerMinute'] as number | null) ?? null
         };
@@ -93,6 +99,9 @@ export class ClientApplicationEditorComponent {
                 initialValue: initial,
                 fields: [
                     { type: 'textarea', key: 'allowedOrigins', label: 'Allowed Origins', rows: 2, placeholder: 'Comma-separated origins, e.g. https://admin.example.com' },
+                    { type: 'text', key: 'oauthClientId', label: 'OAuth Client ID', placeholder: 'Registered OAuth/OIDC client ID' },
+                    { type: 'textarea', key: 'allowedRedirectUris', label: 'Allowed Redirect URIs', rows: 2, placeholder: 'Comma-separated exact callback URIs' },
+                    { type: 'textarea', key: 'allowedLogoutRedirectUris', label: 'Allowed Logout Redirect URIs', rows: 2, placeholder: 'Comma-separated exact post-logout URIs' },
                     { type: 'textarea', key: 'allowedIps', label: 'Allowed IPs', rows: 2, placeholder: 'Comma-separated IPs/CIDRs' },
                     { type: 'number', key: 'rateLimitPerMinute', label: 'Rate Limit (requests/minute)' }
                 ]

@@ -27,6 +27,9 @@ export interface ClientApplicationDto {
     clientType: ClientApplicationType;
     status: ClientApplicationStatus;
     allowedOrigins: string | null;
+    oauthClientId: string | null;
+    allowedRedirectUris: string | null;
+    allowedLogoutRedirectUris: string | null;
     allowedIps: string | null;
     rateLimitPerMinute: number | null;
     description: string | null;
@@ -39,6 +42,9 @@ export interface ClientApplicationRequestDto {
     clientType: ClientApplicationType;
     status: ClientApplicationStatus;
     allowedOrigins?: string | null;
+    oauthClientId?: string | null;
+    allowedRedirectUris?: string | null;
+    allowedLogoutRedirectUris?: string | null;
     allowedIps?: string | null;
     rateLimitPerMinute?: number | null;
     description?: string | null;
