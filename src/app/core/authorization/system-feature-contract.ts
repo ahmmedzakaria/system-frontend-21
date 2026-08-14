@@ -33,18 +33,21 @@ export const SYSTEM_FEATURE_CONTRACTS: readonly SystemFeatureContract[] = [
             '/access-control/client-applications/create': 'client-applications.manage',
             '/access-control/client-applications/:id/edit': 'client-applications.manage',
             '/access-control/client-applications/:id': 'client-applications.view'
+            , '/access-control/auth-policies': 'client-applications.view'
         },
         actions: {
             'client-applications.create': 'client-applications.create', 'client-applications.edit': 'client-applications.edit',
             'client-applications.rotate': 'client-applications.rotate', 'client-applications.assign-api': 'client-applications.assign-api',
-            'client-applications.assign-feature': 'client-applications.assign-feature', 'client-applications.assign-scope': 'client-applications.assign-scope'
+            'client-applications.assign-feature': 'client-applications.assign-feature', 'client-applications.assign-scope': 'client-applications.assign-scope',
+            'auth-policies.manage': 'client-applications.manage'
         },
         endpoints: [
             endpoint('CLIENT_APP_SAVE', 'client-applications.manage'), endpoint('CLIENT_APP_LIST', 'client-applications.view'),
             endpoint('CLIENT_APP_DETAIL', 'client-applications.view'), endpoint('CLIENT_APP_API_PERMISSIONS', 'client-applications.assign-api'),
             endpoint('CLIENT_APP_FEATURE_PERMISSIONS', 'client-applications.assign-feature'), endpoint('CLIENT_APP_SCOPE_ASSIGNMENTS', 'client-applications.assign-scope'),
             endpoint('CLIENT_APP_ROTATE_API_KEY', 'client-applications.rotate'), endpoint('CLIENT_APP_ASSIGN_API_PERMISSIONS', 'client-applications.assign-api'),
-            endpoint('CLIENT_APP_ASSIGN_FEATURE_PERMISSIONS', 'client-applications.assign-feature'), endpoint('CLIENT_APP_ASSIGN_TENANTS', 'client-applications.assign-scope')
+            endpoint('CLIENT_APP_ASSIGN_FEATURE_PERMISSIONS', 'client-applications.assign-feature'), endpoint('CLIENT_APP_ASSIGN_TENANTS', 'client-applications.assign-scope'),
+            endpoint('AUTH_POLICY_LIST', 'client-applications.view', 'TENANT'), endpoint('AUTH_POLICY_SAVE', 'client-applications.manage', 'TENANT')
         ]
     },
     {

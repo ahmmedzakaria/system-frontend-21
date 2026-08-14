@@ -57,4 +57,8 @@ export class ClientApplicationsListComponent {
     protected create(): void {
         this.router.navigate(['/access-control/client-applications/create']);
     }
+
+    protected configureAuthPolicies(): void {
+        this.router.navigate(['/access-control/auth-policies']);
+    }
 }

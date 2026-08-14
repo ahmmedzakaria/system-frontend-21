@@ -1,6 +1,9 @@
 <div class="page-header">
     <h2>Client Applications</h2>
-    <app-button *appAuthorizedUi="'client-applications.create'" label="New Client Application" icon="plus" variant="primary" (clicked)="create()" />
+    <div class="header-actions">
+        <app-button label="Authentication Policies" icon="key" variant="ghost" (clicked)="configureAuthPolicies()" />
+        <app-button *appAuthorizedUi="'client-applications.create'" label="New Client Application" icon="plus" variant="primary" (clicked)="create()" />
+    </div>
 </div>
 
 <app-dynamic-list

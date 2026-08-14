@@ -39,6 +39,11 @@ export const routes: Routes = [
                     import('./pages/access-control/client-applications/client-application-detail.component').then(m => m.ClientApplicationDetailComponent),
             },
             {
+                path: 'access-control/auth-policies',
+                loadComponent: () =>
+                    import('./pages/access-control/auth-policies/auth-policy-administration.component').then(m => m.AuthPolicyAdministrationComponent),
+            },
+            {
                 path: 'access-control/api-registry',
                 loadComponent: () =>
                     import('./pages/access-control/api-registry/api-registry-list.component').then(m => m.ApiRegistryListComponent),

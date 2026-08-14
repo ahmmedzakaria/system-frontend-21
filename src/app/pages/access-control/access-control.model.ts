@@ -81,6 +81,28 @@ export interface GeneratedClientCredentialDto {
     apiKey: string;
 }
 
+export type AuthPolicyLoginMethod = 'PASSWORD' | 'OTP' | 'MAGIC_LINK' | 'OAUTH' | 'SSO' | 'BIOMETRIC' | 'PASSKEY';
+export type AuthPolicyIdentifierType = 'USERNAME' | 'EMAIL' | 'MOBILE' | 'PERSON_ID';
+
+export interface AuthPolicyAdministrationDto {
+    id: number;
+    tenantId: number;
+    clientCode: string;
+    loginMethod: AuthPolicyLoginMethod;
+    loginIdentifierType: AuthPolicyIdentifierType;
+    enabled: boolean;
+    version: string;
+    updatedAt: string;
+}
+
+export interface AuthPolicyAdministrationRequest {
+    tenantId: number;
+    clientCode?: string;
+    loginMethod?: AuthPolicyLoginMethod;
+    loginIdentifierType?: AuthPolicyIdentifierType;
+    enabled?: boolean;
+}
+
 export interface ApiRegistryDto {
     id: number;
     version: number;

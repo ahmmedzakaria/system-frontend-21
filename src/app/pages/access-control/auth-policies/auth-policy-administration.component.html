@@ -1,0 +1,43 @@
+<div class="page-header">
+    <div><h2>Tenant Authentication Policies</h2><p>Configure the single primary login method for each tenant and client application.</p></div>
+</div>
+
+<div class="security-note">Policies are tenant/client unique. A client must already be actively assigned to the selected tenant.</div>
+@if (message()) { <div class="message" role="status">{{ message() }}</div> }
+
+<section class="panel selector-panel">
+    <label for="tenant">Tenant</label>
+    <select id="tenant" [ngModel]="selectedTenantId()" (ngModelChange)="tenantChanged($event)">
+        @for (tenant of tenants(); track tenant.id) { <option [value]="tenant.id">{{ tenant.displayName }} ({{ tenant.tenantCode }})</option> }
+    </select>
+</section>
+
+<div class="content-grid">
+    <section class="panel">
+        <h3>Configured policies</h3>
+        @if (loading()) { <p>Loading policies…</p> }
+        @else if (!policies().length) { <p class="empty">No policies are configured for this tenant.</p> }
+        @else { <div class="table-wrap"><table><thead><tr><th>Client</th><th>Login method</th><th>Identifier</th><th>Status</th><th></th></tr></thead><tbody>
+            @for (policy of policies(); track policy.id) { <tr><td>{{ policy.clientCode }}</td><td>{{ policy.loginMethod }}</td><td>{{ policy.loginIdentifierType }}</td><td>{{ policy.enabled ? 'Enabled' : 'Disabled' }}</td>
+                <td><button type="button" class="link-button" (click)="edit(policy)">Edit</button></td></tr> }
+        </tbody></table></div> }
+    </section>
+
+    <section class="panel editor" *appAuthorizedUi="'auth-policies.manage'">
+        <h3>Policy editor</h3>
+        <label for="client">Client application</label>
+        <select id="client" [ngModel]="selectedClientCode()" (ngModelChange)="selectedClientCode.set($event)">
+            @for (client of clients(); track client.id) { <option [value]="client.clientCode">{{ client.clientName }} ({{ client.clientCode }})</option> }
+        </select>
+        <label for="method">Primary login method</label>
+        <select id="method" [ngModel]="loginMethod()" (ngModelChange)="methodChanged($event)">
+            @for (method of ['PASSWORD','OTP','MAGIC_LINK','OAUTH','SSO','BIOMETRIC','PASSKEY']; track method) { <option [value]="method">{{ method }}</option> }
+        </select>
+        <label for="identifier">Login identifier</label>
+        <select id="identifier" [ngModel]="identifierType()" (ngModelChange)="identifierType.set($event)">
+            @for (identifier of availableIdentifiers(); track identifier) { <option [value]="identifier">{{ identifier }}</option> }
+        </select>
+        <label class="checkbox"><input type="checkbox" [ngModel]="enabled()" (ngModelChange)="enabled.set($event)" /> Policy enabled</label>
+        <app-button label="Save policy" icon="check" variant="primary" [disabled]="saving() || !selectedTenantId() || !selectedClientCode()" (clicked)="save()" />
+    </section>
+</div>

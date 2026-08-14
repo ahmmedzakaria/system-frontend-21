@@ -2,6 +2,8 @@
   display: block;
 }
 
+.header-actions { display: flex; flex-wrap: wrap; gap: var(--layout-space-2); }
+
 .page-header {
   display: flex;
   flex-wrap: wrap;

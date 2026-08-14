@@ -18,6 +18,8 @@ export const ApiEndpoints = {
     CLIENT_APP_ASSIGN_API_PERMISSIONS: { apiPath: 'system/client-app/assign-api-permissions', actionType: ActionTypes.UPDATE },
     CLIENT_APP_ASSIGN_FEATURE_PERMISSIONS: { apiPath: 'system/client-app/assign-feature-permissions', actionType: ActionTypes.UPDATE },
     CLIENT_APP_ASSIGN_TENANTS: { apiPath: 'system/client-app/assign-tenants', actionType: ActionTypes.UPDATE },
+    AUTH_POLICY_LIST: { apiPath: 'system/auth-policy/list', actionType: ActionTypes.SEARCH },
+    AUTH_POLICY_SAVE: { apiPath: 'system/auth-policy/save', actionType: ActionTypes.UPDATE },
 
     // Access Control — API Registry
     API_REGISTRY_INVENTORY: { apiPath: 'system/api-registry/inventory', actionType: ActionTypes.SEARCH },
