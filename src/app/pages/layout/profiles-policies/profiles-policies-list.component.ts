@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { of } from 'rxjs';
 import { map } from 'rxjs/operators';
 import {
@@ -23,10 +23,13 @@ import {
     ClientLayoutAssignmentRequestDto,
     LayoutProfileDto,
     LayoutProfileRequestDto,
+    LayoutRoutePolicyRequestDto,
     LayoutThemeChromeOverrides,
     LayoutThemeColorPrimaries,
     LayoutThemeConfig,
     PROFILE_FIELDS,
+    buildRoutePolicyFields,
+    RoutePrivilegePolicyDto,
     UI_POLICY_FIELDS,
     UiPrivilegePolicyDto,
     LayoutUiPolicyRequestDto,
@@ -34,12 +37,13 @@ import {
     defaultThemeConfig,
     emptyChromeOverrides,
     profileInitialValue,
+    routePolicyInitialValue,
     uiPolicyInitialValue,
     unflattenFonts,
     unflattenSizes
 } from '../layout.model';
 
-type Tab = 'profiles' | 'uiPolicies' | 'clientAssignment';
+type Tab = 'profiles' | 'uiPolicies' | 'routePolicies' | 'clientAssignment';
 
 @Component({
     selector: 'app-profiles-policies-list',
@@ -145,6 +149,77 @@ export class ProfilesPoliciesListComponent {
         }
     ];
 
+    // -- Route Policies --
+    // Drives the frontend's own routePrivilegeGuard — separate from UI Policies
+    // (button/action visibility) and from the nav tree's own feature-privilege
+    // links (sidebar visibility only). A route with no policy here is only
+    // reachable by users the client's own guard otherwise leaves unrestricted.
+    protected readonly routePolicyFields = computed(() => buildRoutePolicyFields(this.clientOptions()));
+    protected readonly routePolicyEditorOpen = signal(false);
+    protected readonly routePolicyEditorInitialValue = signal<Record<string, unknown>>({});
+    protected readonly routePolicyFilterClientCode = signal('');
+    protected readonly routePolicySelectedCodes = signal<ReadonlySet<string>>(new Set());
+    private readonly routePolicyOriginalCodes = signal<ReadonlySet<string>>(new Set());
+    protected readonly routePolicySummary = computed(() => {
+        const original = this.routePolicyOriginalCodes();
+        const selected = this.routePolicySelectedCodes();
+        return {
+            additions: [...selected].filter(code => !original.has(code)),
+            removals: [...original].filter(code => !selected.has(code)),
+            unchanged: [...selected].filter(code => original.has(code))
+        };
+    });
+
+    private readonly routePolicyList = viewChild<DynamicListComponent<RoutePrivilegePolicyDto>>('routePolicyList');
+
+    protected readonly loadRoutePolicies: DynamicListLoader<RoutePrivilegePolicyDto> = (params) =>
+        this.service.routePolicyList(this.routePolicyFilterClientCode() || null).pipe(
+            map((rows) => {
+                const query = params.query.trim().toLowerCase();
+                const filtered = query ? rows.filter((row) => row.routeUrl.toLowerCase().includes(query)) : rows;
+                const start = (params.page - 1) * params.pageSize;
+                return { items: filtered.slice(start, start + params.pageSize), total: filtered.length };
+            })
+        );
+
+    protected readonly routePolicyColumns: ListColumnConfig<RoutePrivilegePolicyDto>[] = [
+        { key: 'routeUrl', header: 'Route URL' },
+        { key: 'matchMode', header: 'Match Mode' },
+        { key: 'privilegeCodes', header: 'Privileges', format: (row) => row.privilegeCodes.join(', ') || '—' },
+        {
+            key: 'actions', header: '', align: 'end', type: 'actions',
+            actions: [{ icon: 'edit', label: 'Edit', permissionKey: 'layout.manage', onClick: (row) => this.openRoutePolicyEditor(row) }]
+        }
+    ];
+
+    protected openRoutePolicyEditor(row: RoutePrivilegePolicyDto | null): void {
+        this.routePolicyEditorInitialValue.set(routePolicyInitialValue(row, this.routePolicyFilterClientCode(), row?.routeUrl ?? null));
+        const codes = new Set(row?.privilegeCodes ?? []);
+        this.routePolicyOriginalCodes.set(codes);
+        this.routePolicySelectedCodes.set(new Set(codes));
+        this.routePolicyEditorOpen.set(true);
+    }
+    protected closeRoutePolicyEditor(): void {
+        this.routePolicyEditorOpen.set(false);
+    }
+    protected toggleRoutePolicyPrivilege(change: { item: PrivilegeDto; selected: boolean }): void {
+        const next = new Set(this.routePolicySelectedCodes());
+        change.selected ? next.add(change.item.privilegeCode) : next.delete(change.item.privilegeCode);
+        this.routePolicySelectedCodes.set(next);
+    }
+    protected saveRoutePolicyEditor(value: Record<string, unknown>): void {
+        const request: LayoutRoutePolicyRequestDto = {
+            clientCode: (value['clientCode'] as string) || null,
+            routeUrl: value['routeUrl'] as string,
+            matchMode: value['matchMode'] as LayoutRoutePolicyRequestDto['matchMode'],
+            privilegeCodes: [...this.routePolicySelectedCodes()]
+        };
+        this.service.routePolicySave(request).subscribe(() => {
+            this.routePolicyEditorOpen.set(false);
+            this.routePolicyList()?.reload();
+        });
+    }
+
     // -- Client Assignment --
     protected readonly clientAssignmentFields = CLIENT_ASSIGNMENT_FIELDS;
     protected readonly clientAssignmentEditorOpen = signal(false);
@@ -183,11 +258,21 @@ export class ProfilesPoliciesListComponent {
         }
     ];
 
+    private clientOptionsRequested = false;
+
     constructor() {
         this.privilegeService.list().subscribe(privileges => this.privileges.set(privileges.filter(item => item.active)));
         this.service.profileList().subscribe(profiles => this.profileCatalog.set(profiles.filter(profile => profile.active)));
-        if (this.policy.hasPrivilege('11020100101')) this.clientAppService.list().subscribe((clients) => {
-            this.clientOptions.set(clients.map((client) => ({ label: `${client.clientName} (${client.clientCode})`, value: client.clientCode })));
+        /** `hasPrivilege` reads the async-loaded authorization context — a one-time
+         * check here could race ahead of that load and permanently skip the fetch
+         * even though the privilege is actually present. `effect()` re-evaluates
+         * once the context resolves. */
+        effect(() => {
+            if (this.clientOptionsRequested || !this.policy.hasPrivilege('11020100101')) return;
+            this.clientOptionsRequested = true;
+            this.clientAppService.list().subscribe((clients) => {
+                this.clientOptions.set(clients.map((client) => ({ label: `${client.clientName} (${client.clientCode})`, value: client.clientCode })));
+            });
         });
     }
 

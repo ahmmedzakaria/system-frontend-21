@@ -77,6 +77,8 @@ export const ApiEndpoints = {
     LAYOUT_PROFILE_SAVE: { apiPath: 'system/layout/profile/save', actionType: ActionTypes.CREATE },
     LAYOUT_UI_POLICY_LIST: { apiPath: 'system/layout/ui-policy/list', actionType: ActionTypes.SEARCH },
     LAYOUT_UI_POLICY_SAVE: { apiPath: 'system/layout/ui-policy/save', actionType: ActionTypes.CREATE },
+    LAYOUT_ROUTE_POLICY_LIST: { apiPath: 'system/layout/route-policy/list', actionType: ActionTypes.SEARCH },
+    LAYOUT_ROUTE_POLICY_SAVE: { apiPath: 'system/layout/route-policy/save', actionType: ActionTypes.CREATE },
     LAYOUT_CLIENT_ASSIGN_LIST: { apiPath: 'system/layout/client/list', actionType: ActionTypes.SEARCH },
     LAYOUT_CLIENT_ASSIGN_SAVE: { apiPath: 'system/layout/client/assign', actionType: ActionTypes.CREATE },
     LAYOUT_NAVIGATION_TREE: { apiPath: 'system/layout/navigation/tree', actionType: ActionTypes.SEARCH },

@@ -94,6 +94,7 @@ export const SYSTEM_FEATURE_CONTRACTS: readonly SystemFeatureContract[] = [
         actions: { 'layout.manage': 'layout.manage' },
         endpoints: [endpoint('LAYOUT_PROFILE_LIST', 'layout.view'), endpoint('LAYOUT_PROFILE_SAVE', 'layout.manage'),
             endpoint('LAYOUT_UI_POLICY_LIST', 'layout.view'), endpoint('LAYOUT_UI_POLICY_SAVE', 'layout.manage'),
+            endpoint('LAYOUT_ROUTE_POLICY_LIST', 'layout.view'), endpoint('LAYOUT_ROUTE_POLICY_SAVE', 'layout.manage'),
             endpoint('LAYOUT_CLIENT_ASSIGN_LIST', 'layout.view'), endpoint('LAYOUT_CLIENT_ASSIGN_SAVE', 'layout.manage'),
             endpoint('LAYOUT_NAVIGATION_TREE', AUTHENTICATED_POLICY), endpoint('LAYOUT_NAVIGATION_TREE_ADMIN', 'layout.view'),
             endpoint('LAYOUT_NAVIGATION_PREVIEW', 'layout.view'), endpoint('LAYOUT_NAVIGATION_INTEGRITY', 'layout.view'),

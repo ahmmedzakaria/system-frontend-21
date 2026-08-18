@@ -10,8 +10,10 @@ import {
     LayoutNavigationIntegrityDto,
     LayoutProfileDto,
     LayoutProfileRequestDto,
+    LayoutRoutePolicyRequestDto,
     LayoutUiPolicyRequestDto,
     NavNodeDto,
+    RoutePrivilegePolicyDto,
     UiPrivilegePolicyDto
 } from '../../pages/layout/layout.model';
 
@@ -33,6 +35,14 @@ export class LayoutService {
 
     uiPolicySave(request: LayoutUiPolicyRequestDto): Observable<UiPrivilegePolicyDto> {
         return this.api.post<UiPrivilegePolicyDto>(ApiEndpoints.LAYOUT_UI_POLICY_SAVE, request);
+    }
+
+    routePolicyList(clientCode: string | null): Observable<RoutePrivilegePolicyDto[]> {
+        return this.api.post<RoutePrivilegePolicyDto[]>(ApiEndpoints.LAYOUT_ROUTE_POLICY_LIST, { clientCode });
+    }
+
+    routePolicySave(request: LayoutRoutePolicyRequestDto): Observable<void> {
+        return this.api.post<void>(ApiEndpoints.LAYOUT_ROUTE_POLICY_SAVE, request);
     }
 
     clientAssignList(clientCode: string, tenantId: number | null): Observable<ClientLayoutAssignmentDto[]> {

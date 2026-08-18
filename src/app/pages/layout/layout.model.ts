@@ -138,6 +138,21 @@ export interface LayoutUiPolicyRequestDto {
     privilegeCodes: string[];
 }
 
+/** No `id`/`version`/`active` — the backend's LayoutRoutePolicyService.synchronizePolicy()
+ * always upserts-to-active by (clientCode, routeUrl), no separate deactivate path. */
+export interface RoutePrivilegePolicyDto {
+    routeUrl: string;
+    matchMode: string;
+    privilegeCodes: string[];
+}
+
+export interface LayoutRoutePolicyRequestDto {
+    clientCode: string | null;
+    routeUrl: string;
+    matchMode: PrivilegeMatchMode;
+    privilegeCodes: string[];
+}
+
 export interface ClientLayoutAssignmentDto {
     id: number;
     clientApplicationId: number | null;
@@ -413,6 +428,23 @@ export function uiPolicyInitialValue(row: UiPrivilegePolicyDto | null, filterCli
         clientCode: row.clientCode ?? filterClientCode, actionCode: row.actionCode, matchMode: row.matchMode,
         active: row.active
     };
+}
+
+const GLOBAL_CLIENT_OPTION: DropdownOption<unknown> = { label: 'Global (all clients)', value: '' };
+
+export function buildRoutePolicyFields(clientOptions: DropdownOption<unknown>[]): FieldConfig[] {
+    return [
+        { type: 'dropdown', key: 'clientCode', label: 'Client Code (blank = global)', options: [GLOBAL_CLIENT_OPTION, ...clientOptions] },
+        { type: 'text', key: 'routeUrl', label: 'Route URL', required: true },
+        { type: 'dropdown', key: 'matchMode', label: 'Match Mode', options: MATCH_MODE_OPTIONS }
+    ];
+}
+
+export function routePolicyInitialValue(row: RoutePrivilegePolicyDto | null, filterClientCode: string, routeUrl: string | null): Record<string, unknown> {
+    if (!row) {
+        return { clientCode: filterClientCode, routeUrl: routeUrl ?? '', matchMode: 'ANY' };
+    }
+    return { clientCode: filterClientCode, routeUrl: row.routeUrl, matchMode: row.matchMode };
 }
 
 export const CLIENT_ASSIGNMENT_FIELDS: FieldConfig[] = [

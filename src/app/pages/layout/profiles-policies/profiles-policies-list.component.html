@@ -5,6 +5,8 @@
             <app-button *appAuthorizedUi="'layout.manage'" label="New Profile" icon="plus" variant="ghost" (clicked)="openProfileEditor(null)" />
         } @else if (activeTab() === 'uiPolicies') {
             <app-button *appAuthorizedUi="'layout.manage'" label="New UI Policy" icon="plus" variant="ghost" (clicked)="openUiPolicyEditor(null)" />
+        } @else if (activeTab() === 'routePolicies') {
+            <app-button *appAuthorizedUi="'layout.manage'" label="New Route Policy" icon="plus" variant="ghost" (clicked)="openRoutePolicyEditor(null)" />
         } @else {
             <app-button *appAuthorizedUi="'layout.manage'" label="New Assignment" icon="plus" variant="ghost" [disabled]="!assignmentFilterClientCode()" (clicked)="openClientAssignmentEditor(null)" />
         }
@@ -14,6 +16,7 @@
 <div class="tabs">
     <button type="button" class="tab" [class.active]="activeTab() === 'profiles'" (click)="setTab('profiles')">Profiles</button>
     <button type="button" class="tab" [class.active]="activeTab() === 'uiPolicies'" (click)="setTab('uiPolicies')">UI Policies</button>
+    <button type="button" class="tab" [class.active]="activeTab() === 'routePolicies'" (click)="setTab('routePolicies')">Route Policies</button>
     <button type="button" class="tab" [class.active]="activeTab() === 'clientAssignment'" (click)="setTab('clientAssignment')">Client Assignment</button>
 </div>
 
@@ -42,6 +45,22 @@
             searchPlaceholder="Search by action code…"
             emptyTitle="No UI policies yet"
             emptyMessage="Add the first UI policy to get started."
+    />
+</div>
+
+<div [hidden]="activeTab() !== 'routePolicies'">
+    <div class="filter-row">
+        <label for="route-policy-client-filter">Client Code (blank = global)</label>
+        <input id="route-policy-client-filter" type="text" [value]="routePolicyFilterClientCode()" (input)="routePolicyFilterClientCode.set($any($event.target).value)" placeholder="e.g. LOG_ADMIN_WEB" />
+    </div>
+    <app-dynamic-list
+            #routePolicyList
+            [columns]="routePolicyColumns"
+            [loadItems]="loadRoutePolicies"
+            [pageSize]="10"
+            searchPlaceholder="Search by route URL…"
+            emptyTitle="No route policies yet"
+            emptyMessage="Add the first route policy to get started."
     />
 </div>
 
@@ -143,6 +162,24 @@
     <div class="modal-actions">
         <app-button label="Cancel" variant="ghost" (clicked)="closeUiPolicyEditor()" />
         <app-button label="Save" icon="save" (clicked)="uiPolicyForm.submit()" />
+    </div>
+</app-modal>
+
+<app-modal [open]="routePolicyEditorOpen()" title="Route Policy" [width]="640" (closed)="closeRoutePolicyEditor()">
+    <app-dynamic-form #routePolicyForm="dynamicForm" [fields]="routePolicyFields()" [initialValue]="routePolicyEditorInitialValue()" [columns]="2" (submitted)="saveRoutePolicyEditor($event)" />
+    <app-assignment-checklist
+            [items]="privileges()"
+            [selectedKeys]="routePolicySelectedCodes()"
+            [keyOf]="privilegeKey"
+            [labelOf]="privilegeLabel"
+            [detailOf]="privilegeDetail"
+            [groupOf]="privilegeGroup"
+            searchPlaceholder="Search active privileges"
+            (selectionChanged)="toggleRoutePolicyPrivilege($event)" />
+    <app-replacement-summary [summary]="routePolicySummary()" [version]="null" />
+    <div class="modal-actions">
+        <app-button label="Cancel" variant="ghost" (clicked)="closeRoutePolicyEditor()" />
+        <app-button label="Save" icon="save" (clicked)="routePolicyForm.submit()" />
     </div>
 </app-modal>
 
