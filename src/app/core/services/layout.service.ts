@@ -35,8 +35,8 @@ export class LayoutService {
         return this.api.post<UiPrivilegePolicyDto>(ApiEndpoints.LAYOUT_UI_POLICY_SAVE, request);
     }
 
-    clientAssignList(clientCode: string): Observable<ClientLayoutAssignmentDto[]> {
-        return this.api.post<ClientLayoutAssignmentDto[]>(ApiEndpoints.LAYOUT_CLIENT_ASSIGN_LIST, { clientCode });
+    clientAssignList(clientCode: string, tenantId: number | null): Observable<ClientLayoutAssignmentDto[]> {
+        return this.api.post<ClientLayoutAssignmentDto[]>(ApiEndpoints.LAYOUT_CLIENT_ASSIGN_LIST, { clientCode, tenantId });
     }
 
     clientAssignSave(request: ClientLayoutAssignmentRequestDto): Observable<ClientLayoutAssignmentDto> {

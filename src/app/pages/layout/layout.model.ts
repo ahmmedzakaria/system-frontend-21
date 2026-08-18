@@ -157,6 +157,7 @@ export interface ClientLayoutAssignmentDto {
 
 export interface ClientLayoutAssignmentRequestDto {
     id: number | null;
+    tenantId: number | null;
     clientApplicationId: number | null;
     clientCode: string | null;
     layoutProfileId: number | null;

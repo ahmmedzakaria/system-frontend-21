@@ -16,7 +16,7 @@ import { LayoutService } from '../../../core/services/layout.service';
 import { ClientApplicationService } from '../../../core/services/client-application.service';
 import { PrivilegeService } from '../../../core/services/privilege.service';
 import { PrivilegeDto } from '../../access-control/privileges/privileges.model';
-import { AuthorizedUiDirective, AuthorizationPolicyService } from '@nexacore/platform';
+import { ApplicationContextService, AuthorizedUiDirective, AuthorizationPolicyService } from '@nexacore/platform';
 import {
     CLIENT_ASSIGNMENT_FIELDS,
     ClientLayoutAssignmentDto,
@@ -54,6 +54,11 @@ export class ProfilesPoliciesListComponent {
     private readonly clientAppService = inject(ClientApplicationService);
     private readonly privilegeService = inject(PrivilegeService);
     private readonly policy = inject(AuthorizationPolicyService);
+    private readonly applicationContext = inject(ApplicationContextService);
+    /** `layout/client/list` and `layout/client/assign` both require an explicit
+     * tenantId (the backend has no client-registered-tenant fallback) — this is
+     * the signed-in admin's own effective tenant, same source `user-list.component.ts` uses. */
+    private readonly currentTenantId = computed(() => this.applicationContext.effectiveTenant()?.tenantId ?? null);
 
     protected readonly activeTab = signal<Tab>('profiles');
 
@@ -157,7 +162,7 @@ export class ProfilesPoliciesListComponent {
         if (!clientCode) {
             return of({ items: [], total: 0 });
         }
-        return this.service.clientAssignList(clientCode).pipe(
+        return this.service.clientAssignList(clientCode, this.currentTenantId()).pipe(
             map((rows) => {
                 const start = (params.page - 1) * params.pageSize;
                 return { items: rows.slice(start, start + params.pageSize), total: rows.length };
@@ -307,6 +312,7 @@ export class ProfilesPoliciesListComponent {
     protected saveClientAssignmentEditor(value: Record<string, unknown>): void {
         const request: ClientLayoutAssignmentRequestDto = {
             id: this.editingAssignmentId,
+            tenantId: this.currentTenantId(),
             clientApplicationId: null,
             clientCode: this.assignmentFilterClientCode(),
             layoutProfileId: null,
