@@ -158,7 +158,7 @@ backend `@PrivilegeApi` enforcement remains authoritative.
   `passwordEncoder.encode(...)` when the request's password is non-blank.
   Password is required (validated) on create.
 - **No multi-select field type exists anywhere in `@nexacore/shared`** (`FieldConfig`
-  only has single-value checkbox/radio/dropdown/smart-dropdown/card-selector) — so
+  only has single-value checkbox/radio/dropdown/dynamic-dropdown/card-selector) — so
   "assign roles to a user" reuses `client-application-detail.component`'s
   hand-rolled pattern instead: a plain `app-modal` (not `app-dynamic-modal`, since
   there's no `FieldConfig` for a role checklist) containing a `.checklist` of
