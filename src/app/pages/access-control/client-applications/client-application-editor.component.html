@@ -3,7 +3,7 @@
 </div>
 
 @if (!loading()) {
-    <app-dynamic-wizard [data]="wizardData()" finishLabel="Save" (submitted)="onSubmit($event)" />
+    <app-dynamic-wizard [data]="wizardData()" (submitted)="onSubmit($event)" />
 } @else {
     <p class="loading-text">Loading…</p>
 }
