@@ -1,6 +1,6 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { DynamicWizardComponent, DynamicWizardStepConfig } from '@nexacore/shared';
+import { DynamicWizardComponent, DynamicWizardData, DynamicWizardStepConfig } from '@nexacore/shared';
 import { ClientApplicationService } from '../../../core/services/client-application.service';
 import {
     CLIENT_STATUS_OPTIONS,
@@ -26,6 +26,12 @@ export class ClientApplicationEditorComponent {
     protected readonly isEdit = !!this.editingId;
     protected readonly loading = signal(this.isEdit);
     protected readonly steps = signal<DynamicWizardStepConfig[]>(this.buildSteps({}));
+    /** `app-dynamic-wizard`'s single bundled input — no `entity`/`submitConfig`
+     * here since each step's `initialValue` is set directly in `buildSteps`
+     * and this page submits via `(submitted)` itself. A `computed` (not a
+     * plain field) so it stays in sync once `steps` is replaced after the
+     * edit-mode fetch resolves. */
+    protected readonly wizardData = computed<DynamicWizardData>(() => ({ config: { steps: this.steps() } }));
 
     constructor() {
         if (this.editingId) {
