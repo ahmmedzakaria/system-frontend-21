@@ -403,13 +403,6 @@ export function unflattenFonts(value: Record<string, unknown>): LayoutFontConfig
     };
 }
 
-export const UI_POLICY_FIELDS: FieldConfig[] = [
-    { type: 'text', key: 'clientCode', label: 'Client Code (blank = global)' },
-    { type: 'text', key: 'actionCode', label: 'Action Code', required: true },
-    { type: 'dropdown', key: 'matchMode', label: 'Match Mode', options: MATCH_MODE_OPTIONS },
-    { type: 'checkbox', key: 'active', label: 'Active' }
-];
-
 /** Comma-separated privilege codes ↔ string[] — the backend full-replaces a policy's
  * privilege links on every save, so this must round-trip the existing codes on edit
  * (an empty array here would silently wipe them). */
@@ -437,6 +430,15 @@ export function buildRoutePolicyFields(clientOptions: DropdownOption<unknown>[])
         { type: 'dropdown', key: 'clientCode', label: 'Client Code (blank = global)', options: [GLOBAL_CLIENT_OPTION, ...clientOptions] },
         { type: 'text', key: 'routeUrl', label: 'Route URL', required: true },
         { type: 'dropdown', key: 'matchMode', label: 'Match Mode', options: MATCH_MODE_OPTIONS }
+    ];
+}
+
+export function buildUiPolicyFields(clientOptions: DropdownOption<unknown>[]): FieldConfig[] {
+    return [
+        { type: 'dropdown', key: 'clientCode', label: 'Client Code (blank = global)', options: [GLOBAL_CLIENT_OPTION, ...clientOptions] },
+        { type: 'text', key: 'actionCode', label: 'Action Code', required: true },
+        { type: 'dropdown', key: 'matchMode', label: 'Match Mode', options: MATCH_MODE_OPTIONS },
+        { type: 'checkbox', key: 'active', label: 'Active' }
     ];
 }
 

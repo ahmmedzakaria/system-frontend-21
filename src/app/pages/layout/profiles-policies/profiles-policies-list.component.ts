@@ -29,8 +29,8 @@ import {
     LayoutThemeConfig,
     PROFILE_FIELDS,
     buildRoutePolicyFields,
+    buildUiPolicyFields,
     RoutePrivilegePolicyDto,
-    UI_POLICY_FIELDS,
     UiPrivilegePolicyDto,
     LayoutUiPolicyRequestDto,
     clientAssignmentInitialValue,
@@ -103,7 +103,7 @@ export class ProfilesPoliciesListComponent {
     ];
 
     // -- UI Policies --
-    protected readonly uiPolicyFields = UI_POLICY_FIELDS;
+    protected readonly uiPolicyFields = computed(() => buildUiPolicyFields(this.clientOptions()));
     protected readonly uiPolicyEditorOpen = signal(false);
     protected readonly uiPolicyEditorInitialValue = signal<Record<string, unknown>>({});
     protected readonly uiPolicyFilterClientCode = signal('');

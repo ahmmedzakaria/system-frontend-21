@@ -35,7 +35,12 @@
 <div [hidden]="activeTab() !== 'uiPolicies'">
     <div class="filter-row">
         <label for="ui-policy-client-filter">Client Code (blank = global)</label>
-        <input id="ui-policy-client-filter" type="text" [value]="uiPolicyFilterClientCode()" (input)="uiPolicyFilterClientCode.set($any($event.target).value)" placeholder="e.g. WEB" />
+        <select id="ui-policy-client-filter" [value]="uiPolicyFilterClientCode()" (change)="uiPolicyFilterClientCode.set($any($event.target).value)">
+            <option value="">Global (all clients)</option>
+            @for (option of clientOptions(); track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+            }
+        </select>
     </div>
     <app-dynamic-list
             #uiPolicyList
@@ -51,7 +56,12 @@
 <div [hidden]="activeTab() !== 'routePolicies'">
     <div class="filter-row">
         <label for="route-policy-client-filter">Client Code (blank = global)</label>
-        <input id="route-policy-client-filter" type="text" [value]="routePolicyFilterClientCode()" (input)="routePolicyFilterClientCode.set($any($event.target).value)" placeholder="e.g. LOG_ADMIN_WEB" />
+        <select id="route-policy-client-filter" [value]="routePolicyFilterClientCode()" (change)="routePolicyFilterClientCode.set($any($event.target).value)">
+            <option value="">Global (all clients)</option>
+            @for (option of clientOptions(); track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+            }
+        </select>
     </div>
     <app-dynamic-list
             #routePolicyList
@@ -148,7 +158,7 @@
 </app-modal>
 
 <app-modal [open]="uiPolicyEditorOpen()" title="UI Policy" [width]="640" (closed)="closeUiPolicyEditor()">
-    <app-dynamic-form #uiPolicyForm="dynamicForm" [fields]="uiPolicyFields" [initialValue]="uiPolicyEditorInitialValue()" [columns]="2" (submitted)="saveUiPolicyEditor($event)" />
+    <app-dynamic-form #uiPolicyForm="dynamicForm" [fields]="uiPolicyFields()" [initialValue]="uiPolicyEditorInitialValue()" [columns]="2" (submitted)="saveUiPolicyEditor($event)" />
     <app-assignment-checklist
             [items]="privileges()"
             [selectedKeys]="uiPolicySelectedCodes()"
