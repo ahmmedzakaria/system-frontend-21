@@ -1,0 +1,50 @@
+<div class="page-header">
+    <h2>Workflow Administration</h2>
+    <div class="header-actions">
+        @if (activeTabKey() === 'definitions' && !editingDefinition()) {
+            <app-button *appAuthorizedUi="'workflow.manage'" label="New Definition" icon="plus" variant="ghost" (clicked)="openDefinitionBuilder(null)" />
+        }
+    </div>
+</div>
+
+@if (editingDefinition(); as definition) {
+    <app-workflow-definition-builder
+            [definition]="definition"
+            [isNew]="editingIsNew()"
+            (closed)="closeDefinitionBuilder()"
+            (saved)="onDefinitionSaved()"
+    />
+} @else {
+    <app-dynamic-tab #tabsRef [tabs]="tabs()" (tabChange)="activeTabIndex.set($event)" />
+}
+
+<app-modal [open]="!!instanceDetail()" title="Workflow instance detail" [width]="720" (closed)="closeInstanceDetail()">
+    @if (instanceDetail(); as instance) {
+        <dl class="detail-grid">
+            <dt>Workflow Code</dt><dd>{{ instance.workflowCode }}</dd>
+            <dt>Subject</dt><dd>{{ instance.subjectType }} / {{ instance.subjectId }}</dd>
+            <dt>Status</dt><dd>{{ instance.status }}</dd>
+            <dt>Current Step</dt><dd>{{ instance.currentStepName ?? '—' }} ({{ instance.currentStepCode ?? '—' }})</dd>
+            <dt>Requester</dt><dd>{{ instance.requesterUserId ?? '—' }}</dd>
+            <dt>Started</dt><dd>{{ formatDateTime(instance.startedAt) }}</dd>
+            <dt>Completed</dt><dd>{{ formatDateTime(instance.completedAt) }}</dd>
+        </dl>
+        <h3>History</h3>
+        @if (instanceHistory().length) {
+            <ul class="history-timeline">
+                @for (event of instanceHistory(); track event.id) {
+                    <li>
+                        <strong>{{ formatDateTime(event.createdAt) }}</strong> — {{ event.eventType }}
+                        @if (event.fromStepCode || event.toStepCode) {
+                            <span>{{ event.fromStepCode ?? '—' }} → {{ event.toStepCode ?? '—' }}</span>
+                        }
+                        @if (event.actorUsername) { <span>by {{ event.actorUsername }}</span> }
+                        @if (event.commentText) { <p>{{ event.commentText }}</p> }
+                    </li>
+                }
+            </ul>
+        } @else {
+            <p>No history recorded.</p>
+        }
+    }
+</app-modal>

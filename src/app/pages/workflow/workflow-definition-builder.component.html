@@ -1,0 +1,103 @@
+<div class="page-header">
+    <h2>{{ isNew() ? 'New Workflow Definition' : definition().workflowCode }}</h2>
+    <div class="header-actions">
+        <app-button label="Back" icon="arrow-left" variant="ghost" (clicked)="close()" />
+    </div>
+</div>
+
+<app-dynamic-form #headerForm="dynamicForm" [fields]="headerFields" [initialValue]="headerInitialValue()" [columns]="2" (submitted)="saveDefinition($event)" />
+<div class="form-actions">
+    <app-button *appAuthorizedUi="'workflow.manage'" label="Save Definition" icon="save" (clicked)="headerForm.submit()" />
+    @if (currentVersion()?.status === 'DRAFT') {
+        <app-button *appAuthorizedUi="'workflow.manage'" label="Publish Draft" icon="check" [disabled]="!canPublish()" (clicked)="publishDraft()" />
+    } @else {
+        <app-button *appAuthorizedUi="'workflow.manage'" label="New Draft Version" icon="plus" (clicked)="startNewDraft()" />
+    }
+</div>
+
+<section aria-label="Version history">
+    <h3>Versions</h3>
+    <table class="version-table">
+        <thead>
+            <tr>
+                <th>Version</th>
+                <th>Status</th>
+                <th>Published</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (version of versions(); track version.versionNumber) {
+                <tr [class.current]="version === currentVersion()">
+                    <td>{{ version.versionNumber }}</td>
+                    <td>{{ version.status }}</td>
+                    <td>{{ formatDateTime(version.publishedAt) }}</td>
+                    <td>
+                        @if (version.status === 'PUBLISHED') {
+                            <app-button *appAuthorizedUi="'workflow.manage'" label="Retire" variant="ghost" (clicked)="retireVersion(version)" />
+                        }
+                    </td>
+                </tr>
+            } @empty {
+                <tr><td colspan="4">No versions yet — save the definition to create the first draft.</td></tr>
+            }
+        </tbody>
+    </table>
+</section>
+
+<section aria-label="Steps">
+    <div class="section-header">
+        <h3>Steps</h3>
+        <app-button *appAuthorizedUi="'workflow.manage'" label="New Step" icon="plus" variant="ghost"
+                    [disabled]="currentVersion()?.status !== 'DRAFT'" (clicked)="openStepEditor(null)" />
+    </div>
+    <app-dynamic-list #stepList [columns]="stepColumns" [loadItems]="loadSteps" [pageSize]="10"
+                       searchPlaceholder="Search steps…" emptyTitle="No steps yet"
+                       emptyMessage="Add the first step to this draft version." />
+</section>
+
+<section aria-label="Transitions">
+    <div class="section-header">
+        <h3>Transitions</h3>
+        <app-button *appAuthorizedUi="'workflow.manage'" label="New Transition" icon="plus" variant="ghost"
+                    [disabled]="currentVersion()?.status !== 'DRAFT'" (clicked)="openTransitionEditor(null)" />
+    </div>
+    <app-dynamic-list #transitionList [columns]="transitionColumns" [loadItems]="loadTransitions" [pageSize]="10"
+                       searchPlaceholder="Search transitions…" emptyTitle="No transitions yet"
+                       emptyMessage="Add the first transition between two steps." />
+</section>
+
+<section aria-label="Assignment policies">
+    <div class="section-header">
+        <h3>Assignment Policies</h3>
+        <app-button *appAuthorizedUi="'workflow.manage'" label="New Policy" icon="plus" variant="ghost"
+                    [disabled]="currentVersion()?.status !== 'DRAFT'" (clicked)="openPolicyEditor(null)" />
+    </div>
+    <app-dynamic-list #policyList [columns]="policyColumns" [loadItems]="loadPolicies" [pageSize]="10"
+                       searchPlaceholder="Search policies…" emptyTitle="No assignment policies yet"
+                       emptyMessage="Add the first assignment policy for a step." />
+</section>
+
+<app-modal [open]="stepEditorOpen()" title="Step" [width]="560" (closed)="closeStepEditor()">
+    <app-dynamic-form #stepForm="dynamicForm" [fields]="stepFields" [initialValue]="stepEditorInitialValue()" [columns]="2" (submitted)="saveStepEditor($event)" />
+    <div class="modal-actions">
+        <app-button label="Cancel" variant="ghost" (clicked)="closeStepEditor()" />
+        <app-button label="Save" icon="save" (clicked)="stepForm.submit()" />
+    </div>
+</app-modal>
+
+<app-modal [open]="transitionEditorOpen()" title="Transition" [width]="640" (closed)="closeTransitionEditor()">
+    <app-dynamic-form #transitionForm="dynamicForm" [fields]="transitionFieldsComputed()" [initialValue]="transitionEditorInitialValue()" [columns]="2" (submitted)="saveTransitionEditor($event)" />
+    <div class="modal-actions">
+        <app-button label="Cancel" variant="ghost" (clicked)="closeTransitionEditor()" />
+        <app-button label="Save" icon="save" (clicked)="transitionForm.submit()" />
+    </div>
+</app-modal>
+
+<app-modal [open]="policyEditorOpen()" title="Assignment Policy" [width]="640" (closed)="closePolicyEditor()">
+    <app-dynamic-form #policyForm="dynamicForm" [fields]="policyFieldsComputed()" [initialValue]="policyEditorInitialValue()" [columns]="2" (submitted)="savePolicyEditor($event)" />
+    <div class="modal-actions">
+        <app-button label="Cancel" variant="ghost" (clicked)="closePolicyEditor()" />
+        <app-button label="Save" icon="save" (clicked)="policyForm.submit()" />
+    </div>
+</app-modal>

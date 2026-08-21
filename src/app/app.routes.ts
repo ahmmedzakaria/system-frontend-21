@@ -95,6 +95,11 @@ export const routes: Routes = [
                 loadComponent: () =>
                     import('./pages/backup/backup-list.component').then(m => m.BackupListComponent),
             },
+            {
+                path: 'workflow',
+                loadComponent: () =>
+                    import('./pages/workflow/workflow-list.component').then(m => m.WorkflowListComponent),
+            },
             { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
         ],
     },

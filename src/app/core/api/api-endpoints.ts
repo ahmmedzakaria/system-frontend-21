@@ -121,4 +121,13 @@ export const ApiEndpoints = {
     BACKUP_CONFIGURATION: { apiPath: 'system/backup/configuration', actionType: ActionTypes.SEARCH },
     BACKUP_READINESS: { apiPath: 'system/backup/readiness', actionType: ActionTypes.SEARCH },
     BACKUP_RESTORE_VERIFICATION_LIST: { apiPath: 'system/backup/restore-verification/list', actionType: ActionTypes.SEARCH },
+
+    // Workflow
+    WORKFLOW_DEFINITION_LIST: { apiPath: 'system/workflow/definition/list', actionType: ActionTypes.SEARCH },
+    WORKFLOW_DEFINITION_SAVE: { apiPath: 'system/workflow/definition/save', actionType: ActionTypes.CREATE },
+    WORKFLOW_DEFINITION_PUBLISH: { apiPath: 'system/workflow/definition/publish', actionType: ActionTypes.UPDATE },
+    WORKFLOW_DEFINITION_RETIRE: { apiPath: 'system/workflow/definition/retire', actionType: ActionTypes.UPDATE },
+    WORKFLOW_INSTANCE_LIST: { apiPath: 'system/workflow/instance/list', actionType: ActionTypes.SEARCH },
+    WORKFLOW_INSTANCE_DETAIL: { apiPath: 'system/workflow/instance/detail', actionType: ActionTypes.SEARCH },
+    WORKFLOW_INSTANCE_HISTORY: { apiPath: 'system/workflow/instance/history', actionType: ActionTypes.SEARCH },
 } satisfies Record<string, ApiEndpoint>;
