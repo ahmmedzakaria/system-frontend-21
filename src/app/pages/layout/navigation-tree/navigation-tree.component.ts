@@ -62,11 +62,33 @@ export class NavigationTreeComponent {
     protected readonly featureGroupOptions = computed<DropdownOption<unknown>[]>(() =>
         this.featureGroups().map((node) => ({ label: `${node.label} (${node.code})`, value: node.id })));
 
+    /** Sourced from the same active-privilege catalog already loaded for the feature
+     * privilege checklist below — every privilege carries its module/submodule/feature-type/
+     * feature code+name, so the distinct set of each across all privileges is exactly the
+     * "physical" catalog these codes need to reference. No dedicated catalog endpoint exists. */
+    protected readonly physicalModuleOptions = computed<DropdownOption<unknown>[]>(() =>
+        this.distinctOptions(this.privileges(), (item) => item.moduleCode, (item) => item.moduleName));
+    protected readonly physicalSubmoduleOptions = computed<DropdownOption<unknown>[]>(() =>
+        this.distinctOptions(this.privileges(), (item) => item.submoduleCode, (item) => item.submoduleName));
+    protected readonly physicalFeatureTypeOptions = computed<DropdownOption<unknown>[]>(() =>
+        this.distinctOptions(this.privileges(), (item) => item.featureTypeCode, (item) => item.featureTypeName));
+    protected readonly physicalFeatureOptions = computed<DropdownOption<unknown>[]>(() =>
+        this.distinctOptions(this.privileges(), (item) => item.featureCode, (item) => item.featureName));
+
+    private distinctOptions(items: PrivilegeDto[], codeOf: (item: PrivilegeDto) => string, nameOf: (item: PrivilegeDto) => string): DropdownOption<unknown>[] {
+        const seen = new Map<string, string>();
+        for (const item of items) {
+            if (!seen.has(codeOf(item))) seen.set(codeOf(item), nameOf(item));
+        }
+        return [...seen.entries()].map(([code, name]) => ({ label: `${name} (${code})`, value: code }));
+    }
+
     protected readonly groupFields = moduleGroupFields();
-    protected readonly moduleFieldsComputed = computed(() => moduleFields(this.groupOptions()));
+    protected readonly moduleFieldsComputed = computed(() => moduleFields(this.groupOptions(), this.physicalModuleOptions()));
     protected readonly categoryFieldsComputed = computed(() => categoryFields(this.moduleOptions()));
     protected readonly featureGroupFieldsComputed = computed(() => featureGroupFields(this.categoryOptions()));
-    protected readonly featureFieldsComputed = computed(() => featureFields(this.featureGroupOptions()));
+    protected readonly featureFieldsComputed = computed(() => featureFields(this.featureGroupOptions(),
+        this.physicalModuleOptions(), this.physicalSubmoduleOptions(), this.physicalFeatureTypeOptions(), this.physicalFeatureOptions()));
 
     private readonly groupList = viewChild<DynamicListComponent<NavNodeDto>>('groupList');
     private readonly moduleList = viewChild<DynamicListComponent<NavNodeDto>>('moduleList');

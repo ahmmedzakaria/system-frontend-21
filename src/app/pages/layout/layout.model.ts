@@ -491,11 +491,11 @@ function navNodeFields(includeParent: boolean, parentOptions: DropdownOption<unk
 export function moduleGroupFields(): FieldConfig[] {
     return navNodeFields(false, [], [{ type: 'text', key: 'icon', label: 'Icon' }]);
 }
-export function moduleFields(parentOptions: DropdownOption<unknown>[]): FieldConfig[] {
+export function moduleFields(parentOptions: DropdownOption<unknown>[], physicalModuleOptions: DropdownOption<unknown>[]): FieldConfig[] {
     return navNodeFields(true, parentOptions, [
         { type: 'text', key: 'icon', label: 'Icon' },
         { type: 'text', key: 'description', label: 'Description', colSpan: 2 },
-        { type: 'text', key: 'physicalModuleCode', label: 'Physical Module Code' }
+        { type: 'dropdown', key: 'physicalModuleCode', label: 'Physical Module Code', options: physicalModuleOptions }
     ]);
 }
 export function categoryFields(parentOptions: DropdownOption<unknown>[]): FieldConfig[] {
@@ -507,15 +507,21 @@ export function categoryFields(parentOptions: DropdownOption<unknown>[]): FieldC
 export function featureGroupFields(parentOptions: DropdownOption<unknown>[]): FieldConfig[] {
     return navNodeFields(true, parentOptions, []);
 }
-export function featureFields(parentOptions: DropdownOption<unknown>[]): FieldConfig[] {
+export function featureFields(
+    parentOptions: DropdownOption<unknown>[],
+    physicalModuleOptions: DropdownOption<unknown>[],
+    physicalSubmoduleOptions: DropdownOption<unknown>[],
+    physicalFeatureTypeOptions: DropdownOption<unknown>[],
+    physicalFeatureOptions: DropdownOption<unknown>[]
+): FieldConfig[] {
     return navNodeFields(true, parentOptions, [
         { type: 'text', key: 'route', label: 'Route', required: true },
         { type: 'text', key: 'tCode', label: 'T-Code (generated automatically)', readonly: true, placeholder: 'Assigned when saved' },
         { type: 'text', key: 'icon', label: 'Icon' },
-        { type: 'text', key: 'physicalModuleCode', label: 'Physical Module Code' },
-        { type: 'text', key: 'physicalSubmoduleCode', label: 'Physical Submodule Code' },
-        { type: 'text', key: 'physicalFeatureTypeCode', label: 'Physical Feature Type Code' },
-        { type: 'text', key: 'physicalFeatureCode', label: 'Physical Feature Code' },
+        { type: 'dropdown', key: 'physicalModuleCode', label: 'Physical Module Code', options: physicalModuleOptions },
+        { type: 'dropdown', key: 'physicalSubmoduleCode', label: 'Physical Submodule Code', options: physicalSubmoduleOptions },
+        { type: 'dropdown', key: 'physicalFeatureTypeCode', label: 'Physical Feature Type Code', options: physicalFeatureTypeOptions },
+        { type: 'dropdown', key: 'physicalFeatureCode', label: 'Physical Feature Code', options: physicalFeatureOptions },
         // Privileges are selected through the validated searchable catalog in the editor.
     ]);
 }
