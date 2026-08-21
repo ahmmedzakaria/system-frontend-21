@@ -1,6 +1,14 @@
 import { FieldConfig, DropdownOption } from '@nexacore/shared';
+import { ICONS } from '@nexacore/platform';
 
 // Mirrors backend DTOs 1:1 (com.nexacore.systemmodule.layout.dto.*).
+
+/** Every icon name the shared icon registry actually renders — sourced directly
+ * from it rather than hand-maintaining a separate list, so a new icon added to
+ * the registry shows up here automatically. Each option carries its own name as
+ * `icon` too, so both the dropdown trigger and its option rows preview the glyph
+ * (see DropdownComponent/StaticDropdownComponent, both render `option.icon`). */
+export const ICON_OPTIONS: DropdownOption<unknown>[] = Object.keys(ICONS).map((name) => ({ label: name, value: name, icon: name }));
 
 export type LayoutType = 'SIDEBAR' | 'HORIZONTAL' | 'RAIL' | 'COMPACT' | 'PUBLIC';
 export type NavigationMode = 'MODULE_LIST' | 'MODULE_GROUP_MEGA_PANEL';
@@ -489,18 +497,18 @@ function navNodeFields(includeParent: boolean, parentOptions: DropdownOption<unk
 }
 
 export function moduleGroupFields(): FieldConfig[] {
-    return navNodeFields(false, [], [{ type: 'text', key: 'icon', label: 'Icon' }]);
+    return navNodeFields(false, [], [{ type: 'dropdown', key: 'icon', label: 'Icon', options: ICON_OPTIONS }]);
 }
 export function moduleFields(parentOptions: DropdownOption<unknown>[], physicalModuleOptions: DropdownOption<unknown>[]): FieldConfig[] {
     return navNodeFields(true, parentOptions, [
-        { type: 'text', key: 'icon', label: 'Icon' },
+        { type: 'dropdown', key: 'icon', label: 'Icon', options: ICON_OPTIONS },
         { type: 'text', key: 'description', label: 'Description', colSpan: 2 },
         { type: 'dropdown', key: 'physicalModuleCode', label: 'Physical Module Code', options: physicalModuleOptions }
     ]);
 }
 export function categoryFields(parentOptions: DropdownOption<unknown>[]): FieldConfig[] {
     return navNodeFields(true, parentOptions, [
-        { type: 'text', key: 'icon', label: 'Icon' },
+        { type: 'dropdown', key: 'icon', label: 'Icon', options: ICON_OPTIONS },
         { type: 'text', key: 'categoryKind', label: 'Category Kind' }
     ]);
 }
@@ -517,7 +525,7 @@ export function featureFields(
     return navNodeFields(true, parentOptions, [
         { type: 'text', key: 'route', label: 'Route', required: true },
         { type: 'text', key: 'tCode', label: 'T-Code (generated automatically)', readonly: true, placeholder: 'Assigned when saved' },
-        { type: 'text', key: 'icon', label: 'Icon' },
+        { type: 'dropdown', key: 'icon', label: 'Icon', options: ICON_OPTIONS },
         { type: 'dropdown', key: 'physicalModuleCode', label: 'Physical Module Code', options: physicalModuleOptions },
         { type: 'dropdown', key: 'physicalSubmoduleCode', label: 'Physical Submodule Code', options: physicalSubmoduleOptions },
         { type: 'dropdown', key: 'physicalFeatureTypeCode', label: 'Physical Feature Type Code', options: physicalFeatureTypeOptions },

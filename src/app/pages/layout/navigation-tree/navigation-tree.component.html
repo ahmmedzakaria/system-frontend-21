@@ -17,8 +17,25 @@
 
 <section class="integrity-tools" aria-label="Navigation integrity and preview">
     <div>
-        <label>Client code <input type="text" [value]="previewClientCode()" (input)="updatePreviewClient($event)" /></label>
-        <label>Username <input type="text" [value]="previewUsername()" (input)="updatePreviewUsername($event)" /></label>
+        <label>Client code
+            <app-dynamic-dropdown
+                    mode="static"
+                    [options]="previewClientOptions()"
+                    [ngModel]="previewClientCode()"
+                    (ngModelChange)="previewClientCode.set($event)"
+                    placeholder="Select a client…"
+            />
+        </label>
+        <label>Username
+            <app-dynamic-dropdown
+                    mode="static"
+                    [options]="previewUsernameOptions()"
+                    [ngModel]="previewUsername() || null"
+                    (ngModelChange)="previewUsername.set($event ?? '')"
+                    placeholder="Select a user…"
+                    searchPlaceholder="Search users…"
+            />
+        </label>
         <app-button label="Preview effective navigation" icon="search" variant="ghost" (clicked)="loadPreview()" />
         @if (previewTree()) { <span role="status">{{ previewFeatureCount() }} visible features</span> }
     </div>

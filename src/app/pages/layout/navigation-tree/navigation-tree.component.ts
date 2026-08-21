@@ -1,8 +1,10 @@
 import { Component, computed, inject, signal, viewChild } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { of } from 'rxjs';
 import {
     ButtonComponent,
     DropdownOption,
+    DynamicDropdownComponent,
     DynamicFormComponent,
     DynamicListComponent,
     DynamicListLoader,
@@ -12,8 +14,10 @@ import {
     ReplacementSummaryComponent
 } from '@nexacore/shared';
 import { LayoutService } from '../../../core/services/layout.service';
-import { AuthorizedUiDirective } from '@nexacore/platform';
+import { ApplicationContextService, AuthorizedUiDirective } from '@nexacore/platform';
 import { PrivilegeService } from '../../../core/services/privilege.service';
+import { ClientApplicationService } from '../../../core/services/client-application.service';
+import { UserService } from '../../../core/services/user.service';
 import { PrivilegeDto } from '../../access-control/privileges/privileges.model';
 import {
     LayoutNavigationNodeRequestDto,
@@ -32,17 +36,22 @@ type Level = 'groups' | 'modules' | 'categories' | 'featureGroups' | 'features';
     selector: 'app-navigation-tree',
     standalone: true,
     imports: [ButtonComponent, DynamicFormComponent, DynamicListComponent, ModalComponent, AuthorizedUiDirective,
-        AssignmentChecklistComponent, ReplacementSummaryComponent],
+        AssignmentChecklistComponent, ReplacementSummaryComponent, DynamicDropdownComponent, FormsModule],
     templateUrl: './navigation-tree.component.html',
     styleUrl: './navigation-tree.component.scss'
 })
 export class NavigationTreeComponent {
     private readonly service = inject(LayoutService);
     private readonly privilegeService = inject(PrivilegeService);
+    private readonly clientAppService = inject(ClientApplicationService);
+    private readonly userService = inject(UserService);
+    private readonly applicationContext = inject(ApplicationContextService);
 
     protected readonly activeLevel = signal<Level>('groups');
     protected readonly previewClientCode = signal('SYSTEM_ADMIN_WEB');
     protected readonly previewUsername = signal('');
+    protected readonly previewClientOptions = signal<DropdownOption<string>[]>([]);
+    protected readonly previewUsernameOptions = signal<DropdownOption<string>[]>([]);
     protected readonly previewTree = signal<NavNodeDto[] | null>(null);
     protected readonly integrity = signal<import('../layout.model').LayoutNavigationIntegrityDto | null>(null);
     protected readonly previewFeatureCount = computed(() => this.countFeatures(this.previewTree() ?? []));
@@ -118,6 +127,13 @@ export class NavigationTreeComponent {
 
     constructor() {
         this.privilegeService.list().subscribe(privileges => this.privileges.set(privileges.filter(item => item.active)));
+        this.clientAppService.list().subscribe(clients =>
+            this.previewClientOptions.set(clients.map(client => ({ label: `${client.clientName} (${client.clientCode})`, value: client.clientCode }))));
+        this.userService.list(this.applicationContext.effectiveTenant()?.tenantId ?? null).subscribe(users =>
+            this.previewUsernameOptions.set(users.map(user => ({
+                label: user.personName ? `${user.username} — ${user.personName}` : user.username,
+                value: user.username
+            }))));
         this.reload();
     }
 
@@ -207,8 +223,6 @@ export class NavigationTreeComponent {
         this.activeLevel.set(level);
     }
 
-    protected updatePreviewClient(event: Event): void { this.previewClientCode.set((event.target as HTMLInputElement).value); }
-    protected updatePreviewUsername(event: Event): void { this.previewUsername.set((event.target as HTMLInputElement).value); }
     protected loadPreview(): void {
         if (!this.previewClientCode().trim() || !this.previewUsername().trim()) return;
         this.service.navigationPreview(this.previewClientCode().trim(), this.previewUsername().trim())
