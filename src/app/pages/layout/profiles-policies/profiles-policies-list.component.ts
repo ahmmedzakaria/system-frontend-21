@@ -75,6 +75,12 @@ export class ProfilesPoliciesListComponent {
     protected readonly profileEditorOpen = signal(false);
     protected readonly profileEditorInitialValue = signal<Record<string, unknown>>({});
     protected readonly themes = signal<LayoutThemeConfig[]>([]);
+    protected readonly previewProfile = signal<LayoutProfileDto | null>(null);
+    protected readonly previewThemeId = signal('');
+    protected readonly previewTheme = computed(() => {
+        const profile = this.previewProfile();
+        return profile?.themes.find(theme => theme.id === this.previewThemeId()) ?? profile?.themes[0] ?? null;
+    });
     private editingProfileId: number | null = null;
 
     protected readonly loadProfiles: DynamicListLoader<LayoutProfileDto> = (params) =>
@@ -98,7 +104,10 @@ export class ProfilesPoliciesListComponent {
         { key: 'active', header: 'Status', type: 'badge', status: (row) => (row.active ? 'verified' : 'draft') },
         {
             key: 'actions', header: '', align: 'end', type: 'actions',
-            actions: [{ icon: 'edit', label: 'Edit', permissionKey: 'layout.manage', onClick: (row) => this.openProfileEditor(row) }]
+            actions: [
+                { icon: 'eye', label: 'Preview', onClick: (row) => this.openProfilePreview(row) },
+                { icon: 'edit', label: 'Edit', permissionKey: 'layout.manage', onClick: (row) => this.openProfileEditor(row) }
+            ]
         }
     ];
 
@@ -299,6 +308,11 @@ export class ProfilesPoliciesListComponent {
     protected closeProfileEditor(): void {
         this.profileEditorOpen.set(false);
     }
+    protected openProfilePreview(profile: LayoutProfileDto): void {
+        this.previewProfile.set(profile);
+        this.previewThemeId.set(profile.themes[0]?.id ?? '');
+    }
+    protected closeProfilePreview(): void { this.previewProfile.set(null); }
     protected saveProfileEditor(value: Record<string, unknown>): void {
         const request: LayoutProfileRequestDto = {
             id: this.editingProfileId,

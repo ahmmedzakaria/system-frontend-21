@@ -158,6 +158,79 @@
     </div>
 </app-modal>
 
+<app-modal [open]="!!previewProfile()" [title]="'Layout preview — ' + (previewProfile()?.name ?? '')" [width]="1000"
+           (closed)="closeProfilePreview()">
+    @if (previewProfile(); as profile) {
+        <div class="layout-preview-toolbar">
+            <div>
+                <strong>{{ profile.name }}</strong>
+                <span>{{ profile.layoutType }} · {{ profile.navigationMode }} · {{ profile.density }}</span>
+            </div>
+            @if (profile.themes.length > 1) {
+                <label>Theme
+                    <select [value]="previewThemeId()" (change)="previewThemeId.set($any($event.target).value)">
+                        @for (theme of profile.themes; track theme.id) {
+                            <option [value]="theme.id">{{ theme.label }}</option>
+                        }
+                    </select>
+                </label>
+            }
+        </div>
+
+        @if (previewTheme(); as theme) {
+            <div class="layout-preview"
+                 [class.layout-preview--horizontal]="profile.layoutType === 'HORIZONTAL'"
+                 [class.layout-preview--compact]="profile.layoutType === 'COMPACT' || profile.sidebarCollapsed"
+                 [class.layout-preview--rtl]="profile.rtlEnabled"
+                 [style.--preview-bg]="theme.chromeOverrides?.bg || theme.primaries.paper"
+                 [style.--preview-card]="theme.primaries.card"
+                 [style.--preview-text]="theme.primaries.text"
+                 [style.--preview-accent]="theme.primaries.accent"
+                 [style.--preview-border]="theme.chromeOverrides?.border || theme.swatch"
+                 [style.--preview-font]="profile.fonts?.bodyFamily || 'inherit'"
+                 [style.--preview-header-height]="(profile.sizes?.headerHeight || 56) + 'px'"
+                 [style.--preview-sidebar-width]="(profile.sidebarCollapsed ? (profile.sizes?.railWidthCollapsed || 64) : (profile.sizes?.railWidthExpanded || 224)) + 'px'">
+                @if (profile.topbarEnabled) {
+                    <header class="layout-preview__topbar">
+                        <span class="layout-preview__brand">{{ profile.brand?.displayName || profile.name }}</span>
+                        @if (profile.commandBarEnabled) { <span class="layout-preview__search">Search or run a command…</span> }
+                        <span class="layout-preview__user">User</span>
+                    </header>
+                }
+                <div class="layout-preview__body">
+                    @if (profile.sidebarEnabled) {
+                        <aside class="layout-preview__sidebar">
+                            @for (item of ['Dashboard', 'People', 'KYC', 'Reports']; track item) {
+                                <div class="layout-preview__nav-item" [class.active]="$first">
+                                    <span class="layout-preview__nav-icon"></span>
+                                    @if (!profile.sidebarCollapsed && profile.layoutType !== 'COMPACT') { <span>{{ item }}</span> }
+                                </div>
+                            }
+                        </aside>
+                    }
+                    <main class="layout-preview__content">
+                        @if (profile.breadcrumbEnabled) { <div class="layout-preview__breadcrumb">Home / Dashboard</div> }
+                        <h3>Dashboard</h3>
+                        <div class="layout-preview__cards">
+                            @for (card of ['Total records', 'Pending reviews', 'Completed today']; track card) {
+                                <article><span>{{ card }}</span><strong>{{ ($index + 1) * 128 }}</strong></article>
+                            }
+                        </div>
+                        <div class="layout-preview__panel">
+                            <strong>Recent activity</strong>
+                            @for (row of [1, 2, 3]; track row) { <div class="layout-preview__row"></div> }
+                        </div>
+                    </main>
+                </div>
+                @if (profile.footerEnabled) { <footer class="layout-preview__footer">{{ profile.brand?.shortName || profile.code }}</footer> }
+            </div>
+        } @else {
+            <p class="hint">This profile has no theme configuration to preview.</p>
+        }
+        <div class="modal-actions"><app-button label="Close" variant="ghost" (clicked)="closeProfilePreview()" /></div>
+    }
+</app-modal>
+
 <app-modal [open]="uiPolicyEditorOpen()" title="UI Policy" [width]="640" (closed)="closeUiPolicyEditor()">
     <app-dynamic-form #uiPolicyForm="dynamicForm" [fields]="uiPolicyFields()" [initialValue]="uiPolicyEditorInitialValue()" [columns]="2" (submitted)="saveUiPolicyEditor($event)" />
     <app-assignment-checklist
