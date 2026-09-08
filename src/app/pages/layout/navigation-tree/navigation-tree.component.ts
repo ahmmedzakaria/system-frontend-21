@@ -49,6 +49,7 @@ export class NavigationTreeComponent {
     private readonly applicationContext = inject(ApplicationContextService);
 
     protected readonly activeLevel = signal<Level>('groups');
+    protected readonly previewToolsActive = signal(false);
     protected readonly previewClientCode = signal('SYSTEM_ADMIN_WEB');
     protected readonly previewUsername = signal('');
     protected readonly previewClientOptions = signal<DropdownOption<string>[]>([]);
@@ -224,7 +225,10 @@ export class NavigationTreeComponent {
 
     protected setLevel(level: Level): void {
         this.activeLevel.set(level);
+        this.previewToolsActive.set(false);
     }
+
+    protected showPreviewTools(): void { this.previewToolsActive.set(true); }
 
     protected loadPreview(): void {
         if (!this.previewClientCode().trim() || !this.previewUsername().trim()) return;

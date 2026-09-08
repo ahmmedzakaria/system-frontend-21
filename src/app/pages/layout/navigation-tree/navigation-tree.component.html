@@ -1,62 +1,21 @@
 <div class="page-header">
     <h2>Navigation Tree</h2>
     <div class="header-actions">
-        @if (activeLevel() === 'groups') {
-            <app-button *appAuthorizedUi="'layout.manage'" label="New Module Group" icon="plus" variant="ghost" (clicked)="openEditor('groups', null)" />
-        } @else if (activeLevel() === 'modules') {
-            <app-button *appAuthorizedUi="'layout.manage'" label="New Module" icon="plus" variant="ghost" (clicked)="openEditor('modules', null)" />
-        } @else if (activeLevel() === 'categories') {
-            <app-button *appAuthorizedUi="'layout.manage'" label="New Category" icon="plus" variant="ghost" (clicked)="openEditor('categories', null)" />
-        } @else if (activeLevel() === 'featureGroups') {
-            <app-button *appAuthorizedUi="'layout.manage'" label="New Feature Group" icon="plus" variant="ghost" (clicked)="openEditor('featureGroups', null)" />
-        } @else {
-            <app-button *appAuthorizedUi="'layout.manage'" label="New Feature" icon="plus" variant="ghost" (clicked)="openEditor('features', null)" />
-        }
-    </div>
-</div>
-
-<section class="integrity-tools" aria-label="Navigation integrity and preview">
-    <div>
-        <label>Client code
-            <app-dynamic-dropdown
-                    mode="static"
-                    [options]="previewClientOptions()"
-                    [ngModel]="previewClientCode()"
-                    (ngModelChange)="previewClientCode.set($event)"
-                    placeholder="Select a client…"
-            />
-        </label>
-        <label>Username
-            <app-dynamic-dropdown
-                    mode="static"
-                    [options]="previewUsernameOptions()"
-                    [ngModel]="previewUsername() || null"
-                    (ngModelChange)="previewUsername.set($event ?? '')"
-                    placeholder="Select a user…"
-                    searchPlaceholder="Search users…"
-            />
-        </label>
-        <app-button label="Preview effective navigation" icon="search" variant="ghost"
-                    [disabled]="!previewClientCode().trim() || !previewUsername().trim() || previewLoading()"
-                    (clicked)="loadPreview()" />
-        @if (previewTree()) { <span role="status">{{ previewFeatureCount() }} visible features</span> }
-    </div>
-    <div>
-        <app-button label="Run integrity check" icon="check" variant="ghost" (clicked)="loadIntegrity()" />
-        @if (integrity(); as report) {
-            <span role="status" [class.warning]="!report.valid">{{ report.valid ? 'Navigation integrity valid' : 'Integrity issues detected' }}</span>
-            @if (!report.valid) {
-                <ul>
-                    @for (issue of report.invalidParents; track issue) { <li>Invalid parent: {{ issue }}</li> }
-                    @for (issue of report.duplicateCodes; track issue) { <li>Duplicate code: {{ issue }}</li> }
-                    @for (issue of report.duplicateRoutes; track issue) { <li>Duplicate route: {{ issue }}</li> }
-                    @for (issue of report.unknownRoutes; track issue) { <li>Unknown route policy: {{ issue }}</li> }
-                    @for (issue of report.invalidPrivilegeReferences; track issue) { <li>Invalid privilege: {{ issue }}</li> }
-                </ul>
+        @if (!previewToolsActive()) {
+            @if (activeLevel() === 'groups') {
+                <app-button *appAuthorizedUi="'layout.manage'" label="New Module Group" icon="plus" variant="ghost" (clicked)="openEditor('groups', null)" />
+            } @else if (activeLevel() === 'modules') {
+                <app-button *appAuthorizedUi="'layout.manage'" label="New Module" icon="plus" variant="ghost" (clicked)="openEditor('modules', null)" />
+            } @else if (activeLevel() === 'categories') {
+                <app-button *appAuthorizedUi="'layout.manage'" label="New Category" icon="plus" variant="ghost" (clicked)="openEditor('categories', null)" />
+            } @else if (activeLevel() === 'featureGroups') {
+                <app-button *appAuthorizedUi="'layout.manage'" label="New Feature Group" icon="plus" variant="ghost" (clicked)="openEditor('featureGroups', null)" />
+            } @else {
+                <app-button *appAuthorizedUi="'layout.manage'" label="New Feature" icon="plus" variant="ghost" (clicked)="openEditor('features', null)" />
             }
         }
     </div>
-</section>
+</div>
 
 <app-modal [open]="previewOpen()" [title]="'Effective navigation — ' + previewUsername()" [width]="760" (closed)="closePreview()">
     <div class="preview-context">
@@ -107,26 +66,63 @@
 </ng-template>
 
 <div class="tabs">
-    <button type="button" class="tab" [class.active]="activeLevel() === 'groups'" (click)="setLevel('groups')">Module Groups</button>
-    <button type="button" class="tab" [class.active]="activeLevel() === 'modules'" (click)="setLevel('modules')">Modules</button>
-    <button type="button" class="tab" [class.active]="activeLevel() === 'categories'" (click)="setLevel('categories')">Categories</button>
-    <button type="button" class="tab" [class.active]="activeLevel() === 'featureGroups'" (click)="setLevel('featureGroups')">Feature Groups</button>
-    <button type="button" class="tab" [class.active]="activeLevel() === 'features'" (click)="setLevel('features')">Features</button>
+    <button type="button" class="tab" [class.active]="!previewToolsActive() && activeLevel() === 'groups'" (click)="setLevel('groups')">Module Groups</button>
+    <button type="button" class="tab" [class.active]="!previewToolsActive() && activeLevel() === 'modules'" (click)="setLevel('modules')">Modules</button>
+    <button type="button" class="tab" [class.active]="!previewToolsActive() && activeLevel() === 'categories'" (click)="setLevel('categories')">Categories</button>
+    <button type="button" class="tab" [class.active]="!previewToolsActive() && activeLevel() === 'featureGroups'" (click)="setLevel('featureGroups')">Feature Groups</button>
+    <button type="button" class="tab" [class.active]="!previewToolsActive() && activeLevel() === 'features'" (click)="setLevel('features')">Features</button>
+    <button type="button" class="tab" [class.active]="previewToolsActive()" (click)="showPreviewTools()">Preview &amp; Integrity</button>
 </div>
 
-<div [hidden]="activeLevel() !== 'groups'">
+@if (previewToolsActive()) {
+    <section class="integrity-tools" aria-label="Navigation integrity and preview">
+        <div>
+            <label>Client code
+                <app-dynamic-dropdown mode="static" [options]="previewClientOptions()"
+                        [ngModel]="previewClientCode()" (ngModelChange)="previewClientCode.set($event)"
+                        placeholder="Select a client…" />
+            </label>
+            <label>Username
+                <app-dynamic-dropdown mode="static" [options]="previewUsernameOptions()"
+                        [ngModel]="previewUsername() || null" (ngModelChange)="previewUsername.set($event ?? '')"
+                        placeholder="Select a user…" searchPlaceholder="Search users…" />
+            </label>
+            <app-button label="Preview effective navigation" icon="search" variant="ghost"
+                        [disabled]="!previewClientCode().trim() || !previewUsername().trim() || previewLoading()"
+                        (clicked)="loadPreview()" />
+            @if (previewTree()) { <span role="status">{{ previewFeatureCount() }} visible features</span> }
+        </div>
+        <div>
+            <app-button label="Run integrity check" icon="check" variant="ghost" (clicked)="loadIntegrity()" />
+            @if (integrity(); as report) {
+                <span role="status" [class.warning]="!report.valid">{{ report.valid ? 'Navigation integrity valid' : 'Integrity issues detected' }}</span>
+                @if (!report.valid) {
+                    <ul>
+                        @for (issue of report.invalidParents; track issue) { <li>Invalid parent: {{ issue }}</li> }
+                        @for (issue of report.duplicateCodes; track issue) { <li>Duplicate code: {{ issue }}</li> }
+                        @for (issue of report.duplicateRoutes; track issue) { <li>Duplicate route: {{ issue }}</li> }
+                        @for (issue of report.unknownRoutes; track issue) { <li>Unknown route policy: {{ issue }}</li> }
+                        @for (issue of report.invalidPrivilegeReferences; track issue) { <li>Invalid privilege: {{ issue }}</li> }
+                    </ul>
+                }
+            }
+        </div>
+    </section>
+}
+
+<div [hidden]="previewToolsActive() || activeLevel() !== 'groups'">
     <app-dynamic-list #groupList [columns]="groupColumns" [loadItems]="loadGroups" [pageSize]="10" searchPlaceholder="Search by code or name…" emptyTitle="No module groups yet" emptyMessage="Add the first module group to get started." />
 </div>
-<div [hidden]="activeLevel() !== 'modules'">
+<div [hidden]="previewToolsActive() || activeLevel() !== 'modules'">
     <app-dynamic-list #moduleList [columns]="moduleColumns" [loadItems]="loadModules" [pageSize]="10" searchPlaceholder="Search by code or name…" emptyTitle="No modules yet" emptyMessage="Add a module group first, then add modules under it." />
 </div>
-<div [hidden]="activeLevel() !== 'categories'">
+<div [hidden]="previewToolsActive() || activeLevel() !== 'categories'">
     <app-dynamic-list #categoryList [columns]="categoryColumns" [loadItems]="loadCategories" [pageSize]="10" searchPlaceholder="Search by code or name…" emptyTitle="No categories yet" emptyMessage="Add a module first, then add categories under it." />
 </div>
-<div [hidden]="activeLevel() !== 'featureGroups'">
+<div [hidden]="previewToolsActive() || activeLevel() !== 'featureGroups'">
     <app-dynamic-list #featureGroupList [columns]="featureGroupColumns" [loadItems]="loadFeatureGroups" [pageSize]="10" searchPlaceholder="Search by code or name…" emptyTitle="No feature groups yet" emptyMessage="Add a category first, then add feature groups under it." />
 </div>
-<div [hidden]="activeLevel() !== 'features'">
+<div [hidden]="previewToolsActive() || activeLevel() !== 'features'">
     <app-dynamic-list #featureList [columns]="featureColumns" [loadItems]="loadFeatures" [pageSize]="10" searchPlaceholder="Search by code, name, or route…" emptyTitle="No features yet" emptyMessage="Add a feature group first, then add features under it." />
 </div>
 
