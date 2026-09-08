@@ -46,6 +46,7 @@
             #uiPolicyList
             [columns]="uiPolicyColumns"
             [loadItems]="loadUiPolicies"
+            [reloadKey]="uiPolicyFilterClientCode()"
             [pageSize]="10"
             searchPlaceholder="Search by action code…"
             emptyTitle="No UI policies yet"
@@ -56,7 +57,7 @@
 <div [hidden]="activeTab() !== 'routePolicies'">
     <div class="filter-row">
         <label for="route-policy-client-filter">Client Code (blank = global)</label>
-        <select id="route-policy-client-filter" [value]="routePolicyFilterClientCode()" (change)="routePolicyFilterClientCode.set($any($event.target).value)">
+        <select id="route-policy-client-filter" [value]="routePolicyFilterClientCode()" (change)="onRoutePolicyClientChange($event)">
             <option value="">Global (all clients)</option>
             @for (option of clientOptions(); track option.value) {
                 <option [value]="option.value">{{ option.label }}</option>

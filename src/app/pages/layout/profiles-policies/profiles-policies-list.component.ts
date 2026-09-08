@@ -172,6 +172,11 @@ export class ProfilesPoliciesListComponent {
 
     private readonly routePolicyList = viewChild<DynamicListComponent<RoutePrivilegePolicyDto>>('routePolicyList');
 
+    protected onRoutePolicyClientChange(event: Event): void {
+        this.routePolicyFilterClientCode.set((event.target as HTMLSelectElement).value);
+        this.routePolicyList()?.reload();
+    }
+
     protected readonly loadRoutePolicies: DynamicListLoader<RoutePrivilegePolicyDto> = (params) =>
         this.service.routePolicyList(this.routePolicyFilterClientCode() || null).pipe(
             map((rows) => {
