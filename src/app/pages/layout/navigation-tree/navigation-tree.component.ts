@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal, viewChild } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { of } from 'rxjs';
+import { finalize, of } from 'rxjs';
 import {
     ButtonComponent,
     DropdownOption,
@@ -36,7 +37,7 @@ type Level = 'groups' | 'modules' | 'categories' | 'featureGroups' | 'features';
     selector: 'app-navigation-tree',
     standalone: true,
     imports: [ButtonComponent, DynamicFormComponent, DynamicListComponent, ModalComponent, AuthorizedUiDirective,
-        AssignmentChecklistComponent, ReplacementSummaryComponent, DynamicDropdownComponent, FormsModule],
+        AssignmentChecklistComponent, ReplacementSummaryComponent, DynamicDropdownComponent, FormsModule, NgTemplateOutlet],
     templateUrl: './navigation-tree.component.html',
     styleUrl: './navigation-tree.component.scss'
 })
@@ -53,6 +54,8 @@ export class NavigationTreeComponent {
     protected readonly previewClientOptions = signal<DropdownOption<string>[]>([]);
     protected readonly previewUsernameOptions = signal<DropdownOption<string>[]>([]);
     protected readonly previewTree = signal<NavNodeDto[] | null>(null);
+    protected readonly previewOpen = signal(false);
+    protected readonly previewLoading = signal(false);
     protected readonly integrity = signal<import('../layout.model').LayoutNavigationIntegrityDto | null>(null);
     protected readonly previewFeatureCount = computed(() => this.countFeatures(this.previewTree() ?? []));
 
@@ -225,9 +228,14 @@ export class NavigationTreeComponent {
 
     protected loadPreview(): void {
         if (!this.previewClientCode().trim() || !this.previewUsername().trim()) return;
+        this.previewTree.set(null);
+        this.previewOpen.set(true);
+        this.previewLoading.set(true);
         this.service.navigationPreview(this.previewClientCode().trim(), this.previewUsername().trim())
+            .pipe(finalize(() => this.previewLoading.set(false)))
             .subscribe(tree => this.previewTree.set(tree));
     }
+    protected closePreview(): void { this.previewOpen.set(false); }
     protected loadIntegrity(): void { this.service.navigationIntegrity().subscribe(report => this.integrity.set(report)); }
     private countFeatures(nodes: NavNodeDto[]): number {
         return nodes.reduce((count, node) => count + (node.type === 'feature' ? 1 : 0) + this.countFeatures(node.children), 0);

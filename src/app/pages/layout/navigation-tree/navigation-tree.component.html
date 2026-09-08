@@ -36,7 +36,9 @@
                     searchPlaceholder="Search users…"
             />
         </label>
-        <app-button label="Preview effective navigation" icon="search" variant="ghost" (clicked)="loadPreview()" />
+        <app-button label="Preview effective navigation" icon="search" variant="ghost"
+                    [disabled]="!previewClientCode().trim() || !previewUsername().trim() || previewLoading()"
+                    (clicked)="loadPreview()" />
         @if (previewTree()) { <span role="status">{{ previewFeatureCount() }} visible features</span> }
     </div>
     <div>
@@ -55,6 +57,54 @@
         }
     </div>
 </section>
+
+<app-modal [open]="previewOpen()" [title]="'Effective navigation — ' + previewUsername()" [width]="760" (closed)="closePreview()">
+    <div class="preview-context">
+        <span><strong>Client:</strong> {{ previewClientCode() }}</span>
+        <span><strong>User:</strong> {{ previewUsername() }}</span>
+        @if (previewTree()) {
+            <span><strong>Visible features:</strong> {{ previewFeatureCount() }}</span>
+        }
+    </div>
+
+    @if (previewLoading()) {
+        <p class="preview-state" role="status">Loading effective navigation…</p>
+    } @else if (previewTree(); as tree) {
+        @if (tree.length) {
+            <nav class="navigation-preview" aria-label="Effective navigation preview">
+                <ul class="preview-tree preview-tree--root">
+                    <ng-container *ngTemplateOutlet="navigationNodes; context: { $implicit: tree }" />
+                </ul>
+            </nav>
+        } @else {
+            <p class="preview-state" role="status">No navigation is available for this client and user.</p>
+        }
+    }
+
+    <div class="modal-actions">
+        <app-button label="Close" variant="ghost" (clicked)="closePreview()" />
+    </div>
+</app-modal>
+
+<ng-template #navigationNodes let-nodes>
+    @for (node of nodes; track node.type + ':' + node.id) {
+        <li class="preview-node">
+            <div class="preview-node__row" [class.preview-node__row--feature]="node.type === 'feature'">
+                <span class="preview-node__type">{{ node.type === 'featureGroup' ? 'feature group' : node.type }}</span>
+                <span class="preview-node__label">{{ node.label }}</span>
+                <span class="preview-node__code">{{ node.code }}</span>
+                @if (node.route) {
+                    <span class="preview-node__route">{{ node.route }}</span>
+                }
+            </div>
+            @if (node.children.length) {
+                <ul class="preview-tree">
+                    <ng-container *ngTemplateOutlet="navigationNodes; context: { $implicit: node.children }" />
+                </ul>
+            }
+        </li>
+    }
+</ng-template>
 
 <div class="tabs">
     <button type="button" class="tab" [class.active]="activeLevel() === 'groups'" (click)="setLevel('groups')">Module Groups</button>
