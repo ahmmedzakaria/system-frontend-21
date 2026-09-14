@@ -207,6 +207,8 @@ export interface NavNodeDto {
     tCode: string | null;
     label: string;
     type: 'group' | 'module' | 'category' | 'featureGroup' | 'feature';
+    categoryKind: string | null;
+    featureTypeCode: string | null;
     icon: string | null;
     description: string | null;
     route: string | null;
@@ -224,6 +226,7 @@ export interface LayoutNavigationNodeRequestDto {
     tCode: string | null;
     name: string;
     categoryKind: string | null;
+    featureTypeCode: string | null;
     route: string | null;
     icon: string | null;
     description: string | null;
@@ -506,10 +509,11 @@ export function moduleFields(parentOptions: DropdownOption<unknown>[], physicalM
         { type: 'dropdown', key: 'physicalModuleCode', label: 'Physical Module Code', options: physicalModuleOptions }
     ]);
 }
-export function categoryFields(parentOptions: DropdownOption<unknown>[]): FieldConfig[] {
+export function categoryFields(parentOptions: DropdownOption<unknown>[], featureTypeOptions: DropdownOption<unknown>[]): FieldConfig[] {
     return navNodeFields(true, parentOptions, [
         { type: 'dropdown', key: 'icon', label: 'Icon', options: ICON_OPTIONS },
-        { type: 'text', key: 'categoryKind', label: 'Category Kind' }
+        { type: 'text', key: 'categoryKind', label: 'Category Kind' },
+        { type: 'dropdown', key: 'featureTypeCode', label: 'Feature Type', options: featureTypeOptions }
     ]);
 }
 export function featureGroupFields(parentOptions: DropdownOption<unknown>[]): FieldConfig[] {
@@ -540,6 +544,7 @@ export function navNodeInitialValue(row: NavNodeDto | null): Record<string, unkn
     }
     return {
         code: row.code, name: row.label, parentId: row.parentId, icon: row.icon ?? '',
+        categoryKind: row.categoryKind ?? '', featureTypeCode: row.featureTypeCode ?? '',
         description: row.description ?? '', route: row.route ?? '', tCode: row.tCode ?? '',
         displayOrder: row.displayOrder, active: row.active
     };

@@ -244,11 +244,14 @@ backend `@PrivilegeApi` enforcement remains authoritative.
 
 - `NavNodeDto` mirrors the backend's 5-level nav hierarchy (`ModuleGroup > Module >
   Category > FeatureGroup > Feature`): `id`, `parentId`, `code`, `tCode`, `label`,
-  `type`, `icon`, `description`, `route`, `active`, `displayOrder`, `privilegeCodes[]`,
+  `type`, `categoryKind`, `featureTypeCode`, `icon`, `description`, `route`, `active`, `displayOrder`, `privilegeCodes[]`,
   `children[]`. The `id`/`parentId`/`active`/`displayOrder` fields were added to the
   backend response specifically for this page — without them there was no way to
   resolve a newly-created node's id to use as a `parentId` for its child, or to
   pre-fill an edit form's `active`/`displayOrder` without silently resetting them.
+- Navigation categories carry an optional two-digit `featureTypeCode` from the privilege
+  catalog. Existing Setup/Operation/Report categories are backfilled to `01`/`02`/`03`;
+  categories without a trusted semantic match remain unset until edited.
 - **Two response shapes, one DTO**: `layout/navigation/tree` (used by the real app
   sidebar) prunes any branch that terminates in no privilege-visible feature — correct
   for a sidebar, wrong for this admin page, where a freshly-created empty

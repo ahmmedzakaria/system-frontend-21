@@ -98,7 +98,7 @@ export class NavigationTreeComponent {
 
     protected readonly groupFields = moduleGroupFields();
     protected readonly moduleFieldsComputed = computed(() => moduleFields(this.groupOptions(), this.physicalModuleOptions()));
-    protected readonly categoryFieldsComputed = computed(() => categoryFields(this.moduleOptions()));
+    protected readonly categoryFieldsComputed = computed(() => categoryFields(this.moduleOptions(), this.physicalFeatureTypeOptions()));
     protected readonly featureGroupFieldsComputed = computed(() => featureGroupFields(this.categoryOptions()));
     protected readonly featureFieldsComputed = computed(() => featureFields(this.featureGroupOptions(),
         this.physicalModuleOptions(), this.physicalSubmoduleOptions(), this.physicalFeatureTypeOptions(), this.physicalFeatureOptions()));
@@ -308,6 +308,7 @@ export class NavigationTreeComponent {
             tCode: (value['tCode'] as string) || null,
             name: value['name'] as string,
             categoryKind: (value['categoryKind'] as string) || null,
+            featureTypeCode: (value['featureTypeCode'] as string) || null,
             route: (value['route'] as string) || null,
             icon: (value['icon'] as string) || null,
             description: (value['description'] as string) || null,
