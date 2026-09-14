@@ -1,21 +1,12 @@
 <div class="page-header">
     <h2>Privileges</h2>
     <div class="header-actions">
-        @if (activeTab() === 'catalog') {
-            <app-button *appAuthorizedUi="'privileges.manage'" label="New Privilege" icon="plus" variant="ghost" (clicked)="openCatalogEditor(null)" />
-        } @else {
-            <app-button *appAuthorizedUi="'privileges.assign'" label="New Sub Menu" icon="plus" variant="ghost" (clicked)="openSubMenuEditor(null)" />
-        }
+        <app-button *appAuthorizedUi="'privileges.manage'" label="New Privilege" icon="plus" variant="ghost" (clicked)="openCatalogEditor(null)" />
     </div>
 </div>
 @if(error()){<p class="error-message" role="alert">{{error()}}</p>}
 
-<div class="tabs">
-    <button type="button" class="tab" [class.active]="activeTab() === 'catalog'" (click)="setTab('catalog')">Privilege Catalog</button>
-    <button type="button" class="tab" [class.active]="activeTab() === 'subMenus'" (click)="setTab('subMenus')">Sub Menus</button>
-</div>
-
-<div [hidden]="activeTab() !== 'catalog'">
+<div>
     <app-dynamic-list
             #catalogList
             [columns]="catalogColumns()"
@@ -24,18 +15,6 @@
             searchPlaceholder="Search by privilege code, module, or feature…"
             emptyTitle="No privileges yet"
             emptyMessage="Add the first privilege to get started."
-    />
-</div>
-
-<div [hidden]="activeTab() !== 'subMenus'">
-    <app-dynamic-list
-            #subMenuList
-            [columns]="subMenuColumns"
-            [loadItems]="loadSubMenus"
-            [pageSize]="10"
-            searchPlaceholder="Search by name or URL…"
-            emptyTitle="No sub menus yet"
-            emptyMessage="Add the first sub menu to get started."
     />
 </div>
 
@@ -59,11 +38,3 @@
  confirmLabel="Deactivate" [danger]="true" [loading]="mutation.pending()" (confirmed)="confirmDeactivate()" (cancelled)="cancelDeactivate()">
  @if(impact();as value){<ul>@for(entry of dependencyEntries();track entry[0]){<li>{{entry[0]}}: {{entry[1]}}</li>}</ul>}
 </app-confirm-dialog>
-
-<app-modal [open]="subMenuEditorOpen()" title="Sub Menu" [width]="640" (closed)="closeSubMenuEditor()">
-    <app-dynamic-form #subMenuForm="dynamicForm" [fields]="subMenuFields" [initialValue]="subMenuEditorInitialValue()" [columns]="2" (submitted)="saveSubMenuEditor($event)" />
-    <div class="modal-actions">
-        <app-button label="Cancel" variant="ghost" (clicked)="closeSubMenuEditor()" />
-        <app-button label="Save" icon="save" (clicked)="subMenuForm.submit()" />
-    </div>
-</app-modal>

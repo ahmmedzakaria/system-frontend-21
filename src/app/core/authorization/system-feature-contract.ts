@@ -85,8 +85,7 @@ export const SYSTEM_FEATURE_CONTRACTS: readonly SystemFeatureContract[] = [
         actions: { 'privileges.manage': 'privileges.manage', 'privileges.assign': 'privileges.assign' },
         endpoints: [endpoint('PRIVILEGE_LIST', 'privileges.view'), endpoint('PRIVILEGE_SEARCH', 'privileges.view'),
             endpoint('PRIVILEGE_SAVE', 'privileges.manage'), endpoint('PRIVILEGE_ASSIGN_ROLE', 'privileges.assign'),
-            endpoint('PRIVILEGE_ROLE_CODES', 'privileges.view'), endpoint('SUB_MENU_LIST', 'privileges.view'),
-            endpoint('SUB_MENU_SAVE', 'privileges.manage'), endpoint('PRIVILEGE_IMPACT', 'privileges.view'),
+            endpoint('PRIVILEGE_ROLE_CODES', 'privileges.view'), endpoint('PRIVILEGE_IMPACT', 'privileges.view'),
             endpoint('PRIVILEGE_DEACTIVATE', 'privileges.manage')]
     },
     {

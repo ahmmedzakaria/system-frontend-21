@@ -69,8 +69,6 @@ export const ApiEndpoints = {
     PRIVILEGE_ROLE_CODES: { apiPath: 'system/privilege/role-codes', actionType: ActionTypes.SEARCH },
     PRIVILEGE_IMPACT: { apiPath: 'system/privilege/impact', actionType: ActionTypes.SEARCH },
     PRIVILEGE_DEACTIVATE: { apiPath: 'system/privilege/deactivate', actionType: ActionTypes.UPDATE },
-    SUB_MENU_LIST: { apiPath: 'system/privilege/sub-menu/list', actionType: ActionTypes.SEARCH },
-    SUB_MENU_SAVE: { apiPath: 'system/privilege/sub-menu/save', actionType: ActionTypes.CREATE },
 
     // Layout
     LAYOUT_PROFILE_LIST: { apiPath: 'system/layout/profile/list', actionType: ActionTypes.SEARCH },

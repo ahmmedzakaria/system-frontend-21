@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal, viewChild } from '@angular/core';
-import { map, tap } from 'rxjs/operators';
+import { tap } from 'rxjs/operators';
 import {
     ButtonComponent,
     DynamicFormComponent,
@@ -14,16 +14,10 @@ import { AuthorizedUiDirective,AuthorizationPolicyService } from '@nexacore/plat
 import {
     PrivilegeDto,
     PrivilegeRequestDto,
-    SUB_MENU_FIELDS,
-    SubMenuDto,
-    SubMenuRequestDto,
     privilegeFields,
-    privilegeInitialValue, PrivilegeImpactDto,
-    subMenuInitialValue
+    privilegeInitialValue, PrivilegeImpactDto
 } from './privileges.model';
 import { PageOperationService } from '../../../core/authorization/page-operation.service';
-
-type Tab = 'catalog' | 'subMenus';
 
 @Component({
     selector: 'app-privileges-list',
@@ -46,45 +40,16 @@ export class PrivilegesListComponent {
     protected readonly dependencyEntries=computed(()=>Object.entries(this.impact()?.activeDependencies??{}));
     protected readonly codePreview=signal('');
 
-    protected readonly activeTab = signal<Tab>('catalog');
-
-    protected readonly subMenus = signal<SubMenuDto[]>([]);
-    protected readonly subMenuOptions = computed(() => [
-        { label: 'None', value: null },
-        ...this.subMenus().map((subMenu) => ({ label: subMenu.name, value: subMenu.id }))
-    ]);
-    protected readonly privilegeFields = computed(() => privilegeFields(this.subMenuOptions()));
+    protected readonly privilegeFields = computed(() => privilegeFields());
 
     protected readonly catalogEditorOpen = signal(false);
     protected readonly catalogEditorInitialValue = signal<Record<string, unknown>>({});
     private editingPrivilegeId: number | null = null;
 
-    protected readonly subMenuEditorOpen = signal(false);
-    protected readonly subMenuFields = SUB_MENU_FIELDS;
-    protected readonly subMenuEditorInitialValue = signal<Record<string, unknown>>({});
-    private editingSubMenuId: number | null = null;
-
     private readonly catalogList = viewChild<DynamicListComponent<PrivilegeDto>>('catalogList');
-    private readonly subMenuList = viewChild<DynamicListComponent<SubMenuDto>>('subMenuList');
-
-    constructor() {
-        this.reloadSubMenus();
-    }
 
     protected readonly loadCatalog: DynamicListLoader<PrivilegeDto> = params =>
         this.service.search(params.query,params.page-1,params.pageSize).pipe(tap(result=>this.catalogRows.set(result.items)));
-
-    protected readonly loadSubMenus: DynamicListLoader<SubMenuDto> = (params) =>
-        this.service.subMenuList().pipe(
-            map((rows) => {
-                const query = params.query.trim().toLowerCase();
-                const filtered = query
-                    ? rows.filter((row) => row.name.toLowerCase().includes(query) || row.url.toLowerCase().includes(query))
-                    : rows;
-                const start = (params.page - 1) * params.pageSize;
-                return { items: filtered.slice(start, start + params.pageSize), total: filtered.length };
-            })
-        );
 
     protected readonly catalogColumns=computed<ListColumnConfig<PrivilegeDto>[]>(() => [
         { key: 'privilegeCode', header: 'Privilege Code' },
@@ -92,7 +57,6 @@ export class PrivilegesListComponent {
         { key: 'submoduleName', header: 'Submodule' },
         { key: 'featureName', header: 'Feature' },
         { key: 'actionName', header: 'Action' },
-        { key: 'subMenuName', header: 'Sub Menu', format: (row) => row.subMenuName ?? '—' },
         { key: 'active', header: 'Status', type: 'badge', status: (row) => (row.active ? 'verified' : 'draft') },
         {
             key: 'actions',
@@ -106,29 +70,6 @@ export class PrivilegesListComponent {
             ]
         }
     ]);
-
-    protected readonly subMenuColumns: ListColumnConfig<SubMenuDto>[] = [
-        { key: 'name', header: 'Name' },
-        { key: 'url', header: 'URL' },
-        { key: 'menuOrder', header: 'Menu Order' },
-        { key: 'subMenuOrder', header: 'Sub Menu Order' },
-        { key: 'active', header: 'Status', type: 'badge', status: (row) => (row.active ? 'verified' : 'draft') },
-        {
-            key: 'actions',
-            header: '',
-            align: 'end',
-            type: 'actions',
-            actions: [{ icon: 'edit', label: 'Edit', permissionKey: 'privileges.assign', onClick: (row) => this.openSubMenuEditor(row) }]
-        }
-    ];
-
-    protected setTab(tab: Tab): void {
-        this.activeTab.set(tab);
-    }
-
-    private reloadSubMenus(): void {
-        this.service.subMenuList().subscribe((rows) => this.subMenus.set(rows));
-    }
 
     protected openCatalogEditor(row: PrivilegeDto | null): void {
         if(!this.canManage())return;
@@ -161,7 +102,6 @@ export class PrivilegesListComponent {
             featureName: value['featureName'] as string,
             actionCode: value['actionCode'] as string,
             actionName: value['actionName'] as string,
-            subMenuId: (value['subMenuId'] as number | null) ?? null,
             active: true
         };
         this.service.save(request).subscribe({next:() => {this.mutation.succeed();
@@ -178,39 +118,4 @@ export class PrivilegesListComponent {
     protected cancelDeactivate():void {this.deactivateConfirmOpen.set(false);this.impact.set(null);}
     private fail(error:unknown,fallback:string):void {const failure=this.operations.failure(error,fallback);if(this.mutation.pending())this.mutation.failStructured(failure.message,failure.code,failure.traceId);this.error.set(this.operations.display(failure));}
 
-    protected openSubMenuEditor(row: SubMenuDto | null): void {
-        this.editingSubMenuId = row?.id ?? null;
-        this.subMenuEditorInitialValue.set(subMenuInitialValue(row));
-        this.subMenuEditorOpen.set(true);
-    }
-
-    protected closeSubMenuEditor(): void {
-        this.subMenuEditorOpen.set(false);
-    }
-
-    protected saveSubMenuEditor(value: Record<string, unknown>): void {
-        const request: SubMenuRequestDto = {
-            id: this.editingSubMenuId,
-            name: value['name'] as string,
-            url: value['url'] as string,
-            icon: value['icon'] as string,
-            moduleCode: value['moduleCode'] as string,
-            moduleName: value['moduleName'] as string,
-            submoduleCode: value['submoduleCode'] as string,
-            submoduleName: value['submoduleName'] as string,
-            featureTypeCode: value['featureTypeCode'] as string,
-            featureTypeName: value['featureTypeName'] as string,
-            featureCode: value['featureCode'] as string,
-            featureName: value['featureName'] as string,
-            active: !!value['active'],
-            menuOrder: (value['menuOrder'] as number) ?? 0,
-            subMenuOrder: (value['subMenuOrder'] as number) ?? 0
-        };
-        this.service.subMenuSave(request).subscribe(() => {
-            this.subMenuEditorOpen.set(false);
-            this.editingSubMenuId = null;
-            this.subMenuList()?.reload();
-            this.reloadSubMenus();
-        });
-    }
 }
