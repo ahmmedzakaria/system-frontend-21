@@ -516,8 +516,13 @@ export function categoryFields(parentOptions: DropdownOption<unknown>[], feature
         { type: 'dropdown', key: 'featureTypeCode', label: 'Feature Type', options: featureTypeOptions }
     ]);
 }
-export function featureGroupFields(parentOptions: DropdownOption<unknown>[]): FieldConfig[] {
-    return navNodeFields(true, parentOptions, []);
+export function featureGroupFields(
+    navigationModuleOptions: DropdownOption<unknown>[],
+    featureTypeOptions: DropdownOption<unknown>[]
+): FieldConfig[] {
+    return navNodeFields(true, navigationModuleOptions, [
+        { type: 'dropdown', key: 'featureTypeCode', label: 'Feature Type', options: featureTypeOptions, required: true }
+    ]);
 }
 export function featureFields(
     parentOptions: DropdownOption<unknown>[],

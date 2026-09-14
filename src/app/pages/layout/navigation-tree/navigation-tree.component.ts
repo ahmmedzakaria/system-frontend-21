@@ -99,7 +99,8 @@ export class NavigationTreeComponent {
     protected readonly groupFields = moduleGroupFields();
     protected readonly moduleFieldsComputed = computed(() => moduleFields(this.groupOptions(), this.physicalModuleOptions()));
     protected readonly categoryFieldsComputed = computed(() => categoryFields(this.moduleOptions(), this.physicalFeatureTypeOptions()));
-    protected readonly featureGroupFieldsComputed = computed(() => featureGroupFields(this.categoryOptions()));
+    protected readonly featureGroupFieldsComputed = computed(() => featureGroupFields(
+        this.moduleOptions(), this.physicalFeatureTypeOptions()));
     protected readonly featureFieldsComputed = computed(() => featureFields(this.featureGroupOptions(),
         this.physicalModuleOptions(), this.physicalSubmoduleOptions(), this.physicalFeatureTypeOptions(), this.physicalFeatureOptions()));
 
@@ -272,7 +273,13 @@ export class NavigationTreeComponent {
         const codes = new Set(row?.privilegeCodes ?? []);
         this.featureOriginalCodes.set(codes);
         this.featureSelectedCodes.set(new Set(codes));
-        this.editorInitialValue.set(navNodeInitialValue(row));
+        const initialValue = navNodeInitialValue(row);
+        if (level === 'featureGroups' && row?.parentId != null) {
+            const category = this.categories().find(candidate => candidate.id === row.parentId);
+            initialValue['parentId'] = category?.parentId ?? null;
+            initialValue['featureTypeCode'] = category?.featureTypeCode ?? '';
+        }
+        this.editorInitialValue.set(initialValue);
         this.editorOpen.set(true);
     }
 
