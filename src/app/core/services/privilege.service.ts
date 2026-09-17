@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from '@nexacore/platform';
 import { ApiEndpoints } from '../api/api-endpoints';
-import { PrivilegeDto, PrivilegeRequestDto, PrivilegeImpactDto, PrivilegeDeactivateResultDto } from '../../pages/access-control/privileges/privileges.model';
+import { PrivilegeDto, PrivilegeRequestDto, PrivilegeImpactDto, PrivilegeDeactivateResultDto, PrivilegeFeatureDefinitionDto } from '../../pages/access-control/privileges/privileges.model';
 
 @Injectable({ providedIn: 'root' })
 export class PrivilegeService {
@@ -13,6 +13,9 @@ export class PrivilegeService {
     }
     search(query:string,page:number,pageSize:number):Observable<{items:PrivilegeDto[];total:number}> {
         return this.api.post<{items:PrivilegeDto[];total:number}>(ApiEndpoints.PRIVILEGE_SEARCH,{query,page,pageSize});
+    }
+    definitions(): Observable<PrivilegeFeatureDefinitionDto[]> {
+        return this.api.post<PrivilegeFeatureDefinitionDto[]>(ApiEndpoints.PRIVILEGE_DEFINITIONS);
     }
 
     save(request: PrivilegeRequestDto): Observable<PrivilegeDto> {

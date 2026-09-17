@@ -64,6 +64,7 @@ export const ApiEndpoints = {
     // Privileges
     PRIVILEGE_LIST: { apiPath: 'system/privilege/list', actionType: ActionTypes.SEARCH },
     PRIVILEGE_SEARCH: { apiPath: 'system/privilege/search', actionType: ActionTypes.SEARCH },
+    PRIVILEGE_DEFINITIONS: { apiPath: 'system/privilege/definitions', actionType: ActionTypes.SEARCH },
     PRIVILEGE_SAVE: { apiPath: 'system/privilege/save', actionType: ActionTypes.CREATE },
     PRIVILEGE_ASSIGN_ROLE: { apiPath: 'system/privilege/assign-role', actionType: ActionTypes.CREATE },
     PRIVILEGE_ROLE_CODES: { apiPath: 'system/privilege/role-codes', actionType: ActionTypes.SEARCH },

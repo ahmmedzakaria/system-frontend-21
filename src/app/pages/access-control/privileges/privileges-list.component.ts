@@ -13,6 +13,7 @@ import { PrivilegeService } from '../../../core/services/privilege.service';
 import { AuthorizedUiDirective,AuthorizationPolicyService } from '@nexacore/platform';
 import {
     PrivilegeDto,
+    PrivilegeFeatureDefinitionDto,
     PrivilegeRequestDto,
     privilegeFields,
     privilegeInitialValue, PrivilegeImpactDto
@@ -39,14 +40,21 @@ export class PrivilegesListComponent {
     protected readonly deactivateConfirmOpen=signal(false);
     protected readonly dependencyEntries=computed(()=>Object.entries(this.impact()?.activeDependencies??{}));
     protected readonly codePreview=signal('');
-
-    protected readonly privilegeFields = computed(() => privilegeFields());
+    protected readonly definitions=signal<PrivilegeFeatureDefinitionDto[]>([]);
 
     protected readonly catalogEditorOpen = signal(false);
     protected readonly catalogEditorInitialValue = signal<Record<string, unknown>>({});
+    protected readonly privilegeFields = computed(() => privilegeFields(this.definitions(), this.catalogEditorInitialValue()));
     private editingPrivilegeId: number | null = null;
 
     private readonly catalogList = viewChild<DynamicListComponent<PrivilegeDto>>('catalogList');
+
+    constructor() {
+        this.service.definitions().subscribe({
+            next: definitions => this.definitions.set(definitions),
+            error: error => this.fail(error, 'Privilege dropdown options could not be loaded.')
+        });
+    }
 
     protected readonly loadCatalog: DynamicListLoader<PrivilegeDto> = params =>
         this.service.search(params.query,params.page-1,params.pageSize).pipe(tap(result=>this.catalogRows.set(result.items)));
@@ -83,6 +91,20 @@ export class PrivilegesListComponent {
         this.catalogEditorOpen.set(false);
     }
 
+    protected catalogEditorChanged(value: Record<string, unknown>): void {
+        const previous = this.catalogEditorInitialValue();
+        const next = { ...value };
+        const hierarchy = ['moduleCode', 'submoduleCode', 'featureTypeCode', 'featureCode'] as const;
+        const changedAt = hierarchy.findIndex(key => previous[key] !== next[key]);
+        if (changedAt >= 0) {
+            hierarchy.slice(changedAt + 1).forEach(key => next[key] = null);
+            next['actionCode'] = null;
+        }
+        this.catalogEditorInitialValue.set(next);
+        this.codePreview.set(['moduleCode', 'submoduleCode', 'featureTypeCode', 'featureCode', 'actionCode']
+            .map(key => String(next[key] ?? '')).join(''));
+    }
+
     protected saveCatalogEditor(value: Record<string, unknown>): void {
         if(!this.canManage() || !this.mutation.begin())return;
         const code=`${value['moduleCode']??''}${value['submoduleCode']??''}${value['featureTypeCode']??''}${value['featureCode']??''}${value['actionCode']??''}`;
@@ -90,18 +112,22 @@ export class PrivilegesListComponent {
         if(!/^\d{11}$/.test(code)){this.mutation.fail('Privilege code must contain 2+2+2+3+2 digits.');this.error.set(this.mutation.error());return;}
         if(this.catalogRows().some(row=>row.privilegeCode===code && row.id!==this.editingPrivilegeId)){
             this.mutation.fail('Privilege code collides with an existing catalog entry.');this.error.set(this.mutation.error());return;}
+        const definition=this.definitions().find(item=>item.moduleCode===value['moduleCode'] && item.submoduleCode===value['submoduleCode']
+            && item.featureTypeCode===value['featureTypeCode'] && item.featureCode===value['featureCode']);
+        const action=definition?.actions.find(item=>item.actionCode===value['actionCode']);
+        if(!definition || !action){this.mutation.fail('Select a valid module, submodule, feature type, feature, and action.');this.error.set(this.mutation.error());return;}
         const request: PrivilegeRequestDto = {
             id:this.editingPrivilegeId,
             moduleCode: value['moduleCode'] as string,
-            moduleName: value['moduleName'] as string,
+            moduleName: definition.moduleName,
             submoduleCode: value['submoduleCode'] as string,
-            submoduleName: value['submoduleName'] as string,
+            submoduleName: definition.submoduleName,
             featureTypeCode: value['featureTypeCode'] as string,
-            featureTypeName: value['featureTypeName'] as string,
+            featureTypeName: definition.featureTypeName,
             featureCode: value['featureCode'] as string,
-            featureName: value['featureName'] as string,
+            featureName: definition.featureName,
             actionCode: value['actionCode'] as string,
-            actionName: value['actionName'] as string,
+            actionName: action.actionName,
             active: true
         };
         this.service.save(request).subscribe({next:() => {this.mutation.succeed();

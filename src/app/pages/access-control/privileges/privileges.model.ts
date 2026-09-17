@@ -23,6 +23,24 @@ export interface PrivilegeDto {
 export interface PrivilegeImpactDto { privilegeId:number; privilegeCode:string; version:string; activeDependencies:Record<string,number>; totalActiveDependencies:number; }
 export interface PrivilegeDeactivateResultDto { deactivated:boolean; impact:PrivilegeImpactDto; }
 
+export interface PrivilegeActionDefinitionDto {
+    actionCode: string;
+    actionName: string;
+    privilegeCode: string;
+}
+
+export interface PrivilegeFeatureDefinitionDto {
+    moduleCode: string;
+    moduleName: string;
+    submoduleCode: string;
+    submoduleName: string;
+    featureTypeCode: string;
+    featureTypeName: string;
+    featureCode: string;
+    featureName: string;
+    actions: PrivilegeActionDefinitionDto[];
+}
+
 export interface PrivilegeRequestDto {
     id:number|null;
     moduleCode: string;
@@ -44,18 +62,32 @@ export const PRIVILEGE_PRIVILEGES = {
     assign: '11010100181'
 } as const;
 
-export function privilegeFields(): FieldConfig[] {
+type PrivilegeSelection = Partial<Record<'moduleCode' | 'submoduleCode' | 'featureTypeCode' | 'featureCode' | 'actionCode', unknown>>;
+
+function options(rows: PrivilegeFeatureDefinitionDto[], code: keyof PrivilegeFeatureDefinitionDto, name: keyof PrivilegeFeatureDefinitionDto) {
+    const unique = new Map<string, string>();
+    rows.forEach(row => unique.set(String(row[code]), String(row[name])));
+    return [...unique].map(([value, label]) => ({ label: `${label} (${value})`, value }));
+}
+
+export function privilegeFields(definitions: PrivilegeFeatureDefinitionDto[], selection: PrivilegeSelection): FieldConfig[] {
+    const moduleCode = String(selection.moduleCode ?? '');
+    const submoduleCode = String(selection.submoduleCode ?? '');
+    const featureTypeCode = String(selection.featureTypeCode ?? '');
+    const featureCode = String(selection.featureCode ?? '');
+    const moduleRows = definitions.filter(row => row.moduleCode === moduleCode);
+    const submoduleRows = moduleRows.filter(row => row.submoduleCode === submoduleCode);
+    const featureTypeRows = submoduleRows.filter(row => row.featureTypeCode === featureTypeCode);
+    const featureRows = featureTypeRows.filter(row => row.featureCode === featureCode);
+    const actionOptions = featureRows.flatMap(row => row.actions ?? [])
+        .filter((action, index, all) => all.findIndex(candidate => candidate.actionCode === action.actionCode) === index)
+        .map(action => ({ label: `${action.actionName} (${action.actionCode})`, value: action.actionCode }));
     return [
-        { type: 'text', key: 'moduleCode', label: 'Module Code', required: true },
-        { type: 'text', key: 'moduleName', label: 'Module Name', required: true },
-        { type: 'text', key: 'submoduleCode', label: 'Submodule Code', required: true },
-        { type: 'text', key: 'submoduleName', label: 'Submodule Name', required: true },
-        { type: 'text', key: 'featureTypeCode', label: 'Feature Type Code', required: true },
-        { type: 'text', key: 'featureTypeName', label: 'Feature Type Name', required: true },
-        { type: 'text', key: 'featureCode', label: 'Feature Code', required: true },
-        { type: 'text', key: 'featureName', label: 'Feature Name', required: true },
-        { type: 'text', key: 'actionCode', label: 'Action Code', required: true },
-        { type: 'text', key: 'actionName', label: 'Action Name', required: true },
+        { type: 'dropdown', key: 'moduleCode', label: 'Module', placeholder: 'Select a module', required: true, options: options(definitions, 'moduleCode', 'moduleName') },
+        { type: 'dropdown', key: 'submoduleCode', label: 'Submodule', placeholder: moduleCode ? 'Select a submodule' : 'Select a module first', required: true, options: options(moduleRows, 'submoduleCode', 'submoduleName') },
+        { type: 'dropdown', key: 'featureTypeCode', label: 'Feature Type', placeholder: submoduleCode ? 'Select a feature type' : 'Select a submodule first', required: true, options: options(submoduleRows, 'featureTypeCode', 'featureTypeName') },
+        { type: 'dropdown', key: 'featureCode', label: 'Feature', placeholder: featureTypeCode ? 'Select a feature' : 'Select a feature type first', required: true, options: options(featureTypeRows, 'featureCode', 'featureName') },
+        { type: 'dropdown', key: 'actionCode', label: 'Action', placeholder: featureCode ? 'Select an action' : 'Select a feature first', required: true, options: actionOptions },
         // Deactivation is intentionally excluded from ordinary save; it requires an impact review.
     ];
 }
@@ -66,15 +98,10 @@ export function privilegeInitialValue(row: PrivilegeDto | null): Record<string, 
     }
     return {
         moduleCode: row.moduleCode,
-        moduleName: row.moduleName,
         submoduleCode: row.submoduleCode,
-        submoduleName: row.submoduleName,
         featureTypeCode: row.featureTypeCode,
-        featureTypeName: row.featureTypeName,
         featureCode: row.featureCode,
-        featureName: row.featureName,
         actionCode: row.actionCode,
-        actionName: row.actionName,
         active: row.active
     };
 }

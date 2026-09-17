@@ -20,7 +20,7 @@
 
 <app-modal [open]="catalogEditorOpen()" title="Privilege" [width]="640" (closed)="closeCatalogEditor()">
     <p>Composed privilege code: <code>{{codePreview() || 'Enter 2+2+2+3+2 numeric code parts'}}</code></p>
-    <app-dynamic-form #catalogForm="dynamicForm" [fields]="privilegeFields()" [initialValue]="catalogEditorInitialValue()" [columns]="2" (submitted)="saveCatalogEditor($event)" />
+    <app-dynamic-form #catalogForm="dynamicForm" [fields]="privilegeFields()" [initialValue]="catalogEditorInitialValue()" [columns]="2" (valueChange)="catalogEditorChanged($event)" (submitted)="saveCatalogEditor($event)" />
     <div class="modal-actions">
         <app-button label="Cancel" variant="ghost" (clicked)="closeCatalogEditor()" />
         <app-button label="Save" icon="save" (clicked)="catalogForm.submit()" />
