@@ -320,6 +320,8 @@ export class NavigationTreeComponent {
             icon: (value['icon'] as string) || null,
             description: (value['description'] as string) || null,
             physicalModuleCode: (value['physicalModuleCode'] as string) || null,
+            modulePrivCode: (value['modulePrivCode'] as string) || null,
+            navigationEnabled: value['navigationEnabled'] == null ? null : !!value['navigationEnabled'],
             physicalSubmoduleCode: (value['physicalSubmoduleCode'] as string) || null,
             physicalFeatureTypeCode: (value['physicalFeatureTypeCode'] as string) || null,
             physicalFeatureCode: (value['physicalFeatureCode'] as string) || null,

@@ -212,6 +212,12 @@ export interface NavNodeDto {
     icon: string | null;
     description: string | null;
     route: string | null;
+    modulePrivCode: string | null;
+    physicalModuleCode: string | null;
+    physicalSubmoduleCode: string | null;
+    physicalFeatureTypeCode: string | null;
+    physicalFeatureCode: string | null;
+    navigationEnabled: boolean | null;
     active: boolean;
     displayOrder: number;
     privilegeCodes: string[];
@@ -231,6 +237,8 @@ export interface LayoutNavigationNodeRequestDto {
     icon: string | null;
     description: string | null;
     physicalModuleCode: string | null;
+    modulePrivCode: string | null;
+    navigationEnabled: boolean | null;
     physicalSubmoduleCode: string | null;
     physicalFeatureTypeCode: string | null;
     physicalFeatureCode: string | null;
@@ -506,6 +514,8 @@ export function moduleFields(parentOptions: DropdownOption<unknown>[], physicalM
     return navNodeFields(true, parentOptions, [
         { type: 'dropdown', key: 'icon', label: 'Icon', options: ICON_OPTIONS },
         { type: 'text', key: 'description', label: 'Description', colSpan: 2 },
+        { type: 'text', key: 'modulePrivCode', label: 'Privilege Module Code' },
+        { type: 'checkbox', key: 'navigationEnabled', label: 'Navigation Enabled' },
         { type: 'dropdown', key: 'physicalModuleCode', label: 'Physical Module Code', options: physicalModuleOptions }
     ]);
 }
@@ -551,6 +561,9 @@ export function navNodeInitialValue(row: NavNodeDto | null): Record<string, unkn
         code: row.code, name: row.label, parentId: row.parentId, icon: row.icon ?? '',
         categoryKind: row.categoryKind ?? '', featureTypeCode: row.featureTypeCode ?? '',
         description: row.description ?? '', route: row.route ?? '', tCode: row.tCode ?? '',
+        modulePrivCode: row.modulePrivCode ?? '', navigationEnabled: row.navigationEnabled ?? true,
+        physicalModuleCode: row.physicalModuleCode ?? '', physicalSubmoduleCode: row.physicalSubmoduleCode ?? '',
+        physicalFeatureTypeCode: row.physicalFeatureTypeCode ?? '', physicalFeatureCode: row.physicalFeatureCode ?? '',
         displayOrder: row.displayOrder, active: row.active
     };
 }
