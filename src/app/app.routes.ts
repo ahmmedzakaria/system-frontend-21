@@ -24,6 +24,11 @@ export const routes: Routes = [
                     import('./pages/access-control/client-applications/client-applications-list.component').then(m => m.ClientApplicationsListComponent),
             },
             {
+                path: 'client-feature-permission',
+                redirectTo: 'access-control/client-applications',
+                pathMatch: 'full',
+            },
+            {
                 path: 'access-control/client-applications/create',
                 loadComponent: () =>
                     import('./pages/access-control/client-applications/client-application-editor.component').then(m => m.ClientApplicationEditorComponent),
