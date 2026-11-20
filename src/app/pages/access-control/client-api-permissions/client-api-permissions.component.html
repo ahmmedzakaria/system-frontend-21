@@ -1,0 +1,77 @@
+<div class="page-header">
+    <div>
+        <p class="eyebrow">Access Control</p>
+        <h2>Client API Permissions</h2>
+        <p class="subtitle">Control which protected backend APIs each client application can call.</p>
+    </div>
+    <div class="header-icon" aria-hidden="true"><app-icon name="key" [size]="24" /></div>
+</div>
+
+@if (loadingCatalog()) {
+    <div class="state-card">Loading client applications and API catalog…</div>
+} @else if (catalogError()) {
+    <div class="state-card error">
+        <p>{{ catalogError() }}</p>
+        <app-button label="Try again" icon="refresh" variant="ghost" (clicked)="loadCatalog()" />
+    </div>
+} @else if (!clients().length) {
+    <div class="state-card">No client applications are available.</div>
+} @else {
+    <section class="client-panel" aria-labelledby="client-selection-title">
+        <div>
+            <h3 id="client-selection-title">Application</h3>
+            <p>Assignments are global for the selected application and apply wherever that application is used.</p>
+        </div>
+        <label class="client-select">
+            <span>Client application</span>
+            <select [ngModel]="selectedClientId()" (ngModelChange)="clientChanged($event)">
+                @for (client of clients(); track client.id) {
+                    <option [ngValue]="client.id">{{ client.clientName }} ({{ client.clientCode }})</option>
+                }
+            </select>
+        </label>
+    </section>
+
+    @if (selectedClient(); as client) {
+        <div class="summary-grid">
+            <article><span>Selected application</span><strong>{{ client.clientName }}</strong><small>{{ client.clientCode }}</small></article>
+            <article><span>Application status</span><strong>{{ client.status }}</strong><small>{{ client.clientType }}</small></article>
+            <article><span>Assigned APIs</span><strong>{{ assignedCount() }}</strong><small>of {{ activeApiCount() }} protected APIs</small></article>
+        </div>
+    }
+
+    <section class="assignment-panel" aria-labelledby="api-assignment-title">
+        <div class="section-heading">
+            <div><h3 id="api-assignment-title">API assignments</h3><p>Search by route, API code, or privilege. APIs are grouped by backend module.</p></div>
+            <span class="replacement-badge">Full replacement</span>
+        </div>
+
+        <app-assignment-load-state [status]="state.status()" [error]="state.error()" (retry)="loadAssignments()" />
+        @if (state.status() === 'loaded' || state.status() === 'saving') {
+            <app-assignment-checklist
+                [items]="apiOptions()"
+                [selectedKeys]="selectedKeys()"
+                [keyOf]="apiKey"
+                [labelOf]="apiLabel"
+                [detailOf]="apiDetail"
+                [groupOf]="apiGroup"
+                [disabled]="state.status() === 'saving' || !canAssign()"
+                searchPlaceholder="Search routes, API codes, or privileges"
+                (selectionChanged)="toggle($event)"
+            />
+            <div class="save-bar">
+                <app-replacement-summary [summary]="state.summary()" />
+                <app-button
+                    label="Save API permissions"
+                    icon="save"
+                    [loading]="state.status() === 'saving'"
+                    [disabled]="!state.canSave() || !canAssign()"
+                    (clicked)="save()"
+                />
+            </div>
+            @if (!canAssign()) {
+                <p class="permission-note">You can review assignments, but your role cannot replace them.</p>
+            }
+        }
+    </section>
+}

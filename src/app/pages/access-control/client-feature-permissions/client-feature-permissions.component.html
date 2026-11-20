@@ -1,0 +1,34 @@
+<div class="page-header">
+    <div><p class="eyebrow">Access Control</p><h2>Client Feature Permissions</h2><p class="subtitle">Control the features available to each application for the active tenant.</p></div>
+    <div class="header-icon" aria-hidden="true"><app-icon name="key" [size]="24" /></div>
+</div>
+
+@if (loadingCatalog()) {
+    <div class="state-card">Loading applications and feature privileges…</div>
+} @else if (catalogError()) {
+    <div class="state-card error"><p>{{ catalogError() }}</p><app-button label="Try again" icon="refresh" variant="ghost" (clicked)="loadCatalog()" /></div>
+} @else if (!clients().length) {
+    <div class="state-card">No client applications are available.</div>
+} @else {
+    <section class="client-panel">
+        <div><h3>Application and tenant</h3><p>These assignments apply only to tenant {{ tenant()?.tenantCode }} (#{{ tenant()?.tenantId }}).</p></div>
+        <label class="client-select"><span>Client application</span><select [ngModel]="selectedClientId()" (ngModelChange)="clientChanged($event)">
+            @for (client of clients(); track client.id) { <option [ngValue]="client.id">{{ client.clientName }} ({{ client.clientCode }})</option> }
+        </select></label>
+    </section>
+    <div class="summary-grid">
+        <article><span>Selected application</span><strong>{{ selectedClient()?.clientName }}</strong><small>{{ selectedClient()?.clientCode }}</small></article>
+        <article><span>Active tenant</span><strong>{{ tenant()?.tenantCode }}</strong><small>Tenant #{{ tenant()?.tenantId }}</small></article>
+        <article><span>Assigned privileges</span><strong>{{ state.selected().length }}</strong><small>of {{ options().length }} active privileges</small></article>
+    </div>
+    <section class="assignment-panel">
+        <div class="section-heading"><div><h3>Feature assignments</h3><p>Search by feature, action, or privilege code. Privileges are grouped by module.</p></div><span class="replacement-badge">Tenant replacement</span></div>
+        <app-assignment-load-state [status]="state.status()" [error]="state.error()" (retry)="loadAssignments()" />
+        @if (state.status() === 'loaded' || state.status() === 'saving') {
+            <app-assignment-checklist [items]="options()" [selectedKeys]="selectedKeys()" [keyOf]="keyOf" [labelOf]="labelOf" [detailOf]="detailOf" [groupOf]="groupOf"
+                [disabled]="state.status() === 'saving' || !canAssign()" searchPlaceholder="Search features, actions, or privilege codes" (selectionChanged)="toggle($event)" />
+            <div class="save-bar"><app-replacement-summary [summary]="state.summary()" /><app-button label="Save feature permissions" icon="save" [loading]="state.status() === 'saving'" [disabled]="!state.canSave() || !canAssign()" (clicked)="save()" /></div>
+            @if (!canAssign()) { <p class="permission-note">You can review assignments, but your role cannot replace them.</p> }
+        }
+    </section>
+}
