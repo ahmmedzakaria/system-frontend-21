@@ -29,6 +29,11 @@ export const routes: Routes = [
                     import('./pages/access-control/client-feature-permissions/client-feature-permissions.component').then(m => m.ClientFeaturePermissionsComponent),
             },
             {
+                path: 'client-credential',
+                loadComponent: () =>
+                    import('./pages/access-control/client-credentials/client-credentials.component').then(m => m.ClientCredentialsComponent),
+            },
+            {
                 path: 'access-control/client-api-permission',
                 loadComponent: () =>
                     import('./pages/access-control/client-api-permissions/client-api-permissions.component').then(m => m.ClientApiPermissionsComponent),
