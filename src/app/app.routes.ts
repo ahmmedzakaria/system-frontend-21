@@ -28,6 +28,11 @@ export const routes: Routes = [
                 redirectTo: 'access-control/client-applications',
                 pathMatch: 'full',
             },
+            {// this route is duplicate need to remove later
+                path: 'access-control/client-api-permission',
+                redirectTo: 'access-control/client-applications',
+                pathMatch: 'full',
+            },
             {
                 path: 'access-control/client-applications/create',
                 loadComponent: () =>
