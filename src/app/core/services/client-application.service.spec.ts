@@ -13,20 +13,21 @@ describe('ClientApplicationService', () => {
 
     it('loads authoritative detail by id', () => {
         const post = vi.fn().mockReturnValue(of({}));
-        create(post).detail(12).subscribe();
+        create(post).detail(12, 7).subscribe();
 
-        expect(post).toHaveBeenCalledWith(ApiEndpoints.CLIENT_APP_DETAIL, { clientApplicationId: 12 });
+        expect(post).toHaveBeenCalledWith(ApiEndpoints.CLIENT_APP_DETAIL, { clientApplicationId: 12, tenantId: 7 });
     });
 
     it('sends normalized tenant/business/branch tuples for full replacement', () => {
         const post = vi.fn().mockReturnValue(of(undefined));
         const scopes = [{ tenantId: 7, businessId: 8, branchId: 9 }];
 
-        create(post).assignScopes(12, scopes).subscribe();
+        create(post).assignScopes(12, scopes, 'version-1').subscribe();
 
         expect(post).toHaveBeenCalledWith(ApiEndpoints.CLIENT_APP_ASSIGN_TENANTS, {
             clientApplicationId: 12,
-            scopeAssignments: scopes
+            scopeAssignments: scopes,
+            version: 'version-1'
         });
     });
 });

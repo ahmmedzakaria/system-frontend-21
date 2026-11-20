@@ -54,6 +54,7 @@ export interface ClientApplicationRequestDto {
  * populate the field relevant to the specific assign-* call being made. */
 export interface ClientPermissionAssignmentRequestDto {
     clientApplicationId: number;
+    tenantId?: number;
     apiRegistryIds?: number[];
     privilegeCodes?: string[];
     scopeAssignments?: ClientScopeAssignmentDto[];

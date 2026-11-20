@@ -19,8 +19,8 @@ export class ClientApplicationService {
         return this.api.post<ClientApplicationDto[]>(ApiEndpoints.CLIENT_APP_LIST);
     }
 
-    detail(clientApplicationId: number): Observable<ClientAdministrationDetailDto> {
-        return this.api.post<ClientAdministrationDetailDto>(ApiEndpoints.CLIENT_APP_DETAIL, { clientApplicationId });
+    detail(clientApplicationId: number, tenantId: number): Observable<ClientAdministrationDetailDto> {
+        return this.api.post<ClientAdministrationDetailDto>(ApiEndpoints.CLIENT_APP_DETAIL, { clientApplicationId, tenantId });
     }
 
     save(request: ClientApplicationRequestDto): Observable<ClientApplicationDto> {
@@ -38,8 +38,8 @@ export class ClientApplicationService {
     }
 
     /** Full-replace: the given set becomes the client's entire feature (privilege) permission set. */
-    assignFeaturePermissions(clientApplicationId: number, privilegeCodes: string[]): Observable<void> {
-        const request: ClientPermissionAssignmentRequestDto = { clientApplicationId, privilegeCodes };
+    assignFeaturePermissions(clientApplicationId: number, tenantId: number, privilegeCodes: string[]): Observable<void> {
+        const request: ClientPermissionAssignmentRequestDto = { clientApplicationId, tenantId, privilegeCodes };
         return this.api.post<void>(ApiEndpoints.CLIENT_APP_ASSIGN_FEATURE_PERMISSIONS, request);
     }
 

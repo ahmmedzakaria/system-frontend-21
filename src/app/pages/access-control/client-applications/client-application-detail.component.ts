@@ -48,6 +48,7 @@ export class ClientApplicationDetailComponent {
     private readonly context = inject(ApplicationContextService);
     private readonly policy = inject(AuthorizationPolicyService);
     private readonly id = Number(inject(ActivatedRoute).snapshot.paramMap.get('id'));
+    private readonly tenantId = this.context.effectiveTenant()?.tenantId;
 
     protected readonly client = signal<ClientApplicationDto | null>(null);
     protected readonly loading = signal(true);
@@ -107,12 +108,17 @@ export class ClientApplicationDetailComponent {
     constructor() { this.load(); }
 
     protected load(): void {
+        if (this.tenantId == null) {
+            this.loading.set(false);
+            this.featureState.loadFailed('A resolved tenant is required to load feature assignments.');
+            return;
+        }
         this.loading.set(true);
         this.apiState.beginLoad();
         this.featureState.beginLoad();
         this.scopeState.beginLoad();
         forkJoin({
-            detail: this.clientApps.detail(this.id),
+            detail: this.clientApps.detail(this.id, this.tenantId),
             apis: this.apiRegistry.list(),
             privileges: this.privilegesService.list()
         }).subscribe({
@@ -153,7 +159,12 @@ export class ClientApplicationDetailComponent {
 
     protected saveFeatures(): void {
         if (!this.featureState.beginSave()) return;
-        this.clientApps.assignFeaturePermissions(this.id, this.featureState.selected().map(item => item.privilegeCode)).subscribe(this.saveObserver(this.featureState));
+        if (this.tenantId == null) {
+            this.featureState.saveFailed('A resolved tenant is required to save feature assignments.');
+            return;
+        }
+        this.clientApps.assignFeaturePermissions(this.id, this.tenantId,
+            this.featureState.selected().map(item => item.privilegeCode)).subscribe(this.saveObserver(this.featureState));
     }
 
     protected requestSaveScopes():void { if(this.scopeState.canSave()) this.scopeReplacementConfirmOpen.set(true); }
