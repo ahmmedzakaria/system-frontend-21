@@ -25,13 +25,13 @@ export const routes: Routes = [
             },
             {
                 path: 'client-feature-permission',
-                redirectTo: 'access-control/client-applications',
-                pathMatch: 'full',
+                loadComponent: () =>
+                    import('./pages/access-control/client-feature-permissions/client-feature-permissions.component').then(m => m.ClientFeaturePermissionsComponent),
             },
-            {// this route is duplicate need to remove later
+            {
                 path: 'access-control/client-api-permission',
-                redirectTo: 'access-control/client-applications',
-                pathMatch: 'full',
+                loadComponent: () =>
+                    import('./pages/access-control/client-api-permissions/client-api-permissions.component').then(m => m.ClientApiPermissionsComponent),
             },
             {
                 path: 'access-control/client-applications/create',

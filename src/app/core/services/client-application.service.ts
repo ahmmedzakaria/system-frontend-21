@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { ApiService } from '@nexacore/platform';
 import { ApiEndpoints } from '../api/api-endpoints';
 import {
@@ -29,6 +30,16 @@ export class ClientApplicationService {
 
     rotateApiKey(clientApplicationId: number): Observable<GeneratedClientCredentialDto> {
         return this.api.post<GeneratedClientCredentialDto>(ApiEndpoints.CLIENT_APP_ROTATE_API_KEY, { clientApplicationId });
+    }
+
+    apiPermissions(clientApplicationId: number): Observable<Set<number>> {
+        return this.api.post<number[]>(ApiEndpoints.CLIENT_APP_API_PERMISSIONS, { clientApplicationId })
+            .pipe(map(ids => new Set(ids)));
+    }
+
+    featurePermissions(clientApplicationId: number, tenantId: number): Observable<Set<string>> {
+        return this.api.post<string[]>(ApiEndpoints.CLIENT_APP_FEATURE_PERMISSIONS, { clientApplicationId, tenantId })
+            .pipe(map(codes => new Set(codes)));
     }
 
     /** Full-replace: the given set becomes the client's entire API permission set. */

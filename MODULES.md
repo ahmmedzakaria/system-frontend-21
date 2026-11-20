@@ -71,6 +71,12 @@ backend `@PrivilegeApi` enforcement remains authoritative.
 
 - Routes: `access-control/client-applications` (list), `.../create` and
   `.../:id/edit` (editor), `.../:id` (detail).
+- Route: `access-control/client-api-permission` provides a focused application
+  selector and full-replacement API assignment workflow backed by
+  `client-app/api-permissions` and `client-app/assign-api-permissions`.
+- Route: `client-feature-permission` provides the equivalent tenant-scoped
+  feature privilege assignment workflow backed by `client-app/feature-permissions`
+  and `client-app/assign-feature-permissions`.
 - Components: `client-applications-list.component.ts`,
   `client-application-editor.component.ts`, `client-application-detail.component.ts`.
 - Model: `pages/access-control/access-control.model.ts`.

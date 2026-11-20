@@ -18,6 +18,26 @@ describe('ClientApplicationService', () => {
         expect(post).toHaveBeenCalledWith(ApiEndpoints.CLIENT_APP_DETAIL, { clientApplicationId: 12, tenantId: 7 });
     });
 
+    it('loads the focused API permission set by client application id', () => {
+        const post = vi.fn().mockReturnValue(of([3, 7]));
+        let result: Set<number> | undefined;
+
+        create(post).apiPermissions(12).subscribe(value => result = value);
+
+        expect(post).toHaveBeenCalledWith(ApiEndpoints.CLIENT_APP_API_PERMISSIONS, { clientApplicationId: 12 });
+        expect(result).toEqual(new Set([3, 7]));
+    });
+
+    it('loads tenant-scoped feature permissions', () => {
+        const post = vi.fn().mockReturnValue(of(['11020100481']));
+        let result: Set<string> | undefined;
+
+        create(post).featurePermissions(12, 7).subscribe(value => result = value);
+
+        expect(post).toHaveBeenCalledWith(ApiEndpoints.CLIENT_APP_FEATURE_PERMISSIONS, { clientApplicationId: 12, tenantId: 7 });
+        expect(result).toEqual(new Set(['11020100481']));
+    });
+
     it('sends normalized tenant/business/branch tuples for full replacement', () => {
         const post = vi.fn().mockReturnValue(of(undefined));
         const scopes = [{ tenantId: 7, businessId: 8, branchId: 9 }];
