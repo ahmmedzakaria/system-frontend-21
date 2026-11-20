@@ -105,8 +105,13 @@ export const routes: Routes = [
                 loadComponent: () =>
                     import('./pages/workflow/workflow-list.component').then(m => m.WorkflowListComponent),
             },
-            { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
+            { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+            {
+                path: '**',
+                loadComponent: () =>
+                    import('@nexacore/shared').then(m => m.DevelopmentInProgressComponent),
+                data: { public: true },
+            },
         ],
     },
-    { path: '**', redirectTo: 'dashboard' },
 ];
