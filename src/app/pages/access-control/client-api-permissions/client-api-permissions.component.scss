@@ -16,6 +16,7 @@
 .client-panel h3, .section-heading h3 { margin: 0; color: var(--text); font-size: var(--layout-font-size-lg); }
 .client-select { display: grid; gap: var(--layout-space-1); color: var(--text-muted); font-size: var(--layout-font-size-sm); font-weight: var(--layout-font-weight-semibold); }
 .client-select select { width: 100%; min-height: var(--layout-control-6xl); padding: 0 var(--layout-space-3); border: var(--layout-border-width) solid var(--border); border-radius: var(--radius); background: var(--card); color: var(--text); font: inherit; }
+.selector-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--layout-space-3); }
 
 .summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--layout-space-3); margin-bottom: var(--layout-space-3); }
 .summary-grid article { @include shell.card; display: grid; gap: var(--layout-space-1); padding: var(--layout-space-3); }
@@ -29,6 +30,6 @@
 .permission-note { margin: 0; color: var(--text-muted); font-size: var(--layout-font-size-sm); }
 
 @media (max-width: 48rem) {
-  .client-panel, .summary-grid { grid-template-columns: 1fr; }
+  .client-panel, .summary-grid, .selector-grid { grid-template-columns: 1fr; }
   .save-bar, .section-heading { align-items: stretch; flex-direction: column; }
 }

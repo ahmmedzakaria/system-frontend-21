@@ -1,24 +1,31 @@
 <div class="page-header">
-    <div><p class="eyebrow">Access Control</p><h2>Client Feature Permissions</h2><p class="subtitle">Control the features available to each application for the active tenant.</p></div>
+    <div><p class="eyebrow">Access Control</p><h2>Client Feature Permissions</h2><p class="subtitle">Control the features available to each application for a selected tenant.</p></div>
     <div class="header-icon" aria-hidden="true"><app-icon name="key" [size]="24" /></div>
 </div>
 
 @if (loadingCatalog()) {
-    <div class="state-card">Loading applications and feature privileges…</div>
+    <div class="state-card">Loading applications, tenants, and feature privileges…</div>
 } @else if (catalogError()) {
     <div class="state-card error"><p>{{ catalogError() }}</p><app-button label="Try again" icon="refresh" variant="ghost" (clicked)="loadCatalog()" /></div>
 } @else if (!clients().length) {
     <div class="state-card">No client applications are available.</div>
+} @else if (!tenants().length) {
+    <div class="state-card">No authorized tenants are available.</div>
 } @else {
     <section class="client-panel">
-        <div><h3>Application and tenant</h3><p>These assignments apply only to tenant {{ tenant()?.tenantCode }} (#{{ tenant()?.tenantId }}).</p></div>
-        <label class="client-select"><span>Client application</span><select [ngModel]="selectedClientId()" (ngModelChange)="clientChanged($event)">
-            @for (client of clients(); track client.id) { <option [ngValue]="client.id">{{ client.clientName }} ({{ client.clientCode }})</option> }
-        </select></label>
+        <div><h3>Application and tenant</h3><p>Choose a tenant and application to load their current feature assignments.</p></div>
+        <div class="selector-grid">
+            <label class="client-select"><span>Tenant</span><select [ngModel]="selectedTenantId()" [disabled]="state.status() === 'saving'" (ngModelChange)="tenantChanged($event)">
+                @for (tenant of tenants(); track tenant.id) { <option [ngValue]="tenant.id">{{ tenant.label }}</option> }
+            </select></label>
+            <label class="client-select"><span>Client application</span><select [ngModel]="selectedClientId()" [disabled]="state.status() === 'saving'" (ngModelChange)="clientChanged($event)">
+                @for (client of clients(); track client.id) { <option [ngValue]="client.id">{{ client.clientName }} ({{ client.clientCode }})</option> }
+            </select></label>
+        </div>
     </section>
     <div class="summary-grid">
         <article><span>Selected application</span><strong>{{ selectedClient()?.clientName }}</strong><small>{{ selectedClient()?.clientCode }}</small></article>
-        <article><span>Active tenant</span><strong>{{ tenant()?.tenantCode }}</strong><small>Tenant #{{ tenant()?.tenantId }}</small></article>
+        <article><span>Selected tenant</span><strong>{{ selectedTenant()?.label }}</strong><small>Tenant #{{ selectedTenantId() }}</small></article>
         <article><span>Assigned privileges</span><strong>{{ state.selected().length }}</strong><small>of {{ options().length }} active privileges</small></article>
     </div>
     <section class="assignment-panel">
