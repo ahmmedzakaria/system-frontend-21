@@ -33,6 +33,7 @@ export const SYSTEM_FEATURE_CONTRACTS: readonly SystemFeatureContract[] = [
             '/access-control/client-api-permission': 'client-applications.assign-api',
             '/client-feature-permission': 'client-applications.assign-feature',
             '/client-credential': 'client-applications.rotate',
+            '/access-control/client-tenant-assignment': 'client-applications.assign-scope',
             '/access-control/client-applications/create': 'client-applications.manage',
             '/access-control/client-applications/:id/edit': 'client-applications.manage',
             '/access-control/client-applications/:id': 'client-applications.view'

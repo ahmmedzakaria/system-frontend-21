@@ -77,6 +77,9 @@ backend `@PrivilegeApi` enforcement remains authoritative.
 - Route: `client-feature-permission` provides the equivalent tenant-scoped
   feature privilege assignment workflow backed by `client-app/feature-permissions`
   and `client-app/assign-feature-permissions`.
+- Route: `access-control/client-tenant-assignment` opens the client application list; selecting a
+  client opens its authoritative detail screen where tenant, business, and branch
+  scope assignments are reviewed and replaced.
 - Components: `client-applications-list.component.ts`,
   `client-application-editor.component.ts`, `client-application-detail.component.ts`.
 - Model: `pages/access-control/access-control.model.ts`.
