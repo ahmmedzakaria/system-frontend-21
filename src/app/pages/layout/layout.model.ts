@@ -167,6 +167,7 @@ export interface ClientLayoutAssignmentDto {
     clientCode: string | null;
     layoutProfileId: number | null;
     profileCode: string | null;
+    profileActive: boolean;
     assignmentScope: AssignmentScope;
     roleCode: string | null;
     privilegeCode: string | null;

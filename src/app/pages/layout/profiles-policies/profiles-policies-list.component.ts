@@ -261,11 +261,20 @@ export class ProfilesPoliciesListComponent {
 
     protected readonly clientAssignmentColumns: ListColumnConfig<ClientLayoutAssignmentDto>[] = [
         { key: 'profileCode', header: 'Profile Code' },
+        {
+            key: 'profileActive', header: 'Profile Status', type: 'badge',
+            status: (row) => (row.profileActive ? 'verified' : 'draft'),
+            label: (row) => (row.profileActive ? 'Active' : 'Inactive')
+        },
         { key: 'assignmentScope', header: 'Scope' },
         { key: 'deviceTarget', header: 'Device' },
         { key: 'defaultProfile', header: 'Default', type: 'badge', status: (row) => (row.defaultProfile ? 'verified' : 'draft') },
         { key: 'displayOrder', header: 'Order' },
-        { key: 'active', header: 'Status', type: 'badge', status: (row) => (row.active ? 'verified' : 'draft') },
+        {
+            key: 'active', header: 'Assignment Status', type: 'badge',
+            status: (row) => (row.active ? 'verified' : 'draft'),
+            label: (row) => (row.active ? 'Active' : 'Inactive')
+        },
         {
             key: 'actions', header: '', align: 'end', type: 'actions',
             actions: [{ icon: 'edit', label: 'Edit', permissionKey: 'layout.manage', onClick: (row) => this.openClientAssignmentEditor(row) }]
@@ -276,7 +285,7 @@ export class ProfilesPoliciesListComponent {
 
     constructor() {
         this.privilegeService.list().subscribe(privileges => this.privileges.set(privileges.filter(item => item.active)));
-        this.service.profileList().subscribe(profiles => this.profileCatalog.set(profiles.filter(profile => profile.active)));
+        this.service.profileList().subscribe(profiles => this.profileCatalog.set(profiles));
         /** `hasPrivilege` reads the async-loaded authorization context — a one-time
          * check here could race ahead of that load and permanently skip the fetch
          * even though the privilege is actually present. `effect()` re-evaluates

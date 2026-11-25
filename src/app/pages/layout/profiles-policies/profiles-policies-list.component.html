@@ -78,7 +78,7 @@
 <div [hidden]="activeTab() !== 'clientAssignment'">
     <div class="filter-row">
         <label for="assignment-client-select">Client Application</label>
-        <select id="assignment-client-select" (change)="onAssignmentClientChange($event)">
+        <select id="assignment-client-select" [value]="assignmentFilterClientCode()" (change)="onAssignmentClientChange($event)">
             <option value="">Select a client…</option>
             @for (option of clientOptions(); track option.value) {
                 <option [value]="option.value">{{ option.label }}</option>
@@ -90,6 +90,7 @@
                 #clientAssignmentList
                 [columns]="clientAssignmentColumns"
                 [loadItems]="loadClientAssignments"
+                [reloadKey]="assignmentFilterClientCode()"
                 [pageSize]="10"
                 searchPlaceholder="Search…"
                 emptyTitle="No layout assignments yet"
@@ -271,11 +272,12 @@
     <label for="assignment-profile-preview">Layout profile</label>
     <select id="assignment-profile-preview" [value]="selectedAssignmentProfileCode()" (change)="selectAssignmentProfile($event)">
         <option value="">Select a profile…</option>
-        @for (profile of profileCatalog(); track profile.id) { <option [value]="profile.code">{{ profile.name }} ({{ profile.code }})</option> }
+        @for (profile of profileCatalog(); track profile.id) { <option [value]="profile.code">{{ profile.name }} ({{ profile.code }}) — {{ profile.active ? 'Active' : 'Inactive' }}</option> }
     </select>
     @if (selectedAssignmentProfile(); as profile) {
         <section class="profile-preview" aria-label="Selected profile preview">
             <strong>{{ profile.name }}</strong>
+            <span>Status: {{ profile.active ? 'Active' : 'Inactive' }}</span>
             <span>{{ profile.layoutType }} · {{ profile.navigationMode }} · {{ profile.themeMode }} · {{ profile.density }}</span>
             <span>Sidebar {{ profile.sidebarEnabled ? 'enabled' : 'disabled' }}, topbar {{ profile.topbarEnabled ? 'enabled' : 'disabled' }}</span>
         </section>
