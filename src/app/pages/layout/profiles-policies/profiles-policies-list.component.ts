@@ -14,6 +14,7 @@ import {
 } from '@nexacore/shared';
 import { LayoutService } from '../../../core/services/layout.service';
 import { ClientApplicationService } from '../../../core/services/client-application.service';
+import { AuthorizedScopeService } from '../../../core/services/authorized-scope.service';
 import { PrivilegeService } from '../../../core/services/privilege.service';
 import { PrivilegeDto } from '../../access-control/privileges/privileges.model';
 import { ApplicationContextService, AuthorizedUiDirective, AuthorizationPolicyService } from '@nexacore/platform';
@@ -56,14 +57,10 @@ type Tab = 'profiles' | 'uiPolicies' | 'routePolicies' | 'clientAssignment';
 export class ProfilesPoliciesListComponent {
     private readonly service = inject(LayoutService);
     private readonly clientAppService = inject(ClientApplicationService);
+    private readonly authorizedScopes = inject(AuthorizedScopeService);
     private readonly privilegeService = inject(PrivilegeService);
     private readonly policy = inject(AuthorizationPolicyService);
     private readonly applicationContext = inject(ApplicationContextService);
-    /** `layout/client/list` and `layout/client/assign` both require an explicit
-     * tenantId (the backend has no client-registered-tenant fallback) — this is
-     * the signed-in admin's own effective tenant, same source `user-list.component.ts` uses. */
-    private readonly currentTenantId = computed(() => this.applicationContext.effectiveTenant()?.tenantId ?? null);
-
     protected readonly activeTab = signal<Tab>('profiles');
 
     private readonly profileList = viewChild<DynamicListComponent<LayoutProfileDto>>('profileList');
@@ -239,7 +236,14 @@ export class ProfilesPoliciesListComponent {
     protected readonly clientAssignmentEditorOpen = signal(false);
     protected readonly clientAssignmentEditorInitialValue = signal<Record<string, unknown>>({});
     protected readonly clientOptions = signal<DropdownOption<unknown>[]>([]);
+    protected readonly assignmentTenantOptions = signal<{ label: string; value: number }[]>([]);
+    protected readonly selectedAssignmentTenantId = signal<number | null>(
+        this.applicationContext.effectiveTenant()?.tenantId ?? null
+    );
     protected readonly assignmentFilterClientCode = signal('');
+    protected readonly assignmentReloadKey = computed(() =>
+        `${this.selectedAssignmentTenantId() ?? ''}:${this.assignmentFilterClientCode()}`
+    );
     protected readonly profileCatalog = signal<LayoutProfileDto[]>([]);
     protected readonly selectedAssignmentProfileCode = signal('');
     protected readonly selectedAssignmentProfile = computed(() => this.profileCatalog()
@@ -248,10 +252,11 @@ export class ProfilesPoliciesListComponent {
 
     protected readonly loadClientAssignments: DynamicListLoader<ClientLayoutAssignmentDto> = (params) => {
         const clientCode = this.assignmentFilterClientCode();
-        if (!clientCode) {
+        const tenantId = this.selectedAssignmentTenantId();
+        if (!clientCode || tenantId === null) {
             return of({ items: [], total: 0 });
         }
-        return this.service.clientAssignList(clientCode, this.currentTenantId()).pipe(
+        return this.service.clientAssignList(clientCode, tenantId).pipe(
             map((rows) => {
                 const start = (params.page - 1) * params.pageSize;
                 return { items: rows.slice(start, start + params.pageSize), total: rows.length };
@@ -286,6 +291,13 @@ export class ProfilesPoliciesListComponent {
     constructor() {
         this.privilegeService.list().subscribe(privileges => this.privileges.set(privileges.filter(item => item.active)));
         this.service.profileList().subscribe(profiles => this.profileCatalog.set(profiles));
+        this.authorizedScopes.tenants().subscribe(tenants => {
+            const options = tenants.map(tenant => ({ label: tenant.label, value: tenant.id }));
+            this.assignmentTenantOptions.set(options);
+            if (!options.some(option => option.value === this.selectedAssignmentTenantId())) {
+                this.selectedAssignmentTenantId.set(options[0]?.value ?? null);
+            }
+        });
         /** `hasPrivilege` reads the async-loaded authorization context — a one-time
          * check here could race ahead of that load and permanently skip the fetch
          * even though the privilege is actually present. `effect()` re-evaluates
@@ -305,6 +317,12 @@ export class ProfilesPoliciesListComponent {
 
     protected onAssignmentClientChange(event: Event): void {
         this.assignmentFilterClientCode.set((event.target as HTMLSelectElement).value);
+    }
+
+    protected onAssignmentTenantChange(event: Event): void {
+        const value = (event.target as HTMLSelectElement).value;
+        this.selectedAssignmentTenantId.set(value ? Number(value) : null);
+        this.closeClientAssignmentEditor();
     }
 
     // -- Profiles --
@@ -425,7 +443,7 @@ export class ProfilesPoliciesListComponent {
     protected saveClientAssignmentEditor(value: Record<string, unknown>): void {
         const request: ClientLayoutAssignmentRequestDto = {
             id: this.editingAssignmentId,
-            tenantId: this.currentTenantId(),
+            tenantId: this.selectedAssignmentTenantId(),
             clientApplicationId: null,
             clientCode: this.assignmentFilterClientCode(),
             layoutProfileId: null,

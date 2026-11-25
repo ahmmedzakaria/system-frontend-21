@@ -8,7 +8,7 @@
         } @else if (activeTab() === 'routePolicies') {
             <app-button *appAuthorizedUi="'layout.manage'" label="New Route Policy" icon="plus" variant="ghost" (clicked)="openRoutePolicyEditor(null)" />
         } @else {
-            <app-button *appAuthorizedUi="'layout.manage'" label="New Assignment" icon="plus" variant="ghost" [disabled]="!assignmentFilterClientCode()" (clicked)="openClientAssignmentEditor(null)" />
+            <app-button *appAuthorizedUi="'layout.manage'" label="New Assignment" icon="plus" variant="ghost" [disabled]="!selectedAssignmentTenantId() || !assignmentFilterClientCode()" (clicked)="openClientAssignmentEditor(null)" />
         }
     </div>
 </div>
@@ -77,6 +77,13 @@
 
 <div [hidden]="activeTab() !== 'clientAssignment'">
     <div class="filter-row">
+        <label for="assignment-tenant-select">Tenant</label>
+        <select id="assignment-tenant-select" [value]="selectedAssignmentTenantId() ?? ''" (change)="onAssignmentTenantChange($event)">
+            <option value="" disabled>Select a tenant…</option>
+            @for (option of assignmentTenantOptions(); track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+            }
+        </select>
         <label for="assignment-client-select">Client Application</label>
         <select id="assignment-client-select" [value]="assignmentFilterClientCode()" (change)="onAssignmentClientChange($event)">
             <option value="">Select a client…</option>
@@ -85,19 +92,19 @@
             }
         </select>
     </div>
-    @if (assignmentFilterClientCode()) {
+    @if (selectedAssignmentTenantId() && assignmentFilterClientCode()) {
         <app-dynamic-list
                 #clientAssignmentList
                 [columns]="clientAssignmentColumns"
                 [loadItems]="loadClientAssignments"
-                [reloadKey]="assignmentFilterClientCode()"
+                [reloadKey]="assignmentReloadKey()"
                 [pageSize]="10"
                 searchPlaceholder="Search…"
                 emptyTitle="No layout assignments yet"
                 emptyMessage="Assign a layout profile to this client to get started."
         />
     } @else {
-        <p class="hint">Select a client application above to view its layout assignments.</p>
+        <p class="hint">Select an authorized tenant and client application above to view layout assignments.</p>
     }
 </div>
 
