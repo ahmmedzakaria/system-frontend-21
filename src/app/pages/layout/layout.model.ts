@@ -477,7 +477,7 @@ export const CLIENT_ASSIGNMENT_FIELDS: FieldConfig[] = [
     { type: 'text', key: 'moduleCode', label: 'Module Code' },
     { type: 'number', key: 'displayOrder', label: 'Display Order' },
     { type: 'checkbox', key: 'defaultProfile', label: 'Default Profile' },
-    { type: 'checkbox', key: 'selectable', label: 'Selectable' },
+    { type: 'checkbox', key: 'selectable', label: 'User-selectable profile' },
     { type: 'checkbox', key: 'active', label: 'Active' }
 ];
 

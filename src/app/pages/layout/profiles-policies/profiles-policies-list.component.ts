@@ -274,6 +274,11 @@ export class ProfilesPoliciesListComponent {
         { key: 'assignmentScope', header: 'Scope' },
         { key: 'deviceTarget', header: 'Device' },
         { key: 'defaultProfile', header: 'Default', type: 'badge', status: (row) => (row.defaultProfile ? 'verified' : 'draft') },
+        {
+            key: 'selectable', header: 'Selectable', type: 'badge',
+            status: (row) => (row.selectable ? 'verified' : 'draft'),
+            label: (row) => (row.selectable ? 'Yes' : 'No')
+        },
         { key: 'displayOrder', header: 'Order' },
         {
             key: 'active', header: 'Assignment Status', type: 'badge',
