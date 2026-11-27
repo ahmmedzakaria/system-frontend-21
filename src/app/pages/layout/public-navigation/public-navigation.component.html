@@ -1,0 +1,26 @@
+<section class="page">
+  <header><div><p class="eyebrow">System setup</p><h1>Public navigation</h1><p>Manage tenant-owned links and client visibility.</p></div></header>
+  <div class="scope card">
+    <label>Tenant<select [ngModel]="tenantId()" (ngModelChange)="selectTenant($event)"><option [ngValue]="null">Select tenant</option>@for (tenant of tenants(); track tenant.id) {<option [value]="tenant.id">{{ tenant.label }}</option>}</select></label>
+    <label>Client<select [ngModel]="clientCode()" (ngModelChange)="selectClient($event)" [disabled]="!tenantId()"><option value="">Select client</option>@for (client of clients(); track client.clientCode) {<option [value]="client.clientCode">{{ client.clientName }} ({{ client.clientCode }})</option>}</select></label>
+    <label>Surface<select [ngModel]="surface()" (ngModelChange)="surface.set($event); preview.set(null)">@for (value of ['PRIMARY','UTILITY','FOOTER','MOBILE','LOGIN']; track value) {<option [value]="value">{{ value }}</option>}</select></label>
+    <button type="button" (click)="reload()" [disabled]="!tenantId() || loading()">Reload</button>
+  </div>
+  @if (error()) { <p class="error">{{ error() }}</p> }
+  @if (tenantId()) {
+    <div class="grid">
+      <article class="card"><div class="title"><h2>Groups</h2><button type="button" (click)="editGroup()">New</button></div>
+        <div class="form"><label>Code<input [(ngModel)]="groupForm['groupCode']"></label><label>Name<input [(ngModel)]="groupForm['groupName']"></label><label>Surface<select [(ngModel)]="groupForm['surface']">@for (value of ['PRIMARY','UTILITY','FOOTER','MOBILE','LOGIN']; track value) {<option [value]="value">{{ value }}</option>}</select></label><label>Order<input type="number" [(ngModel)]="groupForm['displayOrder']"></label><button type="button" appAuthorizedUi="layout.manage" (click)="saveGroup()">Save group</button></div>
+        <ul>@for (group of groups(); track group.id) {<li><button class="link" type="button" (click)="editGroup(group)">{{ group.groupName }}</button><span>{{ group.surface }} · {{ group.active ? 'Active' : 'Inactive' }}</span></li>}</ul>
+      </article>
+      <article class="card"><div class="title"><h2>Items</h2><button type="button" (click)="editItem()">New</button></div>
+        <div class="form"><label>Group<select [(ngModel)]="itemForm['navigationGroupId']"><option [ngValue]="null">Select</option>@for (group of groups(); track group.id) {<option [ngValue]="group.id">{{ group.groupName }}</option>}</select></label><label>Parent<select [(ngModel)]="itemForm['parentId']"><option [ngValue]="null">Root</option>@for (item of items(); track item.id) {@if (item.itemType === 'GROUP' && item.navigationGroupId === itemForm['navigationGroupId']) {<option [ngValue]="item.id">{{ item.label }}</option>}}</select></label><label>Code<input [(ngModel)]="itemForm['itemCode']"></label><label>Label<input [(ngModel)]="itemForm['label']"></label><label>Type<select [(ngModel)]="itemForm['itemType']"><option value="GROUP">Group</option><option value="INTERNAL_ROUTE">Internal route</option><option value="EXTERNAL_URL">External URL</option></select></label>@if (itemForm['itemType'] === 'INTERNAL_ROUTE') {<label>Route<input [(ngModel)]="itemForm['routePath']"></label>}@if (itemForm['itemType'] === 'EXTERNAL_URL') {<label>HTTPS URL<input [(ngModel)]="itemForm['externalUrl']"></label>}<button type="button" appAuthorizedUi="layout.manage" (click)="saveItem()">Save item</button></div>
+        <ul>@for (item of items(); track item.id) {<li><button class="link" type="button" (click)="editItem(item)">{{ item.label }}</button><span>{{ groupName(item.navigationGroupId) }} · {{ item.itemType }}</span></li>}</ul>
+      </article>
+      <article class="card"><div class="title"><h2>Client assignments</h2><button type="button" (click)="loadPreview()" [disabled]="!clientCode()">Preview</button></div>
+        @if (!clientCode()) {<p>Select a client.</p>} @else {<div class="checklist">@for (item of assignable(); track item.id) {<label><input type="checkbox" [checked]="selected().has(item.id)" (change)="toggle(item.id, $any($event.target).checked)"><span>{{ item.label }}</span><small>{{ item.itemCode }}</small></label>}</div><button type="button" appAuthorizedUi="layout.manage" (click)="saveAssignments()">Replace assignments ({{ selected().size }})</button>}
+      </article>
+      <article class="card"><h2>Integrity and preview</h2>@if (integrity(); as report) {<p [class.error]="!report.valid">{{ report.valid ? 'No integrity issues found.' : report.issues.length + ' issue(s) found.' }}</p><ul>@for (issue of report.issues; track issue) {<li>{{ issue }}</li>}</ul>}@if (preview(); as tree) {<pre>{{ tree | json }}</pre>}</article>
+    </div>
+  }
+</section>
