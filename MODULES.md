@@ -218,7 +218,7 @@ backend `@PrivilegeApi` enforcement remains authoritative.
 
 - Routes: `layout/profiles` (3 tabs: Profiles, UI Policies, Client Assignment),
   `layout/navigation-tree` (5 tabs: Module Groups, Modules, Categories, Feature
-  Groups, Features).
+  Groups, Features), and `layout/public-navigation`.
 - Components: `profiles-policies-list.component.ts`, `navigation-tree.component.ts`.
   Model: `pages/layout/layout.model.ts`.
 - Backend endpoints: `layout/profile/list`+`save`, `layout/ui-policy/list`+`save`,
@@ -226,6 +226,12 @@ backend `@PrivilegeApi` enforcement remains authoritative.
   branches with no privilege-visible feature), `layout/navigation/tree/admin`
   (admin-facing, **unpruned** — added specifically for this page, see below),
   `layout/navigation/{group,module,category,feature-group,feature}/save`.
+
+Public Navigation uses `public-navigation/groups/list`+`save`,
+`items/list`+`save`, `assignments/list`+`replace`, `integrity`, and `preview`.
+Changing tenant clears every dependent selection and result; changing client
+clears assignments and preview. Assignment writes use full replacement and the
+backend restores only necessary ancestor groups in the effective tree.
 
 ### Layout Profiles / UI Policies / Client Assignment
 

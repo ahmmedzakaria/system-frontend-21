@@ -90,6 +90,14 @@ export const ApiEndpoints = {
     LAYOUT_NAVIGATION_CATEGORY_REORDER: { apiPath: 'system/layout/navigation/category/reorder', actionType: ActionTypes.UPDATE },
     LAYOUT_NAVIGATION_FEATURE_GROUP_SAVE: { apiPath: 'system/layout/navigation/feature-group/save', actionType: ActionTypes.CREATE },
     LAYOUT_NAVIGATION_FEATURE_SAVE: { apiPath: 'system/layout/navigation/feature/save', actionType: ActionTypes.CREATE },
+    PUBLIC_NAVIGATION_GROUP_LIST: { apiPath: 'system/public-navigation/groups/list', actionType: ActionTypes.SEARCH },
+    PUBLIC_NAVIGATION_GROUP_SAVE: { apiPath: 'system/public-navigation/groups/save', actionType: ActionTypes.CREATE },
+    PUBLIC_NAVIGATION_ITEM_LIST: { apiPath: 'system/public-navigation/items/list', actionType: ActionTypes.SEARCH },
+    PUBLIC_NAVIGATION_ITEM_SAVE: { apiPath: 'system/public-navigation/items/save', actionType: ActionTypes.CREATE },
+    PUBLIC_NAVIGATION_ASSIGNMENT_LIST: { apiPath: 'system/public-navigation/assignments/list', actionType: ActionTypes.SEARCH },
+    PUBLIC_NAVIGATION_ASSIGNMENT_REPLACE: { apiPath: 'system/public-navigation/assignments/replace', actionType: ActionTypes.UPDATE },
+    PUBLIC_NAVIGATION_INTEGRITY: { apiPath: 'system/public-navigation/integrity', actionType: ActionTypes.SEARCH },
+    PUBLIC_NAVIGATION_PREVIEW: { apiPath: 'system/public-navigation/preview', actionType: ActionTypes.SEARCH },
 
     // License
     LICENSE_PLAN_LIST: { apiPath: 'system/license/plan/list', actionType: ActionTypes.SEARCH },

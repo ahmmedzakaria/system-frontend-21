@@ -106,6 +106,11 @@ export const routes: Routes = [
                     import('./pages/layout/navigation-tree/navigation-tree.component').then(m => m.NavigationTreeComponent),
             },
             {
+                path: 'layout/public-navigation',
+                loadComponent: () =>
+                    import('./pages/layout/public-navigation/public-navigation.component').then(m => m.PublicNavigationComponent),
+            },
+            {
                 path: 'license',
                 loadComponent: () =>
                     import('./pages/license/license-list.component').then(m => m.LicenseListComponent),

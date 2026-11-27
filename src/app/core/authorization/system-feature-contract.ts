@@ -93,7 +93,8 @@ export const SYSTEM_FEATURE_CONTRACTS: readonly SystemFeatureContract[] = [
             endpoint('PRIVILEGE_DEACTIVATE', 'privileges.manage')]
     },
     {
-        feature: 'layout', routes: { '/layout/profiles': 'layout.view', '/layout/navigation-tree': 'layout.view' },
+        feature: 'layout', routes: { '/layout/profiles': 'layout.view', '/layout/navigation-tree': 'layout.view',
+            '/layout/public-navigation': 'layout.view' },
         actions: { 'layout.manage': 'layout.manage' },
         endpoints: [endpoint('LAYOUT_PROFILE_LIST', 'layout.view'), endpoint('LAYOUT_PROFILE_SAVE', 'layout.manage'),
             endpoint('LAYOUT_UI_POLICY_LIST', 'layout.view'), endpoint('LAYOUT_UI_POLICY_SAVE', 'layout.manage'),
@@ -104,7 +105,11 @@ export const SYSTEM_FEATURE_CONTRACTS: readonly SystemFeatureContract[] = [
             endpoint('LAYOUT_NAVIGATION_GROUP_SAVE', 'layout.manage'), endpoint('LAYOUT_NAVIGATION_MODULE_SAVE', 'layout.manage'),
             endpoint('LAYOUT_NAVIGATION_CATEGORY_SAVE', 'layout.manage'), endpoint('LAYOUT_NAVIGATION_FEATURE_GROUP_SAVE', 'layout.manage'),
             endpoint('LAYOUT_NAVIGATION_CATEGORY_REORDER', 'layout.manage'),
-            endpoint('LAYOUT_NAVIGATION_FEATURE_SAVE', 'layout.manage')]
+            endpoint('LAYOUT_NAVIGATION_FEATURE_SAVE', 'layout.manage'),
+            endpoint('PUBLIC_NAVIGATION_GROUP_LIST', 'layout.view', 'TENANT'), endpoint('PUBLIC_NAVIGATION_GROUP_SAVE', 'layout.manage', 'TENANT'),
+            endpoint('PUBLIC_NAVIGATION_ITEM_LIST', 'layout.view', 'TENANT'), endpoint('PUBLIC_NAVIGATION_ITEM_SAVE', 'layout.manage', 'TENANT'),
+            endpoint('PUBLIC_NAVIGATION_ASSIGNMENT_LIST', 'layout.view', 'TENANT'), endpoint('PUBLIC_NAVIGATION_ASSIGNMENT_REPLACE', 'layout.manage', 'TENANT'),
+            endpoint('PUBLIC_NAVIGATION_INTEGRITY', 'layout.view', 'TENANT'), endpoint('PUBLIC_NAVIGATION_PREVIEW', 'layout.view', 'TENANT')]
     },
     {
         feature: 'license', routes: { '/license': 'license.view' }, actions: { 'license.manage': 'license.manage' },
